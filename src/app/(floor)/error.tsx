@@ -1,7 +1,7 @@
 "use client";
 
-import { RouteError } from "@/components/shared/route-error";
+import { ErrorState } from "@/components/shared/error-state";
 
 export default function Error({ error, retry }: { error: unknown; retry: () => void }) {
-  return <RouteError error={error} retry={retry} />;
+  return <ErrorState error={error} retry={retry} />;
 }

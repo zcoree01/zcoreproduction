@@ -11,29 +11,19 @@ import { createOrgUser } from "./create-user";
 import {
   CREATE_USER_FIELDS,
   createUserSchema,
+  type CreateUserError,
   type CreateUserField,
-  type CreateUserFormState,
+  type CreateUserResult,
 } from "./schemas";
 
-function text(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
+const fail = (error: CreateUserError, fields: CreateUserField[] = []): CreateUserResult => ({
+  ok: false,
+  error,
+  fields,
+});
 
-export async function createUserAction(
-  _previous: CreateUserFormState,
-  formData: FormData,
-): Promise<CreateUserFormState> {
-  const values = {
-    username: text(formData, "username"),
-    fullName: text(formData, "fullName"),
-    roleId: text(formData, "roleId"),
-  };
-  const fail = (
-    error: Exclude<CreateUserFormState, { status: "idle" | "success" }>["error"],
-    invalidFields: CreateUserField[] = [],
-  ): CreateUserFormState => ({ status: "error", error, invalidFields, values });
-
+// `input` comes from the client: always re-validated here.
+export async function createUserAction(input: unknown): Promise<CreateUserResult> {
   const member = await requireMember();
   try {
     await requirePermission(member.organization.id, "users.manage");
@@ -44,7 +34,7 @@ export async function createUserAction(
     throw error;
   }
 
-  const parsed = createUserSchema.safeParse({ ...values, password: text(formData, "password") });
+  const parsed = createUserSchema.safeParse(input);
   if (!parsed.success) {
     const fields = new Set(parsed.error.issues.map((issue) => issue.path[0]));
     return fail(
@@ -105,5 +95,5 @@ export async function createUserAction(
   }
 
   revalidatePath("/admin/users");
-  return { status: "success", username: parsed.data.username };
+  return { ok: true, username: parsed.data.username };
 }

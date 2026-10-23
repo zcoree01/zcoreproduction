@@ -19,6 +19,7 @@ const TENANT_TABLES = [
   { table: "memberships", orgColumn: "organization_id" },
   { table: "audit_log", orgColumn: "organization_id" },
   { table: "org_modules", orgColumn: "organization_id" },
+  { table: "member_directory", orgColumn: "organization_id" },
 ] as const;
 
 let fx: Fixture;

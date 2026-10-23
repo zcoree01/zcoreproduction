@@ -6,20 +6,16 @@ import { loadMember } from "@/lib/auth/session";
 import { toAuthEmail } from "@/lib/auth/username";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantSlug } from "@/lib/tenant/server";
-import { signInSchema, type SignInState } from "./schemas";
+import { signInSchema, type SignInResult } from "./schemas";
 
-export async function signInAction(
-  _previous: SignInState,
-  formData: FormData,
-): Promise<SignInState> {
+// `input` comes from the client: always re-validated here.
+export async function signInAction(input: unknown): Promise<SignInResult> {
   const tenantSlug = await getTenantSlug();
   if (!tenantSlug) return { error: "no_tenant" };
 
-  const rawUsername = formData.get("username");
-  const username = typeof rawUsername === "string" ? rawUsername : "";
-  const parsed = signInSchema.safeParse({ username, password: formData.get("password") });
+  const parsed = signInSchema.safeParse(input);
   // Same message for malformed input and wrong credentials: no username enumeration.
-  if (!parsed.success) return { error: "invalid_credentials", username };
+  if (!parsed.success) return { error: "invalid_credentials" };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
@@ -29,7 +25,6 @@ export async function signInAction(
   if (error) {
     return {
       error: error.code === "over_request_rate_limit" ? "rate_limited" : "invalid_credentials",
-      username,
     };
   }
 
@@ -37,7 +32,7 @@ export async function signInAction(
   if (!member) {
     // Valid credentials but no active membership (deactivated user or archived org).
     await supabase.auth.signOut();
-    return { error: "inactive", username };
+    return { error: "inactive" };
   }
 
   redirect(homePathFor(member.role.key));

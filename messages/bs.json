@@ -3,7 +3,8 @@
     "appName": "Zcore Production",
     "loading": "Učitavanje…",
     "retry": "Pokušaj ponovo",
-    "signOut": "Odjava"
+    "signOut": "Odjava",
+    "cancel": "Odustani"
   },
   "metadata": {
     "title": "Zcore Production",
@@ -32,12 +33,21 @@
         "inactive": "Vaš nalog nije aktivan. Obratite se administratoru.",
         "no_tenant": "Firma nije prepoznata iz adrese.",
         "rate_limited": "Previše pokušaja. Pričekajte nekoliko minuta pa pokušajte ponovo."
-      }
+      },
+      "usernameRequired": "Unesite korisničko ime.",
+      "passwordRequired": "Unesite lozinku."
     }
   },
   "nav": {
     "dashboard": "Početna",
-    "users": "Korisnici"
+    "users": "Korisnici",
+    "floorHome": "Početna",
+    "floorNavigation": "Navigacija",
+    "sections": {
+      "overview": "Pregled",
+      "administration": "Administracija",
+      "work": "Rad"
+    }
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -47,7 +57,9 @@
   "floor": {
     "welcome": "Zdravo, {name}",
     "noTasksTitle": "Nema dodijeljenih zadataka",
-    "noTasksDescription": "Prijava proizvodnje biće dostupna kada se uključi modul proizvodnje."
+    "noTasksDescription": "Prijava proizvodnje biće dostupna kada se uključi modul proizvodnje.",
+    "signOutTitle": "Odjaviti se?",
+    "signOutDescription": "Nakon odjave uređaj je spreman za prijavu drugog radnika."
   },
   "users": {
     "title": "Korisnici",
@@ -64,8 +76,7 @@
       "active": "Aktivan",
       "inactive": "Neaktivan"
     },
-    "deniedTitle": "Nemate pristup",
-    "deniedDescription": "Za pregled korisnika potrebna je dozvola administratora.",
+    "deniedDescription": "Za pregled korisnika potrebna je dozvola za korisnike.",
     "form": {
       "title": "Dodaj korisnika",
       "description": "Postavite korisničko ime i početnu lozinku i predajte ih radniku.",
@@ -76,8 +87,8 @@
       "rolePlaceholder": "Odaberite ulogu",
       "password": "Početna lozinka",
       "passwordHint": "Najmanje 8 znakova.",
-      "submit": "Dodaj korisnika",
-      "submitting": "Dodavanje…",
+      "submit": "Kreiraj korisnika",
+      "submitting": "Kreiranje…",
       "success": "Korisnik {username} je dodan. Predajte mu korisničko ime i početnu lozinku.",
       "errors": {
         "invalid": "Provjerite označena polja.",
@@ -91,11 +102,36 @@
         "fullName": "Unesite ime i prezime.",
         "roleId": "Odaberite ulogu.",
         "password": "Lozinka mora imati najmanje 8 znakova."
-      }
-    }
+      },
+      "open": "Dodaj korisnika"
+    },
+    "searchPlaceholder": "Pretraži korisnike…",
+    "filters": {
+      "allRoles": "Sve uloge",
+      "allStatuses": "Svi statusi"
+    },
+    "noResultsTitle": "Nema rezultata",
+    "noResultsDescription": "Promijenite pretragu ili filtere."
   },
   "errors": {
     "title": "Nešto nije u redu",
     "description": "Stranica se nije mogla učitati."
+  },
+  "theme": {
+    "toggle": "Promijeni temu",
+    "light": "Svijetla",
+    "dark": "Tamna",
+    "system": "Sistemska"
+  },
+  "permissionDenied": {
+    "title": "Nemate pristup",
+    "description": "Za ovu stranicu nemate potrebnu dozvolu. Obratite se administratoru."
+  },
+  "dataTable": {
+    "range": "{first}–{last} od {total}",
+    "pageSize": "Redova po stranici",
+    "page": "Stranica {page} od {pageCount}",
+    "previous": "Prethodna stranica",
+    "next": "Sljedeća stranica"
   }
 }

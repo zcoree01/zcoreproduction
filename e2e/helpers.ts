@@ -14,3 +14,10 @@ export async function login(
 export async function expectPath(page: Page, path: string) {
   await expect(page).toHaveURL((url) => url.pathname === path);
 }
+
+// Management app: sign out from the user menu in the sidebar footer.
+export async function signOutFromApp(page: Page, userName: string) {
+  await page.getByRole("button", { name: new RegExp(userName) }).click();
+  await page.getByRole("menuitem", { name: "Odjava" }).click();
+  await expectPath(page, "/login");
+}

@@ -61,3 +61,12 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - Session-dependent UI is rendered inside `<Suspense>` (layout shells and `PageSuspense` per page); no top-level session awaits in layouts.
 - `getCurrentMember()` calls `await connection()` first: token validation depends on the current time and must never run inside a (runtime) prerender.
 - Users are created through the Auth Admin API with the service-role client (`src/lib/supabase/admin.ts`, `server-only`), only after `requirePermission('users.manage')`; the role is first resolved with the user's own client (RLS) so a role id from another tenant is rejected before any privileged call.
+
+## D-011 — App shell, navigation and shared UI (2026-10-23)
+
+- **shadcn first:** sidebar, sheet, alert-dialog, field, empty, badge etc. come from shadcn (base-nova). Layout follows the `dashboard-01` and `login-03` blocks, without their demo data. Own components exist only where shadcn has none (bottom navigation) or as thin app-level wrappers (EmptyState over Empty, ConfirmDialog over AlertDialog, StatusBadge over Badge, DataTable over Table + TanStack).
+- **Navigation registry in code** (`src/lib/navigation/registry.ts`), filtered by `org_modules` and permissions read through RLS. New modules add their routes there together with their `modules` row; no placeholder items for unbuilt modules.
+- **Server-side tables:** table state lives in the URL (`page`, `pageSize`, `q`, filters), parsed with Zod (invalid values fall back to defaults) and queried with PostgREST `range` + `count: exact`. List screens read flat `security_invoker` views (e.g. `member_directory`) so filtering/sorting stays simple and RLS still applies. Free-text search is sanitized to letters/digits/space/.-_ before building `ilike` filters.
+- **Forms:** react-hook-form + the same Zod schema as the server action; server actions take a plain object and re-validate; server field errors (e.g. username taken) are set on the field, others shown above the form; success via toast.
+- **TanStack Table v9** (current stable) instead of v8 used in shadcn docs.
+- **Spacing:** 8px grid (Tailwind spacing in steps of 2: `gap-2/4/6`, `p-4/6`); controls 32px, touch targets on the floor ≥48px.

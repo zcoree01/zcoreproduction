@@ -1,27 +1,36 @@
 import type { ReactNode } from "react";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
+// App-wide empty state on top of shadcn's Empty.
 export function EmptyState({
   title,
   description,
   icon,
+  action,
   className,
 }: {
   title: string;
   description?: string;
   icon?: ReactNode;
+  action?: ReactNode;
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-12 text-center",
-        className,
-      )}
-    >
-      {icon ? <div className="text-muted-foreground [&_svg]:size-8">{icon}</div> : null}
-      <p className="font-medium">{title}</p>
-      {description ? <p className="max-w-sm text-sm text-muted-foreground">{description}</p> : null}
-    </div>
+    <Empty className={cn("border border-dashed", className)}>
+      <EmptyHeader>
+        {icon ? <EmptyMedia variant="icon">{icon}</EmptyMedia> : null}
+        <EmptyTitle>{title}</EmptyTitle>
+        {description ? <EmptyDescription>{description}</EmptyDescription> : null}
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   );
 }

@@ -1,60 +1,94 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { signInAction } from "@/modules/auth/actions";
-import type { SignInState } from "@/modules/auth/schemas";
-
-const INITIAL_STATE: SignInState = { error: null };
+import { signInFormSchema, type SignInError, type SignInFormValues } from "@/modules/auth/schemas";
 
 export function LoginForm() {
   const t = useTranslations("auth.login");
-  const [state, formAction, pending] = useActionState(signInAction, INITIAL_STATE);
+  const [serverError, setServerError] = useState<SignInError | null>(null);
+  const [pending, startTransition] = useTransition();
+  const form = useForm<SignInFormValues>({
+    resolver: zodResolver(signInFormSchema),
+    defaultValues: { username: "", password: "" },
+  });
+
+  const onSubmit = form.handleSubmit((values) => {
+    setServerError(null);
+    startTransition(async () => {
+      // Redirects on success; only returns on failure.
+      const result = await signInAction(values);
+      setServerError(result.error);
+      form.resetField("password");
+    });
+  });
 
   return (
-    <form action={formAction} className="flex flex-col gap-5" noValidate>
-      {state.error ? (
-        <Alert variant="destructive" role="alert">
-          <AlertDescription>{t(`errors.${state.error}`)}</AlertDescription>
-        </Alert>
-      ) : null}
+    <form onSubmit={onSubmit} noValidate>
+      <FieldGroup>
+        {serverError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{t(`errors.${serverError}`)}</AlertDescription>
+          </Alert>
+        ) : null}
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="username">{t("username")}</Label>
-        <Input
-          id="username"
+        <Controller
           name="username"
-          defaultValue={state.username}
-          autoComplete="username"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          required
-          className="h-12 text-base"
-          aria-invalid={state.error === "invalid_credentials" || undefined}
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid || undefined}>
+              <FieldLabel htmlFor="username">{t("username")}</FieldLabel>
+              <Input
+                {...field}
+                id="username"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="h-12 text-base"
+                aria-invalid={
+                  fieldState.invalid || serverError === "invalid_credentials" || undefined
+                }
+              />
+              {fieldState.invalid ? <FieldError>{t("usernameRequired")}</FieldError> : null}
+            </Field>
+          )}
         />
-      </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="password">{t("password")}</Label>
-        <Input
-          id="password"
+        <Controller
           name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className="h-12 text-base"
-          aria-invalid={state.error === "invalid_credentials" || undefined}
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid || undefined}>
+              <FieldLabel htmlFor="password">{t("password")}</FieldLabel>
+              <Input
+                {...field}
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                className="h-12 text-base"
+                aria-invalid={
+                  fieldState.invalid || serverError === "invalid_credentials" || undefined
+                }
+              />
+              {fieldState.invalid ? <FieldError>{t("passwordRequired")}</FieldError> : null}
+            </Field>
+          )}
         />
-      </div>
 
-      <Button type="submit" size="lg" className="h-12 text-base" disabled={pending}>
-        {pending ? t("submitting") : t("submit")}
-      </Button>
+        <Field>
+          <Button type="submit" size="lg" className="h-12 text-base" disabled={pending}>
+            {pending ? t("submitting") : t("submit")}
+          </Button>
+        </Field>
+      </FieldGroup>
     </form>
   );
 }

@@ -12,7 +12,7 @@ export type CurrentMember = {
   username: string;
   fullName: string | null;
   organization: { id: string; slug: string; name: string; timezone: string };
-  role: { key: string; name: string };
+  role: { id: string; key: string; name: string; archived: boolean };
 };
 
 /**
@@ -33,7 +33,7 @@ export async function loadMember(
     .select(
       `user_id,
        organization:organizations!memberships_organization_id_fkey (id, slug, name, timezone),
-       role:roles!memberships_organization_id_role_id_fkey (key, name),
+       role:roles!memberships_organization_id_role_id_fkey (id, key, name, archived_at),
        profile:profiles!memberships_organization_id_user_id_fkey (username, full_name)`,
     )
     .eq("user_id", userId)
@@ -48,7 +48,12 @@ export async function loadMember(
     username: data.profile.username,
     fullName: data.profile.full_name,
     organization: data.organization,
-    role: data.role,
+    role: {
+      id: data.role.id,
+      key: data.role.key,
+      name: data.role.name,
+      archived: data.role.archived_at !== null,
+    },
   };
 }
 

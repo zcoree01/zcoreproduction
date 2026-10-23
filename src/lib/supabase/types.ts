@@ -377,7 +377,43 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      member_directory: {
+        Row: {
+          archived_at: string | null
+          created_at: string | null
+          full_name: string | null
+          is_active: boolean | null
+          organization_id: string | null
+          role_id: string | null
+          role_key: string | null
+          role_name: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_organization_id_role_id_fkey"
+            columns: ["organization_id", "role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "memberships_organization_id_user_id_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_login_organization: {
