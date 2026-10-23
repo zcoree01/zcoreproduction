@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+build
+coverage
+playwright-report
+test-results
+package-lock.json
+next-env.d.ts
+src/lib/supabase/types.ts
+supabase/.temp
+supabase/.branches
+
+# hand-authored specs
+CLAUDE.md
+docs/ZCORE_CONTEXT.md
+supabase/config.toml

@@ -1,0 +1,3 @@
+-- Demo data for one test company (local development only).
+-- Intentionally empty: no tables exist yet. Seed rows are added together with
+-- the migration that creates the tables they belong to.

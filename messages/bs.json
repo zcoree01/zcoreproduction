@@ -1,0 +1,14 @@
+{
+  "common": {
+    "appName": "Zcore Production"
+  },
+  "metadata": {
+    "title": "Zcore Production",
+    "description": "ERP sistem za proizvodnju i obradu metala"
+  },
+  "home": {
+    "title": "Zcore Production",
+    "subtitle": "Sistem za upravljanje proizvodnjom",
+    "status": "Osnova aplikacije je postavljena. Moduli su u izradi."
+  }
+}
