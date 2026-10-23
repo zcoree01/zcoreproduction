@@ -1,14 +1,101 @@
 {
   "common": {
-    "appName": "Zcore Production"
+    "appName": "Zcore Production",
+    "loading": "Učitavanje…",
+    "retry": "Pokušaj ponovo",
+    "signOut": "Odjava"
   },
   "metadata": {
     "title": "Zcore Production",
     "description": "ERP sistem za proizvodnju i obradu metala"
   },
-  "home": {
-    "title": "Zcore Production",
-    "subtitle": "Sistem za upravljanje proizvodnjom",
-    "status": "Osnova aplikacije je postavljena. Moduli su u izradi."
+  "roles": {
+    "admin": "Administrator",
+    "director": "Direktor",
+    "head_of_production": "Šef proizvodnje",
+    "warehouse": "Skladištar",
+    "operator": "Operater"
+  },
+  "auth": {
+    "login": {
+      "title": "Prijava",
+      "username": "Korisničko ime",
+      "password": "Lozinka",
+      "submit": "Prijavi se",
+      "submitting": "Prijava…",
+      "noTenantTitle": "Otvorite adresu svoje firme",
+      "noTenantDescription": "Prijava je moguća samo preko adrese vaše firme, npr. firma.zcore.ba.",
+      "unknownTenantTitle": "Firma nije pronađena",
+      "unknownTenantDescription": "Provjerite adresu ili se obratite administratoru.",
+      "errors": {
+        "invalid_credentials": "Pogrešno korisničko ime ili lozinka.",
+        "inactive": "Vaš nalog nije aktivan. Obratite se administratoru.",
+        "no_tenant": "Firma nije prepoznata iz adrese.",
+        "rate_limited": "Previše pokušaja. Pričekajte nekoliko minuta pa pokušajte ponovo."
+      }
+    }
+  },
+  "nav": {
+    "dashboard": "Početna",
+    "users": "Korisnici"
+  },
+  "dashboard": {
+    "welcome": "Dobrodošli, {name}",
+    "noModulesTitle": "Nema aktivnih modula",
+    "noModulesDescription": "Moduli za proizvodnju i skladište još nisu uključeni za vašu firmu."
+  },
+  "floor": {
+    "welcome": "Zdravo, {name}",
+    "noTasksTitle": "Nema dodijeljenih zadataka",
+    "noTasksDescription": "Prijava proizvodnje biće dostupna kada se uključi modul proizvodnje."
+  },
+  "users": {
+    "title": "Korisnici",
+    "description": "Korisnici firme i njihove uloge.",
+    "emptyTitle": "Nema korisnika",
+    "emptyDescription": "Dodajte prvog korisnika putem forme.",
+    "columns": {
+      "username": "Korisničko ime",
+      "fullName": "Ime i prezime",
+      "role": "Uloga",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Aktivan",
+      "inactive": "Neaktivan"
+    },
+    "deniedTitle": "Nemate pristup",
+    "deniedDescription": "Za pregled korisnika potrebna je dozvola administratora.",
+    "form": {
+      "title": "Dodaj korisnika",
+      "description": "Postavite korisničko ime i početnu lozinku i predajte ih radniku.",
+      "username": "Korisničko ime",
+      "usernameHint": "3–32 znaka: mala slova, brojevi, tačka, crtica.",
+      "fullName": "Ime i prezime",
+      "role": "Uloga",
+      "rolePlaceholder": "Odaberite ulogu",
+      "password": "Početna lozinka",
+      "passwordHint": "Najmanje 8 znakova.",
+      "submit": "Dodaj korisnika",
+      "submitting": "Dodavanje…",
+      "success": "Korisnik {username} je dodan. Predajte mu korisničko ime i početnu lozinku.",
+      "errors": {
+        "invalid": "Provjerite označena polja.",
+        "denied": "Nemate dozvolu za dodavanje korisnika.",
+        "username_taken": "Korisničko ime je već zauzeto.",
+        "role_not_found": "Odabrana uloga ne postoji.",
+        "unexpected": "Korisnik nije dodan zbog greške. Pokušajte ponovo."
+      },
+      "fieldErrors": {
+        "username": "Neispravno korisničko ime.",
+        "fullName": "Unesite ime i prezime.",
+        "roleId": "Odaberite ulogu.",
+        "password": "Lozinka mora imati najmanje 8 znakova."
+      }
+    }
+  },
+  "errors": {
+    "title": "Nešto nije u redu",
+    "description": "Stranica se nije mogla učitati."
   }
 }

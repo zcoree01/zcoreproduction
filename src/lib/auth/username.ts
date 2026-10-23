@@ -20,3 +20,13 @@ export const orgSlugSchema = z
 export function toAuthEmail(username: string, orgSlug: string): string {
   return `${usernameSchema.parse(username)}@${orgSlugSchema.parse(orgSlug)}.${AUTH_EMAIL_DOMAIN}`;
 }
+
+const AUTH_EMAIL_PATTERN = new RegExp(
+  `^[^@]+@([a-z0-9-]+)\\.${AUTH_EMAIL_DOMAIN.replaceAll(".", "\\.")}$`,
+);
+
+// Organization slug encoded in a synthetic auth e-mail (null for any other e-mail).
+export function slugFromAuthEmail(email: string | null | undefined): string | null {
+  const match = email ? AUTH_EMAIL_PATTERN.exec(email.toLowerCase()) : null;
+  return match?.[1] ?? null;
+}

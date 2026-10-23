@@ -7,10 +7,7 @@ import {
   type ProvisionedOrganization,
 } from "@/modules/organizations/provision";
 import { createAdminClient, readAdminEnv } from "../../scripts/lib/admin-client";
-
-// Two permanent test tenants in the linked project. They are never deleted
-// (audit_log is append-only); setup is idempotent.
-const TEST_PASSWORD = "Test-Tenant-Isolation-2026";
+import { TEST_TENANT_PASSWORD as TEST_PASSWORD, TEST_TENANTS } from "../shared/test-tenants";
 
 export type Tenant = {
   org: ProvisionedOrganization;
@@ -76,7 +73,7 @@ export async function setupFixture(): Promise<Fixture> {
   return {
     service,
     anon: anonClient(),
-    a: await setupTenant(service, "test-tenant-a", "Test Tenant A"),
-    b: await setupTenant(service, "test-tenant-b", "Test Tenant B"),
+    a: await setupTenant(service, TEST_TENANTS.a.slug, TEST_TENANTS.a.name),
+    b: await setupTenant(service, TEST_TENANTS.b.slug, TEST_TENANTS.b.name),
   };
 }

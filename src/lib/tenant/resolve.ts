@@ -1,0 +1,91 @@
+import { orgSlugSchema } from "@/lib/auth/username";
+
+export const ROOT_DOMAIN = "zcore.ba";
+
+// Request header set by proxy.ts for server code. Always overwritten there,
+// so a client cannot inject it.
+export const TENANT_HEADER = "x-zcore-tenant";
+
+// Dev/preview only: remembers ?org=<slug> across navigations.
+export const TENANT_COOKIE = "zcore_tenant";
+
+const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "admin", "auth", "static"]);
+
+export type TenantResolution = {
+  slug: string | null;
+  source: "subdomain" | "query" | "cookie" | null;
+  /** True when the slug came from ?org and should be stored in TENANT_COOKIE. */
+  persist: boolean;
+};
+
+const NONE: TenantResolution = { slug: null, source: null, persist: false };
+
+/**
+ * Host the browser used. Prefers x-forwarded-host: Next.js renders a server
+ * action's redirect() through an internal fetch to its own origin (Host:
+ * localhost), forwarding the original host only in x-forwarded-host. On Vercel
+ * the platform sets this header. A spoofed value can only change which login
+ * screen is shown; access is decided by the session's tenant + membership + RLS.
+ */
+export function requestHost(headers: { get(name: string): string | null }): string | null {
+  const forwarded = headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  return forwarded || headers.get("host");
+}
+
+function hostnameOf(host: string): string {
+  const lower = host.trim().toLowerCase();
+  if (lower.startsWith("[")) return lower.slice(0, lower.indexOf("]") + 1); // IPv6
+  return lower.split(":")[0] ?? "";
+}
+
+function validSlug(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = orgSlugSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function subdomainSlug(hostname: string, parentDomain: string): string | null {
+  if (!hostname.endsWith(`.${parentDomain}`)) return null;
+  const label = hostname.slice(0, -(parentDomain.length + 1));
+  if (label.includes(".") || RESERVED_SUBDOMAINS.has(label)) return null;
+  return validSlug(label);
+}
+
+// Hosts where ?org=<slug> may select the tenant (no per-tenant subdomain available).
+function allowsOrgOverride(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    hostname.endsWith(".vercel.app")
+  );
+}
+
+/**
+ * Tenant = subdomain (`<slug>.zcore.ba`, `<slug>.localhost`). On localhost and
+ * Vercel preview hosts, `?org=<slug>` (then the remembered cookie) is used
+ * instead. Production hosts never accept ?org. The result only selects which
+ * organization to sign into; access is always enforced by membership + RLS.
+ */
+export function resolveTenant(input: {
+  host: string | null;
+  orgParam: string | null;
+  orgCookie: string | null;
+}): TenantResolution {
+  if (!input.host) return NONE;
+  const hostname = hostnameOf(input.host);
+
+  const fromSubdomain =
+    subdomainSlug(hostname, ROOT_DOMAIN) ?? subdomainSlug(hostname, "localhost");
+  if (fromSubdomain) return { slug: fromSubdomain, source: "subdomain", persist: false };
+
+  if (!allowsOrgOverride(hostname)) return NONE;
+
+  const fromQuery = validSlug(input.orgParam);
+  if (fromQuery) return { slug: fromQuery, source: "query", persist: true };
+
+  const fromCookie = validSlug(input.orgCookie);
+  if (fromCookie) return { slug: fromCookie, source: "cookie", persist: false };
+
+  return NONE;
+}

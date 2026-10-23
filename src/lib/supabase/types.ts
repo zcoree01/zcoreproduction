@@ -380,6 +380,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_login_organization: {
+        Args: { p_slug: string }
+        Returns: {
+          name: string
+        }[]
+      }
       has_permission: {
         Args: { p_org_id: string; p_permission: string }
         Returns: boolean

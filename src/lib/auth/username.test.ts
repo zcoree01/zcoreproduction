@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { orgSlugSchema, toAuthEmail, usernameSchema } from "./username";
+import { orgSlugSchema, slugFromAuthEmail, toAuthEmail, usernameSchema } from "./username";
+
+describe("slugFromAuthEmail", () => {
+  it("extracts the organization slug from a synthetic e-mail", () => {
+    expect(slugFromAuthEmail("admin@demo.users.zcore.ba")).toBe("demo");
+    expect(slugFromAuthEmail("SEF.PROIZVODNJE@Metal-Pro.users.zcore.ba")).toBe("metal-pro");
+  });
+
+  it("returns null for anything else", () => {
+    for (const email of [
+      null,
+      undefined,
+      "",
+      "admin@demo.zcore.ba",
+      "admin@demo.users.zcore.ba.evil.com",
+      "admin@a.b.users.zcore.ba",
+      "admin@demousers.zcore.ba",
+    ]) {
+      expect(slugFromAuthEmail(email), String(email)).toBeNull();
+    }
+  });
+});
 
 describe("toAuthEmail", () => {
   it("builds the synthetic e-mail from username and org slug", () => {

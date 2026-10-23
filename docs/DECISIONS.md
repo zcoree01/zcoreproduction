@@ -44,3 +44,20 @@ Supersedes the key name in D-003. The project's `.env.local` uses the anon key n
 ## D-007 — DB integration tests against the linked project (2026-10-23)
 
 No Docker locally, so RLS/trigger tests (`npm run test:db`, `tests/db/`) run against the linked Supabase project using two permanent tenants (`test-tenant-a/b`). Not part of `npm run check`/CI until a dedicated test project and CI secrets exist. Service-role client lives in `scripts/lib/` (outside `src/`) so app code cannot import it.
+
+## D-008 — Tenant resolution and route protection (2026-10-23)
+
+- Tenant = subdomain (`<slug>.zcore.ba`, dev `<slug>.localhost`). `?org=<slug>` + cookie only on localhost and `*.vercel.app` previews, never on the production domain.
+- `src/proxy.ts` forwards the slug as `x-zcore-tenant` (always overwritten) and redirects to `/login` unless the session belongs to this tenant. "Belongs" is decided without a DB call: the slug encoded in the JWT's synthetic e-mail must equal the resolved slug. Pages and actions re-check via `getCurrentMember()` (membership through RLS); proxy is a coarse gate only.
+- Role-based routing (operator → `/floor`, others → `/dashboard`) happens in layouts, because the role lives in the database, not in the JWT.
+- Login screen shows the organization name through `get_login_organization(slug)` (anon, name only). Revealing that a slug exists is acceptable: subdomains are public.
+
+## D-009 — Prefer `x-forwarded-host` for tenant resolution (2026-10-23)
+
+Next.js renders a server action's `redirect()` by fetching the target route from its own origin (`Host: localhost`), passing the browser's host only in `x-forwarded-host`. Without preferring that header, a subdomain tenant was lost after login/logout. Vercel sets `x-forwarded-host` itself. Spoofing it can only change which login screen is shown; access still requires a session of that tenant, membership and RLS.
+
+## D-010 — Session reads with Cache Components (2026-10-23)
+
+- Session-dependent UI is rendered inside `<Suspense>` (layout shells and `PageSuspense` per page); no top-level session awaits in layouts.
+- `getCurrentMember()` calls `await connection()` first: token validation depends on the current time and must never run inside a (runtime) prerender.
+- Users are created through the Auth Admin API with the service-role client (`src/lib/supabase/admin.ts`, `server-only`), only after `requirePermission('users.manage')`; the role is first resolved with the user's own client (RLS) so a role id from another tenant is rejected before any privileged call.

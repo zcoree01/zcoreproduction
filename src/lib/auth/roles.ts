@@ -8,3 +8,7 @@ export const SYSTEM_ROLE_KEYS = [
 ] as const;
 
 export type SystemRoleKey = (typeof SYSTEM_ROLE_KEYS)[number];
+
+export function isSystemRoleKey(key: string): key is SystemRoleKey {
+  return (SYSTEM_ROLE_KEYS as readonly string[]).includes(key);
+}

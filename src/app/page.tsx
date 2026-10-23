@@ -1,15 +1,19 @@
-import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { homePathFor } from "@/lib/auth/home";
+import { requireMember } from "@/lib/auth/session";
 
-export default async function HomePage() {
-  const t = await getTranslations("home");
-
+// "/" only routes: proxy.ts sends visitors without a session to /login,
+// members go to the home of their role.
+export default function HomePage() {
   return (
-    <main className="flex flex-1 items-center justify-center px-4 py-16">
-      <div className="flex max-w-md flex-col gap-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-lg text-muted-foreground">{t("subtitle")}</p>
-        <p className="text-sm text-muted-foreground">{t("status")}</p>
-      </div>
-    </main>
+    <Suspense fallback={null}>
+      <RoleRedirect />
+    </Suspense>
   );
+}
+
+async function RoleRedirect(): Promise<null> {
+  const member = await requireMember();
+  redirect(homePathFor(member.role.key));
 }
