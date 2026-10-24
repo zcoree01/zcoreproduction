@@ -31,15 +31,21 @@ export async function signInAction(input: unknown): Promise<SignInResult> {
   const member = await loadMember(supabase, tenantSlug);
   if (!member) {
     // Valid credentials but no active membership (deactivated user or archived org).
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     return { error: "inactive" };
   }
+
+  // One active session per user (D-013): older devices are signed out; the
+  // proxy notices on their next request.
+  const others = await supabase.auth.signOut({ scope: "others" });
+  if (others.error) console.error("revoking other sessions failed", others.error);
 
   redirect(homePathFor(member.role.key));
 }
 
+// Signs out this device only (other sessions cannot exist, see signInAction).
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }

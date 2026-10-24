@@ -203,3 +203,34 @@ test("operator without an employee profile is told why there are no machines @mo
   await page.goto("/floor/machines");
   await expect(page.getByText("Račun nije povezan s radnikom")).toBeVisible();
 });
+
+test("signing in on a second device signs the first one out", async ({
+  page: first,
+  browser,
+  baseURL,
+}) => {
+  // Dedicated fixture user, so no other test's session is affected.
+  const credentials = { username: FLOOR_OPERATOR.username, password: testTenantPassword() };
+  await ensureFloorFixture();
+
+  await login(first, credentials, TEST_TENANTS.b.slug);
+  await expectPath(first, "/floor");
+
+  // A separate browser context = a second device with its own cookies.
+  const secondDevice = await browser.newContext({ baseURL });
+  const second = await secondDevice.newPage();
+  await login(second, credentials, TEST_TENANTS.b.slug);
+  await expectPath(second, "/floor");
+
+  // The first device is signed out on its next request and told why.
+  await first.goto("/floor/machines");
+  await expectPath(first, "/login");
+  await expect(
+    first.getByText("Odjavljeni ste jer se ovaj korisnik prijavio na drugom uređaju."),
+  ).toBeVisible();
+
+  // The second device keeps working.
+  await second.goto("/floor/machines");
+  await expectPath(second, "/floor/machines");
+  await secondDevice.close();
+});

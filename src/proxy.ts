@@ -1,17 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { decideRoute, SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
 import { slugFromAuthEmail } from "@/lib/auth/username";
 import { getPublicEnv } from "@/lib/env";
+import type { Database } from "@/lib/supabase/types";
 import { requestHost, resolveTenant, TENANT_COOKIE, TENANT_HEADER } from "@/lib/tenant/resolve";
-
-// Routes reachable without a session for the current tenant.
-const PUBLIC_PATHS = new Set(["/login"]);
 
 /**
  * 1. Resolves the tenant (subdomain, or ?org on dev hosts) and forwards it to
  *    server code in TENANT_HEADER (always overwritten, never client-supplied).
  * 2. Refreshes the Supabase session cookies.
  * 3. Redirects to /login unless the session belongs to this tenant.
+ * 4. Signs out a session that was replaced by a sign-in on another device
+ *    (one active session per user, D-013).
  *
  * This is a coarse gate only. Pages, server actions and RLS re-check
  * membership and permissions on every request.
@@ -32,7 +34,7 @@ export async function proxy(request: NextRequest) {
 
   let response = forward();
   const env = getPublicEnv();
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
@@ -57,12 +59,20 @@ export async function proxy(request: NextRequest) {
   const email = typeof data?.claims.email === "string" ? data.claims.email : null;
   const signedInHere = tenant.slug !== null && slugFromAuthEmail(email) === tenant.slug;
 
-  const path = request.nextUrl.pathname;
+  const decision = decideRoute({
+    path: request.nextUrl.pathname,
+    signedInHere,
+    sessionActive: signedInHere ? await isSessionActive(supabase) : false,
+  });
+
   let result = response;
-  if (!signedInHere && !PUBLIC_PATHS.has(path)) {
-    result = redirectKeepingCookies(request, response, "/login");
-  } else if (signedInHere && path === "/login") {
-    result = redirectKeepingCookies(request, response, "/");
+  if (decision.action === "sign_out") {
+    // Clears this device's session cookies (via setAll above) without calling
+    // out to other devices.
+    await supabase.auth.signOut({ scope: "local" });
+    result = redirectKeepingCookies(request, response, decision.to, SESSION_REPLACED_PARAM);
+  } else if (decision.action === "redirect") {
+    result = redirectKeepingCookies(request, response, decision.to);
   }
 
   if (tenant.persist && tenant.slug) {
@@ -76,10 +86,30 @@ export async function proxy(request: NextRequest) {
   return result;
 }
 
-function redirectKeepingCookies(request: NextRequest, from: NextResponse, pathname: string) {
+/**
+ * Whether the JWT's session still exists. Fails open on infrastructure errors:
+ * this enforces the single-session policy, not authentication (JWT validity,
+ * membership and RLS are checked independently).
+ */
+async function isSessionActive(supabase: SupabaseClient<Database>) {
+  const { data, error } = await supabase.rpc("is_session_active");
+  if (error) {
+    console.error("is_session_active failed", error);
+    return true;
+  }
+  return data === true;
+}
+
+function redirectKeepingCookies(
+  request: NextRequest,
+  from: NextResponse,
+  pathname: string,
+  param?: { name: string; value: string },
+) {
   const url = request.nextUrl.clone();
   url.pathname = pathname;
   url.search = ""; // ?org is persisted in TENANT_COOKIE
+  if (param) url.searchParams.set(param.name, param.value);
   const redirect = NextResponse.redirect(url);
   for (const cookie of from.cookies.getAll()) redirect.cookies.set(cookie);
   return redirect;

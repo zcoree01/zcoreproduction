@@ -800,6 +800,7 @@ export type Database = {
         Args: { p_org_id: string; p_permission: string }
         Returns: boolean
       }
+      is_session_active: { Args: never; Returns: boolean }
       save_employee: {
         Args: {
           p_department_id?: string

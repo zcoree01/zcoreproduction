@@ -40,7 +40,8 @@
         "rate_limited": "Previše pokušaja. Pričekajte nekoliko minuta pa pokušajte ponovo."
       },
       "usernameRequired": "Unesite korisničko ime.",
-      "passwordRequired": "Unesite lozinku."
+      "passwordRequired": "Unesite lozinku.",
+      "sessionReplaced": "Odjavljeni ste jer se ovaj korisnik prijavio na drugom uređaju. Korisnik može biti prijavljen samo na jednom uređaju."
     }
   },
   "nav": {

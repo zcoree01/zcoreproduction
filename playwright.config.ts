@@ -9,7 +9,10 @@ const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  // Serial: a sign-in revokes the user's other sessions (one session per user,
+  // D-013), and many tests sign in as the same demo users.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",

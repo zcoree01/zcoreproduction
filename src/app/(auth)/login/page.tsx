@@ -2,13 +2,16 @@ import { FactoryIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
+import { firstParam, type SearchParamsRecord } from "@/lib/data-table/params";
 import { getTenantSlug } from "@/lib/tenant/server";
 import { getLoginOrganizationName } from "@/modules/auth/queries";
 import { LoginForm } from "./login-form";
 
 // Layout from the shadcn login-03 block.
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const t = await getTranslations("common");
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
@@ -20,15 +23,18 @@ export default async function LoginPage() {
           {t("appName")}
         </div>
         <Suspense fallback={<PageSkeleton label={t("loading")} />}>
-          <LoginCard />
+          <LoginCard searchParams={searchParams} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-async function LoginCard() {
+async function LoginCard({ searchParams }: { searchParams: Promise<SearchParamsRecord> }) {
   const t = await getTranslations("auth.login");
+  // Set by the proxy when this device was signed out by a newer sign-in.
+  const replaced =
+    firstParam((await searchParams)[SESSION_REPLACED_PARAM.name]) === SESSION_REPLACED_PARAM.value;
   const slug = await getTenantSlug();
   const organizationName = slug ? await getLoginOrganizationName(slug) : null;
 
@@ -55,7 +61,12 @@ async function LoginCard() {
         </CardTitle>
         <CardDescription>{organizationName}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
+        {replaced ? (
+          <Alert>
+            <AlertDescription>{t("sessionReplaced")}</AlertDescription>
+          </Alert>
+        ) : null}
         <LoginForm />
       </CardContent>
     </Card>

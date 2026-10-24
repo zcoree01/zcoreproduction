@@ -80,3 +80,13 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Employee writes go through `save_employee`** (SECURITY INVOKER, so RLS still applies): employee row, skills and machine assignments in one transaction; employee numbers assigned as max+1 under a per-organization advisory lock and never reused (archived employees keep theirs).
 - **Archive vs. status:** `status` is operational (machine `inactive`, employee `inactive`), `archived_at` removes a record from lists/selects (mistakes, decommissioned). Both are kept, both reversible.
 - **An account belongs to at most one non-archived employee** (partial unique index); an employee needs no account.
+
+## D-013 — One active session per user (2026-10-24)
+
+**Context:** Workers share floor tablets and also use their phones. Supabase's default sign-out revokes every session of the user; the product owner wants device-only sign-out, but at most one signed-in device per account.
+**Decision:**
+
+- `signInAction` calls `signOut({ scope: "others" })` after a successful sign-in; `signOutAction` uses `scope: "local"`.
+- Revoked sessions still hold a valid JWT until it expires, so `src/proxy.ts` calls `public.is_session_active()` (SECURITY DEFINER, reads `auth.sessions` for the JWT's `session_id`) on every request of a signed-in user. A replaced session is signed out locally and redirected to `/login?session=replaced`.
+- The check fails open on infrastructure errors (logged): it enforces the single-session policy, not authentication; JWT, membership, permissions and RLS are checked independently.
+  **Consequences:** One extra database round-trip per request of a signed-in user. Playwright runs serially (sign-ins of the same demo users would revoke each other). If several people ever need to share one account, this must become configurable per organization.
