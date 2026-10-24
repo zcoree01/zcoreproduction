@@ -37,7 +37,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - Domain code in `src/modules/{catalogs,machines,employees}`; shared helpers `src/lib/forms.ts` (form Zod helpers), `src/lib/actions/result.ts` (action results, Postgres error mapping), `permitAction()` and `getMemberAccess()`.
 - Tests: `npm run check` (103 unit tests), `npm run test:db` (65 RLS/integration tests), `npm run e2e` (30 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out).
 - **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
-- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`b498fa6`). DB and e2e tests need Supabase secrets, so they are not in CI yet.
+- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`6380873`, machines/employees). DB and e2e tests need Supabase secrets, so they are not in CI yet.
 - **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
 - Claude Code: Prettier hook after every Write/Edit; slash commands `/feature`, `/verify`, `/status`.
 
@@ -111,6 +111,7 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - Product decision: a user may be signed in on one device only; signing in on a new device signs the old one out; sign-out affects only the current device.
 - Migration `20261024120000_single_session` (`is_session_active()`), `src/lib/auth/route-guard.ts` (proxy decision, unit-tested), `signInAction` revokes other sessions (`scope: "others"`), sign-out uses `scope: "local"`, login notice for replaced sessions.
 - Playwright now runs serially. Deleted the merged branch `feat/machines-employees` (local + GitHub).
+- Committed locally (`189ce31`); not pushed yet.
 - Verified: `npm run check` (103), `npm run test:db` (65), `npm run e2e` (30), `npm run build`, `npm run format:check`.
 
 ### 2026-10-24 — Machines, employees, catalogs (Phase 2 start)
@@ -120,6 +121,7 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - Fixed along the way: client-side Zod messages were shown in English in forms (incl. the existing add-user username field) → only server messages override the Bosnian field texts; `supabase-js .contains()` encodes arrays as Postgres arrays, so jsonb filters pass a JSON string.
 - Found: Supabase sign-out revokes all sessions of a user → parallel e2e tests signing out the same user broke each other; tests now use dedicated users (see known gaps).
 - Verified: `npm run check` (100), `npm run test:db` (62), `npm run e2e` (29), `npm run build`, `npm run format:check`; screens checked by screenshot (desktop light/dark, mobile floor).
+- Committed `6380873`, pushed via branch `feat/machines-employees` (CI green), fast-forwarded into `main` and pushed (CI green).
 
 ### 2026-10-24 — Security cleanup, push, dark-mode fix
 
