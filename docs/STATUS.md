@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** (see `ZCORE_CONTEXT.md` §14). Database foundation, login, tenant resolution and user creation are in place. Next: remaining Phase 1 pieces (user deactivation/role change, org settings), then Phase 2.
+**Phase 1 — Foundation** (see `ZCORE_CONTEXT.md` §14). Database foundation, login, tenant resolution, app shell and user creation are in place and pushed to GitHub (CI green). Remaining Phase 1: complete user management, org settings, Vercel deploy. Then Phase 2.
 
 ## Implemented
 
@@ -13,7 +13,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - Desktop `(app)`: inset sidebar (org header, nav groups, user menu with sign-out), site header with sidebar toggle, breadcrumb and theme switch.
   - Mobile `(floor)`: sticky header + fixed bottom navigation (48px+ targets, safe-area aware); sign-out asks for confirmation.
   - Navigation registry `src/lib/navigation/registry.ts`: items filtered by enabled `org_modules` and the member’s permissions (read through RLS). Only implemented routes are listed.
-  - Light/dark/system theme (`next-themes`), toasts (`sonner`), 8px spacing grid.
+  - Light/dark/system theme (`next-themes`) with `color-scheme` per theme, so browser-drawn controls (native select popups, scrollbars) are dark in dark mode; toasts (`sonner`), 8px spacing grid.
 - **Shared components** (`src/components/shared/`): `DataTable` (TanStack Table v9, server-side pagination/search/filters via URL), `StatusBadge`, `EmptyState` (shadcn Empty), `ErrorState`, `PermissionDenied`, `ConfirmDialog` (AlertDialog), `PageHeader`, `PageSuspense`, `ModeToggle`. Forms use react-hook-form + Zod (same schema on the server) + shadcn Field with errors next to the field.
 - i18n via `next-intl`, single locale `bs`, no locale in URL. All UI strings in `messages/bs.json` (typed).
 - Supabase project `nwzxigwgttdfgxnxjbvx` (eu-west-1) linked; migrations applied with `npx supabase db push`.
@@ -30,7 +30,9 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 - `member_directory` view (`20261023180000`, `security_invoker`): flat member list for tables; covered by tenant-isolation tests.
 - **Add user** (`src/modules/users/`): `requirePermission('users.manage')` → Zod → role checked via RLS → Auth Admin API (service role, `src/lib/supabase/admin.ts`) → trigger provisions profile + membership → explicit audit `users.create` (no password logged). Duplicate username → field error.
 - Tests: `npm run check` (66 unit tests), `npm run test:db` (34 RLS/integration tests), `npm run e2e` (22 Playwright tests: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in).
-- CI: `check` + `build` on every push/PR (DB and e2e tests need Supabase secrets; not in CI yet).
+- **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
+- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`b498fa6`). DB and e2e tests need Supabase secrets, so they are not in CI yet.
+- **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
 - Claude Code: Prettier hook after every Write/Edit; slash commands `/feature`, `/verify`, `/status`.
 
 ### Permission matrix (system roles)
@@ -44,6 +46,8 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 | `audit.read`          |   ✓   |    ✓     |                    |           |          |
 
 System roles' permissions are fixed (changed only via migration); tenants can manage permissions of custom roles.
+
+**Roles are per organization by design** (D-006): every organization gets its own 5 system roles, so `roles` holds 5 rows × number of organizations (currently 15 for `demo`, `test-tenant-a`, `test-tenant-b`); there are no duplicates within one organization (unique `organization_id, key`). `memberships` is the join table user ↔ role ↔ organization. Reviewed with the product owner on 2026-10-24 and kept, because per-org permissions, custom roles and DB-enforced tenant isolation depend on it.
 
 ## Demo data
 
@@ -72,14 +76,27 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - Dev overlay shows an informational `instant` validation message when an operator opens `/dashboard` (intentional redirect to `/floor`).
 - Table sorting is fixed (by username); column sorting UI not yet added to DataTable.
 - Demo org contains an extra user `testniradnik` (Direktor) created by hand via the UI on 2026-10-23 (audit log: `users.create` by `admin`). Tests do not depend on the exact user count.
-- DB/e2e tests run against the real linked project (no Docker, no separate test project).
+- DB/e2e tests run against the real linked project (no Docker, no separate test project); test tenants also appear in its tables.
+- Not deployed yet: Vercel project not connected (CLAUDE.md: auto-deploy from `main`, preview per PR).
 - Supabase Auth: enable leaked-password protection in the dashboard (advisor warning). Advisor warnings for `write_audit` and `get_login_organization` are intentional.
 
 ## Next step
 
-User management completion: edit full name / role, deactivate & reactivate (archive membership), reset password by admin, with audit entries and e2e coverage. Then Phase 2 (machines, employees, products, production orders).
+1. **Complete user management** (`/admin/users`): edit full name and role, deactivate / reactivate (archive membership, with `ConfirmDialog`), admin password reset, optionally "change password on first login". Audit entries for every action, server-side `users.manage`, RLS already allows it; unit + e2e tests.
+2. **Org settings** (`org.settings.manage`): organization name, timezone; foundation for configurable shifts later.
+3. **Deploy:** connect the GitHub repo to Vercel (production from `main`, preview per PR), set env vars there, wildcard subdomain `*.zcore.ba`.
+4. **Test isolation:** separate Supabase project for `test:db`/e2e and add them to CI with GitHub secrets.
+5. Then **Phase 2**: employees, machines, products/parts, production orders and operations.
 
 ## Log
+
+### 2026-10-24 — Security cleanup, push, dark-mode fix
+
+- Repository is public → removed demo/test passwords from the code; they now come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`). All previously committed passwords rotated (demo users, test tenants, 6 old `e2e.*` users); verified the old admin password is rejected.
+- Pushed `main` to GitHub (`zcoree01/zcoreproduction`); GitHub Actions CI green.
+- Fixed dark mode for native selects: `color-scheme` per theme + shadcn `NativeSelectOption`; verified option colors in light and dark.
+- Reviewed the "duplicate roles" question: roles stay per organization (see Permission matrix section / D-006).
+- Verified: `npm run check` (66), `npm run test:db` (34), `npm run e2e` (22), CI on GitHub.
 
 ### 2026-10-23 — App shell and shared components
 
