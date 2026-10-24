@@ -6,15 +6,19 @@ import type { ProductListParams } from "./list-params";
 import {
   cycleUnitFromSettings,
   describeHistoryEntry,
+  inspectionModeFromSettings,
   type HistoryDescription,
+  type InspectionModeValue,
   type TimeUnit,
 } from "./rules";
 import {
   ATTACHMENT_KINDS,
   BLANK_GEOMETRIES,
+  INSPECTION_PLANS,
   PRODUCT_UNITS,
   type AttachmentKind,
   type BlankGeometry,
+  type InspectionPlan,
   type ProductUnit,
 } from "./schemas";
 
@@ -34,6 +38,14 @@ function asTimeUnit(value: string | null): TimeUnit | null {
   return value === "min" || value === "s" ? value : null;
 }
 
+function asInspectionPlan(value: string | null): InspectionPlan {
+  return (INSPECTION_PLANS as readonly string[]).includes(value ?? "")
+    ? (value as InspectionPlan)
+    : "none";
+}
+
+export type MaterialRef = { id: string; designation: string; groupName: string };
+
 // ---------------------------------------------------------------------------
 // List
 // ---------------------------------------------------------------------------
@@ -41,13 +53,12 @@ export type ProductRow = {
   id: string;
   partNumber: string;
   name: string;
-  customerName: string | null;
+  customer: Ref | null;
   type: Ref | null;
   unit: ProductUnit;
   revision: string | null;
   drawingNumber: string | null;
-  materialGrade: string | null;
-  materialShape: Ref | null;
+  material: MaterialRef | null;
   operationCount: number;
   archived: boolean;
 };
@@ -55,7 +66,7 @@ export type ProductRow = {
 export type ProductPage = { rows: ProductRow[]; total: number };
 
 const LIST_COLUMNS =
-  "id, part_number, name, customer_name, product_type_id, product_type_name, unit, revision, drawing_number, material_grade, material_shape_id, material_shape_name, operation_count, archived_at";
+  "id, part_number, name, customer_id, customer_name, product_type_id, product_type_name, unit, revision, drawing_number, material_id, material_designation, material_group_name, operation_count, archived_at";
 
 export async function listProductsPage(
   organizationId: string,
@@ -73,7 +84,7 @@ export async function listProductsPage(
         ? query.not("archived_at", "is", null)
         : query.is("archived_at", null);
     if (params.type) query = query.eq("product_type_id", params.type);
-    if (params.shape) query = query.eq("material_shape_id", params.shape);
+    if (params.customer) query = query.eq("customer_id", params.customer);
     if (pattern) {
       query = query.or(
         `part_number.ilike.${pattern},name.ilike.${pattern},customer_name.ilike.${pattern},drawing_number.ilike.${pattern}`,
@@ -102,13 +113,19 @@ export async function listProductsPage(
               id: row.id,
               partNumber: row.part_number,
               name: row.name,
-              customerName: row.customer_name,
+              customer: ref(row.customer_id, row.customer_name),
               type: ref(row.product_type_id, row.product_type_name),
               unit: asUnit(row.unit),
               revision: row.revision,
               drawingNumber: row.drawing_number,
-              materialGrade: row.material_grade,
-              materialShape: ref(row.material_shape_id, row.material_shape_name),
+              material:
+                row.material_id && row.material_designation
+                  ? {
+                      id: row.material_id,
+                      designation: row.material_designation,
+                      groupName: row.material_group_name ?? "",
+                    }
+                  : null,
               operationCount: row.operation_count ?? 0,
               archived: row.archived_at !== null,
             },
@@ -123,7 +140,8 @@ export async function listProductsPage(
 // ---------------------------------------------------------------------------
 export type RevisionSummary = {
   id: string;
-  revision: string;
+  /** null: first revision without a label. */
+  revision: string | null;
   isCurrent: boolean;
   createdAt: string;
 };
@@ -131,12 +149,10 @@ export type RevisionSummary = {
 export type ProductRevision = RevisionSummary & {
   drawingNumber: string | null;
   description: string | null;
-  materialGrade: string | null;
-  materialShape: Ref | null;
+  material: (MaterialRef & { density: string | null }) | null;
   blankGeometry: BlankGeometry | null;
   blankDiameter: string | null;
   blankWidth: string | null;
-  blankHeight: string | null;
   blankThickness: string | null;
   cutLength: string | null;
   kerf: string | null;
@@ -147,9 +163,10 @@ export type ProductDetail = {
   id: string;
   partNumber: string;
   name: string;
-  customerName: string | null;
+  customer: Ref | null;
   type: Ref | null;
   unit: ProductUnit;
+  inspectionPlan: InspectionPlan;
   archived: boolean;
   revisions: RevisionSummary[];
 };
@@ -163,7 +180,7 @@ export async function getProduct(
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, part_number, name, customer_name, product_type_id, unit, archived_at, type:catalog_items!products_organization_id_product_type_kind_product_type_id_fkey(name), product_revisions(id, revision, is_current, created_at)",
+      "id, part_number, name, customer_id, product_type_id, unit, inspection_plan, archived_at, customer:customers!products_customer_fkey(name), type:catalog_items!products_organization_id_product_type_kind_product_type_id_fkey(name), product_revisions(id, revision, is_current, created_at)",
     )
     .eq("organization_id", organizationId)
     .eq("id", id)
@@ -175,9 +192,10 @@ export async function getProduct(
     id: data.id,
     partNumber: data.part_number,
     name: data.name,
-    customerName: data.customer_name,
+    customer: ref(data.customer_id, data.customer?.name),
     type: ref(data.product_type_id, data.type?.name),
     unit: asUnit(data.unit),
+    inspectionPlan: asInspectionPlan(data.inspection_plan),
     archived: data.archived_at !== null,
     revisions: data.product_revisions
       .map((r) => ({
@@ -198,7 +216,7 @@ export async function getRevision(
   const { data, error } = await supabase
     .from("product_revisions")
     .select(
-      "id, revision, is_current, created_at, drawing_number, description, material_grade, material_shape_id, blank_geometry, blank_diameter_mm, blank_width_mm, blank_height_mm, blank_thickness_mm, cut_length_mm, kerf_mm, net_mass_kg, shape:catalog_items!product_revisions_organization_id_material_shape_kind_mate_fkey(name)",
+      "id, revision, is_current, created_at, drawing_number, description, blank_geometry, blank_diameter_mm, blank_width_mm, blank_thickness_mm, cut_length_mm, kerf_mm, net_mass_kg, material:materials!product_revisions_material_fkey(id, designation, density_kg_dm3, group:material_groups(name, density_kg_dm3))",
     )
     .eq("organization_id", organizationId)
     .eq("id", revisionId)
@@ -213,14 +231,21 @@ export async function getRevision(
     createdAt: data.created_at,
     drawingNumber: data.drawing_number,
     description: data.description,
-    materialGrade: data.material_grade,
-    materialShape: ref(data.material_shape_id, data.shape?.name),
+    material: data.material
+      ? {
+          id: data.material.id,
+          designation: data.material.designation,
+          groupName: data.material.group.name,
+          density:
+            decimalFromDb(data.material.density_kg_dm3) ??
+            decimalFromDb(data.material.group.density_kg_dm3),
+        }
+      : null,
     blankGeometry: (BLANK_GEOMETRIES as readonly string[]).includes(data.blank_geometry ?? "")
       ? (data.blank_geometry as BlankGeometry)
       : null,
     blankDiameter: decimalFromDb(data.blank_diameter_mm),
     blankWidth: decimalFromDb(data.blank_width_mm),
-    blankHeight: decimalFromDb(data.blank_height_mm),
     blankThickness: decimalFromDb(data.blank_thickness_mm),
     cutLength: decimalFromDb(data.cut_length_mm),
     kerf: decimalFromDb(data.kerf_mm),
@@ -234,7 +259,9 @@ export async function getRevision(
 export type ProductOperation = {
   id: string;
   sequence: number;
-  type: { id: string; name: string; code: string; isExternal: boolean };
+  /** Inspection placed by the inspection plan (read-only, moves with the routing). */
+  autoInspection: boolean;
+  type: { id: string; name: string; code: string; isExternal: boolean; isInspection: boolean };
   description: string | null;
   machineType: Ref | null;
   machine: { id: string; code: string; name: string; cycleTimeUnit: TimeUnit | null } | null;
@@ -253,7 +280,7 @@ export async function listOperations(
   const { data, error } = await supabase
     .from("product_operations")
     .select(
-      "id, sequence, description, machine_type_id, machine_id, external_company, setup_time_min, cycle_time_s, notes, archived_at, type:operation_types(id, name, code, is_external), machine_type:catalog_items!product_operations_organization_id_machine_type_kind_machi_fkey(name), machine:machines(id, code, name, cycle_time_unit)",
+      "id, sequence, auto_inspection, description, machine_type_id, machine_id, external_company, setup_time_min, cycle_time_s, notes, archived_at, type:operation_types(id, name, code, is_external, is_inspection), machine_type:catalog_items!product_operations_organization_id_machine_type_kind_machi_fkey(name), machine:machines(id, code, name, cycle_time_unit)",
     )
     .eq("organization_id", organizationId)
     .eq("revision_id", revisionId)
@@ -266,11 +293,13 @@ export async function listOperations(
           {
             id: row.id,
             sequence: row.sequence,
+            autoInspection: row.auto_inspection,
             type: {
               id: row.type.id,
               name: row.type.name,
               code: row.type.code,
               isExternal: row.type.is_external,
+              isInspection: row.type.is_inspection,
             },
             description: row.description,
             machineType: ref(row.machine_type_id, row.machine_type?.name),
@@ -379,6 +408,7 @@ export type OperationType = {
   name: string;
   code: string;
   isExternal: boolean;
+  isInspection: boolean;
   archived: boolean;
 };
 
@@ -390,7 +420,7 @@ export async function listOperationTypes(
   const supabase = await createClient();
   let query = supabase
     .from("operation_types")
-    .select("id, name, code, is_external, archived_at")
+    .select("id, name, code, is_external, is_inspection, archived_at")
     .eq("organization_id", organizationId);
   if (!options.includeArchived) query = query.is("archived_at", null);
   const { data, error } = await query
@@ -402,12 +432,15 @@ export async function listOperationTypes(
     name: row.name,
     code: row.code,
     isExternal: row.is_external,
+    isInspection: row.is_inspection,
     archived: row.archived_at !== null,
   }));
 }
 
-/** Organization default unit for cycle times. */
-export async function getDefaultCycleUnit(organizationId: string): Promise<TimeUnit> {
+export type ProductionSettings = { cycleTimeUnit: TimeUnit; inspectionMode: InspectionModeValue };
+
+/** Organization-wide production settings (organizations.settings). */
+export async function getProductionSettings(organizationId: string): Promise<ProductionSettings> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organizations")
@@ -415,7 +448,10 @@ export async function getDefaultCycleUnit(organizationId: string): Promise<TimeU
     .eq("id", organizationId)
     .single();
   if (error) throw error;
-  return cycleUnitFromSettings(data.settings);
+  return {
+    cycleTimeUnit: cycleUnitFromSettings(data.settings),
+    inspectionMode: inspectionModeFromSettings(data.settings),
+  };
 }
 
 export type MachineChoice = {

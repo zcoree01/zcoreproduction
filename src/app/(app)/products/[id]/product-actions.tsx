@@ -11,6 +11,7 @@ import {
   RotateCcwIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -50,7 +51,7 @@ import {
   type NewRevisionFormValues,
   type ProductActionResult,
 } from "@/modules/products/schemas";
-import { ProductSheet, type ProductCatalogs } from "../product-sheet";
+import { ProductSheet, type ProductFormOptions } from "../product-sheet";
 
 type FormError = Extract<ProductActionResult, { ok: false }>["error"];
 
@@ -82,8 +83,8 @@ export function RevisionPicker({
       {revisions.map((revision) => (
         <NativeSelectOption key={revision.id} value={revision.id}>
           {revision.isCurrent
-            ? t("revisionOptionCurrent", { revision: revision.revision })
-            : t("revisionOption", { revision: revision.revision })}
+            ? t("revisionOptionCurrent", { revision: revision.revision ?? t("unlabeled") })
+            : t("revisionOption", { revision: revision.revision ?? t("unlabeled") })}
         </NativeSelectOption>
       ))}
     </NativeSelect>
@@ -128,13 +129,13 @@ export function ProductActions({
   revision,
   editable,
   suggestedRevision,
-  catalogs,
+  options,
 }: {
   product: ProductDetail;
   revision: ProductRevision;
   editable: boolean;
   suggestedRevision: string;
-  catalogs: ProductCatalogs;
+  options: ProductFormOptions;
 }) {
   const t = useTranslations("products");
   const router = useRouter();
@@ -198,7 +199,7 @@ export function ProductActions({
           open={sheet === "edit"}
           onOpenChange={(open) => !open && setSheet(null)}
           editing={{ product, revision }}
-          catalogs={catalogs}
+          options={options}
         />
       ) : null}
       <Sheet open={sheet === "revision"} onOpenChange={(open) => !open && setSheet(null)}>
@@ -289,7 +290,7 @@ function NewRevisionForm({
       <SheetHeader className="border-b">
         <SheetTitle>{t("revisionForm.title", { code: product.partNumber })}</SheetTitle>
         <SheetDescription>
-          {t("revisionForm.description", { source: source.revision })}
+          {t("revisionForm.description", { source: source.revision ?? t("detail.unlabeled") })}
         </SheetDescription>
       </SheetHeader>
       <form
@@ -352,9 +353,9 @@ function CopyProductForm({
   const router = useRouter();
   const [formError, setFormError] = useState<FormError | null>(null);
   const [pending, startTransition] = useTransition();
-  const form = useForm<CopyProductFormValues>({
+  const form = useForm<CopyProductFormValues, unknown, z.output<typeof copyProductSchema>>({
     resolver: zodResolver(copyProductSchema),
-    defaultValues: { partNumber: "", name: product.name, revision: "A" },
+    defaultValues: { partNumber: "", name: product.name, revision: "" },
   });
 
   const onSubmit = form.handleSubmit(() => {
@@ -415,7 +416,7 @@ function CopyProductForm({
       <SheetHeader className="border-b">
         <SheetTitle>{t("copyForm.title", { code: product.partNumber })}</SheetTitle>
         <SheetDescription>
-          {t("copyForm.description", { source: source.revision })}
+          {t("copyForm.description", { source: source.revision ?? t("detail.unlabeled") })}
         </SheetDescription>
       </SheetHeader>
       <form id="copy-form" onSubmit={onSubmit} noValidate className="flex-1 overflow-y-auto p-4">

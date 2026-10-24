@@ -25,28 +25,10 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { createClient } from "@/lib/supabase/client";
-import {
-  getAttachmentUrlAction,
-  prepareAttachmentUploadAction,
-  registerAttachmentAction,
-  setAttachmentArchivedAction,
-} from "@/modules/products/actions";
+import { getAttachmentUrlAction, setAttachmentArchivedAction } from "@/modules/products/actions";
 import type { ProductAttachment, ProductOperation } from "@/modules/products/queries";
-import {
-  ATTACHMENT_CONTENT_TYPES,
-  ATTACHMENT_KINDS,
-  ATTACHMENT_MAX_BYTES,
-  attachmentMetaSchema,
-  PRODUCT_FILES_BUCKET,
-  type AttachmentActionResult,
-  type AttachmentKind,
-} from "@/modules/products/schemas";
-
-type UploadError =
-  Extract<AttachmentActionResult, { ok: false }>["error"] | "too_large" | "file_type";
-
-const ACCEPT = Object.keys(ATTACHMENT_CONTENT_TYPES).join(",");
+import { ATTACHMENT_KINDS, type AttachmentKind } from "@/modules/products/schemas";
+import { ACCEPT_ATTACHMENTS, uploadAttachment, type UploadError } from "../upload";
 
 function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -273,40 +255,15 @@ function UploadCard({
   const upload = () => {
     setError(null);
     if (!file) return;
-    if (file.size > ATTACHMENT_MAX_BYTES) return setError("too_large");
-    const meta = {
-      revisionId,
-      kind,
-      title,
-      mainDrawingId: kind === "machine_drawing" ? selectedMainDrawingId : "",
-      operationId: kind === "machine_drawing" ? operationId : "",
-      fileName: file.name,
-      contentType: file.type,
-      size: file.size,
-    };
-    const parsed = attachmentMetaSchema.safeParse(meta);
-    if (!parsed.success) {
-      return setError(
-        parsed.error.issues.some((issue) => issue.path[0] === "contentType")
-          ? "file_type"
-          : "invalid",
-      );
-    }
-
     startTransition(async () => {
-      const ticket = await prepareAttachmentUploadAction(meta);
-      if (!ticket.ok) return setError(ticket.error);
-
-      const supabase = createClient();
-      const uploaded = await supabase.storage
-        .from(PRODUCT_FILES_BUCKET)
-        .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
-      if (uploaded.error) {
-        console.error("upload failed", uploaded.error);
-        return setError("upload_failed");
-      }
-
-      const result = await registerAttachmentAction(meta, ticket.path);
+      const result = await uploadAttachment({
+        revisionId,
+        kind,
+        title,
+        mainDrawingId: selectedMainDrawingId,
+        operationId,
+        file,
+      });
       if (!result.ok) return setError(result.error);
 
       toast.success(t("uploadedToast", { name: file.name }));
@@ -402,7 +359,7 @@ function UploadCard({
               ref={fileInput}
               id="attachment-file"
               type="file"
-              accept={ACCEPT}
+              accept={ACCEPT_ATTACHMENTS}
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
             {error === "too_large" || error === "file_type" ? (

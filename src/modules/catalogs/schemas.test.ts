@@ -15,7 +15,6 @@ describe("catalog permissions", () => {
       job_title: "employees.manage",
       skill: "employees.manage",
       product_type: "products.manage",
-      material_shape: "products.manage",
     });
   });
 
@@ -26,10 +25,7 @@ describe("catalog permissions", () => {
       "job_title",
       "skill",
     ]);
-    expect(manageableCatalogKinds(new Set(["products.manage"]))).toEqual([
-      "product_type",
-      "material_shape",
-    ]);
+    expect(manageableCatalogKinds(new Set(["products.manage"]))).toEqual(["product_type"]);
     expect(
       manageableCatalogKinds(new Set(["machines.manage", "employees.manage", "products.manage"])),
     ).toEqual([...CATALOG_KINDS]);

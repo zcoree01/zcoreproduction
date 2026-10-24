@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,14 +25,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { setProductArchivedAction } from "@/modules/products/actions";
 import type { ProductRow } from "@/modules/products/queries";
-import type { ProductCatalogs } from "./product-sheet";
+import type { CatalogOption } from "@/modules/catalogs/queries";
+import type { CustomerOption } from "@/modules/customers/queries";
 
 export type ProductTableParams = {
   page: number;
   pageSize: number;
   q: string;
   type: string;
-  shape: string;
+  customer: string;
   view: string;
 };
 
@@ -43,20 +43,22 @@ export function ProductsTable({
   rows,
   total,
   params,
-  catalogs,
+  types,
+  customers,
   canManage,
 }: {
   rows: ProductRow[];
   total: number;
   params: ProductTableParams;
-  catalogs: ProductCatalogs;
+  types: CatalogOption[];
+  customers: CustomerOption[];
   canManage: boolean;
 }) {
   const t = useTranslations("products");
   const [archiving, setArchiving] = useState<ProductRow | null>(null);
   const [, startTransition] = useTransition();
   const archivedView = params.view === "archived";
-  const filtered = params.q !== "" || params.type !== "" || params.shape !== "";
+  const filtered = params.q !== "" || params.type !== "" || params.customer !== "";
 
   const columns = useMemo<DataTableColumn<ProductRow>[]>(() => {
     const restore = (product: ProductRow) =>
@@ -81,15 +83,19 @@ export function ProductsTable({
       },
       { accessorKey: "name", header: t("columns.name") },
       {
-        id: "revision",
-        header: t("columns.revision"),
-        cell: ({ row }) =>
-          row.original.revision ? <Badge variant="outline">{row.original.revision}</Badge> : muted,
-      },
-      {
         id: "customer",
         header: t("columns.customer"),
-        cell: ({ row }) => row.original.customerName ?? muted,
+        cell: ({ row }) =>
+          row.original.customer ? (
+            <Link
+              href={`/customers/${row.original.customer.id}`}
+              className="underline-offset-4 hover:underline"
+            >
+              {row.original.customer.name}
+            </Link>
+          ) : (
+            muted
+          ),
       },
       {
         id: "drawing",
@@ -100,10 +106,11 @@ export function ProductsTable({
         id: "material",
         header: t("columns.material"),
         cell: ({ row }) => {
-          const text = [row.original.materialGrade, row.original.materialShape?.name]
-            .filter(Boolean)
-            .join(" · ");
-          return text || muted;
+          return row.original.material ? (
+            <span title={row.original.material.groupName}>{row.original.material.designation}</span>
+          ) : (
+            muted
+          );
         },
       },
       {
@@ -188,14 +195,14 @@ export function ProductsTable({
             label: t("columns.type"),
             value: params.type,
             allLabel: t("filters.allTypes"),
-            options: catalogs.types.map((item) => ({ value: item.id, label: item.name })),
+            options: types.map((item) => ({ value: item.id, label: item.name })),
           },
           {
-            id: "shape",
-            label: t("filters.shape"),
-            value: params.shape,
-            allLabel: t("filters.allShapes"),
-            options: catalogs.shapes.map((item) => ({ value: item.id, label: item.name })),
+            id: "customer",
+            label: t("filters.customer"),
+            value: params.customer,
+            allLabel: t("filters.allCustomers"),
+            options: customers.map((item) => ({ value: item.id, label: item.name })),
           },
           {
             id: "view",

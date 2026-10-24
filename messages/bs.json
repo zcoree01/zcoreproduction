@@ -61,7 +61,9 @@
     "floorMachines": "Mašine",
     "products": "Proizvodi",
     "operationTypes": "Operacije",
-    "productionSettings": "Postavke proizvodnje"
+    "productionSettings": "Postavke proizvodnje",
+    "customers": "Kupci",
+    "materials": "Materijali"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -361,8 +363,7 @@
       "department": "Odjeli",
       "job_title": "Radna mjesta",
       "skill": "Vještine",
-      "product_type": "Vrste artikala",
-      "material_shape": "Oblici materijala"
+      "product_type": "Vrste artikala"
     },
     "kindsLabel": "Vrsta šifarnika",
     "newLabel": "Novi naziv",
@@ -427,12 +428,15 @@
     "set": "komplet"
   },
   "blankGeometry": {
-    "round": "Okrugli (cilindar)",
-    "prismatic": "Pravougaoni (kocka, ploča, profil)"
+    "round": "Okrugla šipka",
+    "tube": "Cijev",
+    "rectangular": "Pravougaoni (lim, plosnati, kvadrat)",
+    "hexagon": "Šestougaona šipka",
+    "other": "Ostalo / profil (bez proračuna težine)"
   },
   "products": {
     "title": "Proizvodi",
-    "description": "Proizvodi i dijelovi s revizijama crteža, tehnološkim postupkom i prilozima.",
+    "description": "Proizvodi i dijelovi s crtežima, tehnološkim postupkom i prilozima.",
     "deniedDescription": "Za pregled proizvoda potrebna je dozvola za proizvode.",
     "searchPlaceholder": "Pretraži šifru, naziv, kupca, crtež…",
     "emptyTitle": "Nema proizvoda",
@@ -445,7 +449,6 @@
     "columns": {
       "partNumber": "Šifra",
       "name": "Naziv",
-      "revision": "Rev.",
       "customer": "Kupac",
       "drawing": "Crtež",
       "material": "Materijal",
@@ -455,8 +458,8 @@
     },
     "filters": {
       "allTypes": "Sve vrste",
-      "shape": "Oblik materijala",
-      "allShapes": "Svi oblici",
+      "customer": "Kupac",
+      "allCustomers": "Svi kupci",
       "view": "Prikaz",
       "current": "Aktivni proizvodi",
       "archived": "Arhivirani proizvodi"
@@ -479,46 +482,41 @@
       "revision_taken": "Ta revizija već postoji.",
       "invalid_reference": "Odabrana vrsta ili oblik materijala više ne postoje.",
       "not_current": "Mijenjati se može samo aktuelna revizija aktivnog proizvoda.",
-      "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+      "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo.",
+      "inspection_type_missing": "Za automatske kontrole označite jednu vrstu operacije kao kontrolu (Administracija → Operacije)."
     },
     "form": {
       "open": "Dodaj proizvod",
       "createTitle": "Novi proizvod",
-      "editTitle": "Uredi {code} (rev. {revision})",
-      "description": "Podaci o proizvodu i aktuelnoj reviziji crteža.",
+      "editTitle": "Uredi {code}",
+      "description": "Podaci o proizvodu i aktuelnom crtežu.",
       "sections": {
         "product": "Proizvod",
-        "drawing": "Crtež i revizija",
-        "material": "Materijal i sirovac"
+        "inspection": "Kontrole",
+        "drawing": "Crtež",
+        "material": "Materijal i sirovi komad",
+        "files": "Prilozi"
       },
       "partNumber": "Šifra dijela",
       "partNumberHint": "Šifra kako je određuje kupac; jedinstvena u firmi.",
       "name": "Naziv",
-      "customerName": "Kupac",
-      "customerNameHint": "Za sada slobodan tekst.",
       "productTypeId": "Vrsta artikla",
       "productTypeNone": "Bez vrste",
       "unit": "Jedinica mjere",
       "revision": "Revizija",
-      "revisionHint": "Npr. A, B, C ili 01.",
+      "revisionHint": "Neobavezno – samo ako crtež ima reviziju (npr. A).",
       "revisionLockedHint": "Za novu reviziju koristite „Nova revizija”.",
       "drawingNumber": "Broj crteža",
       "descriptionField": "Opis",
-      "materialGrade": "Materijal (kvalitet)",
-      "materialGradeHint": "Npr. S235, C45, AlMg3.",
-      "materialShapeId": "Oblik materijala",
-      "materialShapeNone": "Bez oblika",
-      "blankGeometry": "Presjek sirovca",
+      "blankGeometry": "Oblik sirovog komada",
       "blankGeometryNone": "Nije uneseno",
       "blankGeometryHint": "Okrugli: prečnik, širina i visina. Pravougaoni: širina, visina i debljina.",
       "blankDiameter": "Prečnik",
       "blankWidth": "Širina",
-      "blankHeight": "Visina",
       "blankThickness": "Debljina",
-      "cutLength": "Dužina reza po komadu",
+      "cutLength": "Dužina komada",
       "kerf": "Širina reza (kerf)",
-      "netMass": "Neto masa komada",
-      "archivedOption": "{name} (arhivirano)",
+      "netMass": "Neto masa gotovog komada",
       "submitCreate": "Dodaj proizvod",
       "submitEdit": "Sačuvaj promjene",
       "submitting": "Spremanje…",
@@ -530,30 +528,59 @@
         "not_found": "Proizvod ne postoji ili je arhiviran.",
         "part_number_taken": "Šifra dijela je već zauzeta.",
         "revision_taken": "Ta revizija već postoji.",
-        "invalid_reference": "Odabrana vrsta ili oblik materijala više ne postoje.",
+        "invalid_reference": "Odabrani kupac, vrsta ili materijal više ne postoje.",
         "not_current": "Mijenjati se može samo aktuelna revizija aktivnog proizvoda.",
-        "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+        "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo.",
+        "inspection_type_missing": "Za automatske kontrole označite jednu vrstu operacije kao kontrolu (Administracija → Operacije)."
       },
       "fieldErrors": {
         "partNumber": "Unesite šifru (do 100 znakova).",
         "name": "Unesite naziv (do 200 znakova).",
-        "customerName": "Najviše 200 znakova.",
         "productTypeId": "Odaberite vrstu iz liste.",
         "unit": "Odaberite jedinicu mjere.",
-        "revision": "Unesite oznaku (do 10 znakova: slova, brojevi, . i -).",
+        "revision": "Do 10 znakova: slova, brojevi, . i -.",
         "drawingNumber": "Najviše 100 znakova.",
         "description": "Najviše 2000 znakova.",
-        "materialGrade": "Najviše 100 znakova.",
-        "materialShapeId": "Odaberite oblik iz liste.",
-        "blankGeometry": "Odaberite presjek.",
-        "blankDiameter": "Unesite broj veći od nule (mm, do 3 decimale), samo za okrugli presjek.",
+        "blankGeometry": "Odaberite oblik.",
+        "blankDiameter": "Unesite broj veći od nule (mm, do 3 decimale).",
         "blankWidth": "Unesite broj veći od nule (mm, do 3 decimale).",
-        "blankHeight": "Unesite broj veći od nule (mm, do 3 decimale).",
-        "blankThickness": "Unesite broj veći od nule (mm, do 3 decimale), samo za pravougaoni presjek.",
-        "cutLength": "Unesite broj veći od nule (mm, do 3 decimale).",
+        "blankThickness": "Unesite broj veći od nule (mm); kod cijevi manje od pola prečnika.",
+        "cutLength": "Unesite dužinu veću od nule (mm, do 3 decimale).",
         "kerf": "Unesite broj od 0 naviše (mm, do 3 decimale).",
-        "netMass": "Unesite broj veći od nule (kg, do 4 decimale)."
-      }
+        "netMass": "Unesite broj veći od nule (kg, do 4 decimale).",
+        "customerId": "Odaberite kupca iz liste.",
+        "materialId": "Odaberite materijal iz liste.",
+        "inspectionPlan": "Odaberite način kontrole."
+      },
+      "customerId": "Kupac",
+      "customerPlaceholder": "Počnite kucati naziv kupca…",
+      "customerHint": "Kupce dodajete u meniju Kupci.",
+      "inspectionPlan": "Kontrole na ovom proizvodu",
+      "inspectionPlanHint": "Automatske kontrole sistem sam raspoređuje u tehnološkom postupku.",
+      "inspectBetween": "Kontrola između svake operacije?",
+      "inspectBetweenYes": "Da – nakon svake operacije i na kraju",
+      "inspectBetweenNo": "Ne – samo na kraju (ostale dodajete ručno)",
+      "inspectBetweenHint": "Firma je u postavkama odabrala da se ovo bira za svaki proizvod.",
+      "inspectionMode": {
+        "automatic": "Kontrola se automatski dodaje nakon svake operacije i na kraju (postavke firme).",
+        "manual": "Kontrole dodajete ručno kao operacije (postavke firme).",
+        "custom": "Pri dodavanju proizvoda birate način kontrole (postavke firme)."
+      },
+      "materialId": "Materijal",
+      "materialPlaceholder": "Kucajte npr. inox 304, C45, 6082…",
+      "materialHint": "{group} · {density} kg/dm³",
+      "materialHelp": "Materijale i gustine uređujete u Administracija → Materijali.",
+      "outerDiameter": "Vanjski prečnik",
+      "acrossFlats": "Mjera preko ključa (SW)",
+      "wallThickness": "Debljina stijenke",
+      "blankWeight": "Težina sirovog komada: {weight} kg",
+      "blankWeightMissing": "Težina sirovog komada se računa kad su uneseni materijal, oblik, mjere i dužina.",
+      "consumption": "Potrošnja materijala po komadu (s rezom): {length} mm",
+      "files": "Fajlovi (PDF, slike)",
+      "filesHint": "Možete odabrati više fajlova odjednom; učitavaju se nakon spremanja proizvoda.",
+      "fileKind": "Vrsta priloga za {name}",
+      "removeFile": "Ukloni {name}",
+      "uploadFailed": "{count, plural, one {# fajl nije učitan} few {# fajla nisu učitana} other {# fajlova nije učitano}} – dodajte ih u tabu Prilozi."
     },
     "tabs": {
       "basic": "Osnovno",
@@ -567,7 +594,6 @@
       "notFoundDescription": "Proizvod ne postoji ili nemate pristup.",
       "revisionBadge": "Rev. {revision}",
       "archived": "Arhivirano",
-      "customer": "Kupac: {customer}",
       "oldRevisionTitle": "Pregled stare revizije {revision}",
       "oldRevisionDescription": "Aktuelna je revizija {current}. Stara revizija se ne može mijenjati.",
       "archivedDescription": "Proizvod je arhiviran. Vratite ga iz arhive da biste ga mijenjali.",
@@ -582,7 +608,9 @@
       "edit": "Uredi",
       "moreActions": "Više akcija",
       "newRevision": "Nova revizija",
-      "copy": "Kopiraj kao novi dio"
+      "copy": "Kopiraj kao novi dio",
+      "unlabeled": "bez oznake",
+      "customerLabel": "Kupac:"
     },
     "revisionForm": {
       "title": "Nova revizija za {code}",
@@ -613,17 +641,22 @@
       "drawingNumber": "Broj crteža",
       "revision": "Revizija",
       "description": "Opis",
-      "material": "Materijal i sirovac",
-      "materialGrade": "Materijal (kvalitet)",
-      "materialShape": "Oblik materijala",
-      "blankGeometry": "Presjek sirovca",
+      "material": "Materijal i sirovi komad",
+      "blankGeometry": "Oblik sirovog komada",
       "blankDiameter": "Prečnik",
       "blankWidth": "Širina",
-      "blankHeight": "Visina",
       "blankThickness": "Debljina",
-      "cutLength": "Dužina reza po komadu",
+      "cutLength": "Dužina komada",
       "kerf": "Širina reza (kerf)",
-      "netMass": "Neto masa komada"
+      "netMass": "Neto masa gotovog komada",
+      "materialId": "Materijal",
+      "density": "Gustina",
+      "inspectionPlan": "Kontrole",
+      "outerDiameter": "Vanjski prečnik",
+      "acrossFlats": "Mjera preko ključa (SW)",
+      "wallThickness": "Debljina stijenke",
+      "consumption": "Potrošnja po komadu (s rezom)",
+      "blankWeight": "Težina sirovog komada"
     },
     "operations": {
       "emptyTitle": "Nema operacija",
@@ -633,28 +666,29 @@
       "showArchived": "Prikaži arhivirane ({count})",
       "allArchived": "Sve operacije su arhivirane.",
       "columns": {
-        "sequence": "Br.",
         "operation": "Operacija",
         "resource": "Mašina / izvođač",
         "setup": "Priprema",
         "cycle": "Ciklus / kom",
         "notes": "Napomena",
-        "actions": "Akcije"
+        "actions": "Akcije",
+        "drag": "Pomjeranje",
+        "code": "Oznaka"
       },
       "archivedBadge": "Arhivirano",
       "externalNoCompany": "Vanjska operacija",
       "machineTypeValue": "Tip: {name}",
       "minutesValue": "{value} min",
       "secondsValue": "{value} s",
-      "restore": "Vrati operaciju {sequence}",
-      "moveUp": "Pomjeri operaciju {sequence} gore",
-      "moveDown": "Pomjeri operaciju {sequence} dolje",
-      "edit": "Uredi operaciju {sequence}",
-      "archive": "Arhiviraj operaciju {sequence}",
-      "restoredToast": "Operacija {sequence} je vraćena.",
-      "archivedToast": "Operacija {sequence} je arhivirana.",
-      "archiveTitle": "Arhivirati operaciju {sequence}?",
-      "archiveDescription": "Operacija se više neće prikazivati u postupku. Možete je vratiti; njen redni broj ostaje rezervisan.",
+      "restore": "Vrati operaciju {name}",
+      "moveUp": "Pomjeri operaciju {name} gore",
+      "moveDown": "Pomjeri operaciju {name} dolje",
+      "edit": "Uredi operaciju {name}",
+      "archive": "Arhiviraj operaciju {name}",
+      "restoredToast": "Operacija {name} je vraćena.",
+      "archivedToast": "Operacija {name} je arhivirana.",
+      "archiveTitle": "Arhivirati operaciju {name}?",
+      "archiveDescription": "Operacija se više neće prikazivati u postupku. Možete je vratiti; dodaje se na kraj.",
       "archiveConfirm": "Arhiviraj",
       "totals": "Ukupno",
       "totalsHint": "Priprema jednom po nalogu, ciklus po komadu.",
@@ -666,10 +700,8 @@
       },
       "form": {
         "createTitle": "Nova operacija",
-        "editTitle": "Uredi operaciju {sequence}",
+        "editTitle": "Uredi operaciju {name}",
         "sheetDescription": "Korak tehnološkog postupka aktuelne revizije.",
-        "sequence": "Redni broj",
-        "sequenceHint": "Npr. 10, 20, 30 – razmak ostavlja mjesto za umetanje (npr. 15).",
         "operationTypeId": "Vrsta operacije",
         "operationTypeNone": "Odaberite operaciju",
         "externalSuffix": "vanjska",
@@ -694,20 +726,19 @@
         "submitCreate": "Dodaj operaciju",
         "submitEdit": "Sačuvaj promjene",
         "submitting": "Spremanje…",
-        "createdToast": "Operacija {sequence} je dodana.",
-        "updatedToast": "Operacija {sequence} je sačuvana.",
+        "createdToast": "Operacija {name} je dodana.",
+        "updatedToast": "Operacija {name} je sačuvana.",
         "errors": {
           "invalid": "Provjerite označena polja.",
           "denied": "Nemate dozvolu za ovu promjenu.",
-          "not_found": "Operacija ne postoji ili je arhivirana.",
-          "sequence_taken": "Taj redni broj je već zauzet (i arhivirane operacije zadržavaju broj).",
+          "not_found": "Operacija ne postoji ili je postupak u međuvremenu promijenjen. Osvježite stranicu.",
           "invalid_reference": "Odabrana operacija ili mašina više ne postoji.",
           "external_rules": "Vanjska operacija ne može imati mašinu ni vremena; interna ne može imati izvođača.",
           "not_current": "Mijenjati se može samo aktuelna revizija aktivnog proizvoda.",
-          "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+          "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo.",
+          "inspection_type_missing": "Za automatske kontrole označite jednu vrstu operacije kao kontrolu (Administracija → Operacije)."
         },
         "fieldErrors": {
-          "sequence": "Unesite broj od 1 do 9999.",
           "operationTypeId": "Odaberite vrstu operacije.",
           "description": "Najviše 200 znakova.",
           "resource": "Odaberite mašinu ili tip iz liste.",
@@ -718,7 +749,9 @@
           "notes": "Najviše 2000 znakova."
         },
         "cycleTime": "Ciklus po komadu"
-      }
+      },
+      "dragHint": "Redoslijed mijenjate povlačenjem reda mišem ili strelicama.",
+      "autoInspection": "automatska"
     },
     "attachments": {
       "showArchived": "Prikaži arhivirane ({count})",
@@ -804,27 +837,23 @@
         "attachment_added": "Prilog {subject} dodan",
         "attachment_updated": "Prilog {subject} izmijenjen",
         "attachment_archived": "Prilog {subject} arhiviran",
-        "attachment_restored": "Prilog {subject} vraćen"
+        "attachment_restored": "Prilog {subject} vraćen",
+        "routing_reordered": "Promijenjen redoslijed operacija"
       },
       "fields": {
         "part_number": "šifra",
         "name": "naziv",
-        "customer_name": "kupac",
         "product_type_id": "vrsta artikla",
         "unit": "jedinica mjere",
         "drawing_number": "broj crteža",
         "description": "opis",
-        "material_grade": "materijal",
-        "material_shape_id": "oblik materijala",
-        "blank_geometry": "presjek sirovca",
+        "blank_geometry": "oblik sirovog komada",
         "blank_diameter_mm": "prečnik",
         "blank_width_mm": "širina",
-        "blank_height_mm": "visina",
         "blank_thickness_mm": "debljina",
-        "cut_length_mm": "dužina reza",
+        "cut_length_mm": "dužina komada",
         "kerf_mm": "kerf",
         "net_mass_kg": "neto masa",
-        "sequence": "redni broj",
         "operation_type_id": "vrsta operacije",
         "machine_type_id": "tip mašine",
         "machine_id": "mašina",
@@ -832,7 +861,10 @@
         "setup_time_min": "priprema",
         "cycle_time_s": "ciklus",
         "notes": "napomena",
-        "title": "naziv priloga"
+        "title": "naziv priloga",
+        "customer_id": "kupac",
+        "material_id": "materijal",
+        "inspection_plan": "kontrole"
       }
     }
   },
@@ -870,7 +902,8 @@
     "fields": {
       "name": "Naziv",
       "code": "Skraćenica",
-      "isExternal": "Vanjska operacija"
+      "isExternal": "Vanjska operacija",
+      "isInspection": "Kontrola kvaliteta"
     },
     "codeHint": "Do 10 znakova (velika slova, brojevi, -), npr. BU.",
     "isExternalHint": "Radi je druga firma (npr. cinčanje): bez mašine i vremena, uz naziv firme.",
@@ -890,15 +923,16 @@
     "fieldErrors": {
       "name": "Unesite naziv (do 100 znakova).",
       "code": "Unesite skraćenicu (do 10 znakova: slova, brojevi, -).",
-      "isExternal": "Neispravna vrijednost."
-    }
+      "isExternal": "Neispravna vrijednost.",
+      "isInspection": "Kontrola se radi u firmi – ne može biti vanjska operacija."
+    },
+    "inspection": "Kontrola",
+    "isInspectionHint": "Ova vrsta se koristi za automatske kontrole između operacija."
   },
   "productionSettings": {
     "title": "Postavke proizvodnje",
     "description": "Postavke koje važe za cijelu firmu.",
     "deniedDescription": "Postavke firme mijenja administrator.",
-    "cycleTitle": "Vrijeme ciklusa",
-    "cycleDescription": "Jedinica u kojoj se unosi i prikazuje vrijeme po komadu. Pojedine mašine mogu imati svoju jedinicu (u formi mašine).",
     "cycleTimeUnit": "Zadana jedinica",
     "units": {
       "min": "Minute",
@@ -912,6 +946,167 @@
       "invalid": "Odaberite jedinicu.",
       "denied": "Nemate dozvolu za postavke firme.",
       "unexpected": "Postavke nisu sačuvane zbog greške. Pokušajte ponovo."
+    },
+    "cardTitle": "Proizvodnja",
+    "cardDescription": "Jedinica vremena ciklusa i način dodavanja kontrola. Pojedine mašine mogu imati svoju jedinicu (u formi mašine).",
+    "inspectionMode": "Kontrole između operacija",
+    "inspectionModes": {
+      "automatic": "Automatski",
+      "manual": "Ručno",
+      "custom": "Prilagođeno"
+    },
+    "inspectionModeHints": {
+      "automatic": "Na svakom novom proizvodu kontrola se sama dodaje nakon svake operacije i na kraju.",
+      "manual": "Ništa se ne dodaje samo; kontrole dodajete kao operacije gdje su potrebne.",
+      "custom": "Pri dodavanju proizvoda bira se: kontrola nakon svake operacije ili samo obavezna kontrola na kraju."
+    }
+  },
+  "searchSelect": {
+    "empty": "Nema rezultata."
+  },
+  "inspectionPlans": {
+    "between": "Kontrola nakon svake operacije i na kraju",
+    "final": "Kontrola samo na kraju",
+    "none": "Bez automatskih kontrola"
+  },
+  "customers": {
+    "title": "Kupci",
+    "description": "Kupci i njihovi proizvodi.",
+    "deniedDescription": "Za pregled kupaca potrebna je dozvola za kupce.",
+    "searchPlaceholder": "Pretraži naziv, grad, ID broj, kontakt…",
+    "emptyTitle": "Nema kupaca",
+    "emptyDescription": "Dodajte prvog kupca putem forme.",
+    "emptyReadOnlyDescription": "Još nema unesenih kupaca.",
+    "archivedEmptyTitle": "Nema arhiviranih kupaca",
+    "noResultsTitle": "Nema rezultata",
+    "noResultsDescription": "Promijenite pretragu.",
+    "columns": {
+      "name": "Naziv",
+      "city": "Mjesto",
+      "contact": "Kontakt",
+      "products": "Proizvodi",
+      "actions": "Akcije"
+    },
+    "filters": {
+      "view": "Prikaz",
+      "current": "Aktivni kupci",
+      "archived": "Arhivirani kupci"
+    },
+    "edit": "Uredi",
+    "archive": "Arhiviraj",
+    "restore": "Vrati iz arhive",
+    "archiveTitle": "Arhivirati kupca {name}?",
+    "archiveDescription": "Kupac se više neće nuditi pri unosu proizvoda. Postojeći proizvodi ga zadržavaju, a kupca možete vratiti iz arhive.",
+    "archivedToast": "Kupac {name} je arhiviran.",
+    "restoredToast": "Kupac {name} je vraćen iz arhive.",
+    "detail": {
+      "back": "Kupci",
+      "notFoundTitle": "Kupac nije pronađen",
+      "notFoundDescription": "Kupac ne postoji ili nemate pristup.",
+      "archived": "Arhiviran",
+      "data": "Podaci",
+      "products": "Proizvodi ({count})",
+      "noProducts": "Kupac još nema proizvoda.",
+      "allProducts": "Svi proizvodi kupca ({count})",
+      "columns": {
+        "partNumber": "Šifra",
+        "name": "Naziv",
+        "drawing": "Crtež",
+        "material": "Materijal",
+        "operations": "Operacije"
+      }
+    },
+    "form": {
+      "open": "Dodaj kupca",
+      "createTitle": "Novi kupac",
+      "editTitle": "Uredi {name}",
+      "description": "Podaci o kupcu. Obavezan je samo naziv.",
+      "name": "Naziv",
+      "taxId": "ID / PDV broj",
+      "address": "Adresa",
+      "city": "Grad",
+      "country": "Država",
+      "contactPerson": "Kontakt osoba",
+      "phone": "Telefon",
+      "email": "E-mail",
+      "notes": "Napomena",
+      "submitCreate": "Dodaj kupca",
+      "submitEdit": "Sačuvaj promjene",
+      "submitting": "Spremanje…",
+      "createdToast": "Kupac {name} je dodan.",
+      "updatedToast": "Kupac {name} je sačuvan.",
+      "errors": {
+        "invalid": "Provjerite označena polja.",
+        "denied": "Nemate dozvolu za ovu promjenu.",
+        "not_found": "Kupac ne postoji ili je arhiviran.",
+        "name_taken": "Aktivan kupac s tim nazivom već postoji.",
+        "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+      },
+      "fieldErrors": {
+        "name": "Unesite naziv (do 200 znakova).",
+        "taxId": "Najviše 50 znakova.",
+        "address": "Najviše 300 znakova.",
+        "city": "Najviše 100 znakova.",
+        "country": "Najviše 100 znakova.",
+        "contactPerson": "Najviše 200 znakova.",
+        "phone": "Najviše 50 znakova.",
+        "email": "Unesite ispravnu e-mail adresu.",
+        "notes": "Najviše 2000 znakova."
+      }
+    }
+  },
+  "materials": {
+    "title": "Materijali",
+    "description": "Grupe materijala s gustinom i oznake (kvaliteti). Gustina služi za proračun težine sirovog komada.",
+    "deniedDescription": "Za uređivanje materijala potrebna je dozvola za proizvode.",
+    "showArchived": "Prikaži arhivirane",
+    "addGroup": "Dodaj grupu",
+    "addMaterial": "Dodaj oznaku",
+    "emptyTitle": "Nema materijala",
+    "emptyDescription": "Dodajte prvu grupu materijala (npr. Čelik).",
+    "groupEmpty": "Grupa još nema oznaka.",
+    "archivedBadge": "Arhivirano",
+    "noDensity": "Gustina nije unesena",
+    "densityValue": "{value} kg/dm³",
+    "fromGroup": "{value} kg/dm³ (iz grupe)",
+    "columns": {
+      "designation": "Oznaka",
+      "density": "Gustina",
+      "actions": "Akcije"
+    },
+    "edit": "Uredi {name}",
+    "archive": "Arhiviraj {name}",
+    "restore": "Vrati",
+    "archivedToast": "Arhivirano: {name}.",
+    "restoredToast": "Vraćeno: {name}.",
+    "savedToast": "Sačuvano: {name}.",
+    "editGroupTitle": "Uredi grupu {name}",
+    "editMaterialTitle": "Uredi {name}",
+    "groupDescription": "Grupa (npr. Čelik, Aluminij) s gustinom koja važi za sve njene oznake.",
+    "materialDescription": "Oznaka materijala (kvalitet) unutar grupe.",
+    "fields": {
+      "groupName": "Naziv grupe",
+      "group": "Grupa",
+      "designation": "Oznaka",
+      "density": "Gustina"
+    },
+    "designationHint": "Npr. 1.4301 (AISI 304), C45, EN AW-6082.",
+    "groupDensityHint": "Npr. čelik 7,85 · inox 7,9 · aluminij 2,7.",
+    "materialDensityHint": "Prazno = gustina grupe.",
+    "save": "Sačuvaj",
+    "submitting": "Spremanje…",
+    "errors": {
+      "invalid": "Provjerite označena polja.",
+      "denied": "Nemate dozvolu za ovu promjenu.",
+      "not_found": "Stavka ne postoji.",
+      "name_taken": "Aktivna grupa s tim nazivom već postoji.",
+      "designation_taken": "Aktivna oznaka s tim nazivom već postoji.",
+      "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+    },
+    "fieldErrors": {
+      "name": "Unesite naziv (do 100 znakova).",
+      "designation": "Unesite oznaku (do 100 znakova).",
+      "density": "Unesite gustinu veću od nule (kg/dm³, do 4 decimale)."
     }
   }
 }

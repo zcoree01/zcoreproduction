@@ -6,13 +6,13 @@ const UUID = "11111111-1111-4111-8111-111111111111";
 describe("parseProductListParams", () => {
   it("parses filters and drops invalid values", () => {
     expect(
-      parseProductListParams({ type: UUID, shape: "x", view: "archived", q: " osovina " }),
+      parseProductListParams({ type: UUID, customer: "x", view: "archived", q: " osovina " }),
     ).toEqual({
       page: 1,
       pageSize: 25,
       q: "osovina",
       type: UUID,
-      shape: undefined,
+      customer: undefined,
       view: "archived",
     });
     expect(parseProductListParams({ view: "all" }).view).toBeUndefined();

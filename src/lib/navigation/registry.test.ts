@@ -82,6 +82,15 @@ describe("buildNavigation", () => {
     expect(catalogs(["products.manage"])).toBe(true);
   });
 
+  it("shows customers to readers", () => {
+    expect(ids(buildNavigation("app", access(["core", "production"], ["customers.read"])))).toEqual(
+      [
+        ["overview", ["dashboard"]],
+        ["production", ["customers"]],
+      ],
+    );
+  });
+
   it("shows products to readers and product settings to managers and admins", () => {
     const visible = (permissions: string[]) =>
       ids(buildNavigation("app", access(["core", "production"], permissions)));
@@ -92,7 +101,7 @@ describe("buildNavigation", () => {
     expect(visible(["products.read", "products.manage"])).toEqual([
       ["overview", ["dashboard"]],
       ["production", ["products"]],
-      ["administration", ["catalogs", "operation-types"]],
+      ["administration", ["catalogs", "operation-types", "materials"]],
     ]);
     expect(visible(["org.settings.manage"])).toEqual([
       ["overview", ["dashboard"]],

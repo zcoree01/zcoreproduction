@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** in progress (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs and products/parts (revisions, routings, attachments) are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. Next in Phase 2: production orders and operations.
+**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** in progress (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs, customers, materials and products/parts (revisions, routings with inspections, attachments, raw piece weight) are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. Next in Phase 2: production orders and operations.
 
 ## Implemented
 
@@ -42,7 +42,16 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - Private Storage bucket `product-files` (PDF/PNG/JPG/WEBP, 20 MB): read with `products.read`, upload with `products.manage`, only in the own organization's folder; no update/delete (attachments are archived). Upload = server action issues a signed upload URL for a server-chosen path → browser uploads → server action reads size/type back from Storage and records the row. Download via 5-minute signed URL.
   - Screens: `/products` (server-paginated, search part number/name/customer/drawing, filters type/shape/archive), `/products/[id]` with tabs Osnovno / Operacije (reorder, archive, totals, quantity calculator) / Prilozi (upload, main + machine drawings) / Historija (revisions with "set as current", change log); add/edit sheet, new revision, copy as new part, archive/restore. `/settings/operation-types`, `/settings/production` (cycle-time unit, `org.settings.manage`), cycle-time unit in the machine form; catalogs page shows the new kinds.
   - Decimal values are handled as strings end to end (`src/lib/decimal.ts`, `optionalDecimal`, `numericParam`), never as floats.
-- Tests: `npm run check` (146 unit tests), `npm run test:db` (84 RLS/integration tests), `npm run e2e` (33 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing and totals, warehouse read-only, admin builds operation type → product → operation → PDF upload → revision B → history → archive).
+- **Products v2 — customers, materials, raw piece weight, inspections** (`20261024160000_products_customers_materials`, D-015):
+  - `customers` (name unique among active, tax ID, address, city, country, contact, phone, e-mail, notes; `customers.read/manage`); products reference a customer (old text names migrated). Screens `/customers` (search, archive view) and `/customers/[id]` (data + the customer's products).
+  - `material_groups` (density kg/dm³) → `materials` (designation, optional own density); every organization gets a starter list (steel, stainless, aluminium, brass, copper, bronze, titanium, cast iron, plastics; trigger for new orgs). Revisions reference a material (old text grades migrated). Screen `/settings/materials`; the product form picks material and customer by typing (`SearchSelect` on shadcn Combobox, diacritic-insensitive, e.g. "inox 304").
+  - Raw piece ("sirovi komad"): shape round / tube / rectangular / hexagon / other drives the inputs (Ø; outer Ø + wall; width × thickness; across flats); `cut_length_mm` is the piece length (old `blank_height_mm` migrated into it). Weight = cross-section × length × density, computed live in the form and on the detail page (exact decimals); consumption per piece = length + kerf.
+  - Revision label optional (only when the drawing has one); new revisions still need a label, the next suggestion after "no label" is A. The list no longer shows the revision.
+  - Routing without visible numbers: abbreviation · name · machine …; reorder by drag & drop (native HTML5) or arrows → `reorder_product_operations`. `sequence` is only the internal position.
+  - Inspections: `operation_types.is_inspection`; organization setting `inspection_mode` automatic / manual / custom (`/settings/production`); `products.inspection_plan` between / final / none (custom: asked when creating a product; editable on the product). `private.normalize_routing` places generated inspections (`auto_inspection`, read-only, not draggable) after every operation and/or at the end and re-runs on every routing change.
+  - Files can be added directly in the "new product" form (uploaded after saving, kind per file).
+  - Cycle times shown with one decimal (2,5 min), stored exactly in seconds.
+- Tests: `npm run check` (169 unit tests), `npm run test:db` (91 RLS/integration tests), `npm run e2e` (33 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing, weight and totals and opens the customer, warehouse read-only, admin builds operation types → customer → product with material picked by typing, computed weight and a PDF → two operations reordered by drag & drop and arrows → revision A → history → archive).
 - **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
 - CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`5e1116c`). DB and e2e tests need Supabase secrets, so they are not in CI yet.
 - **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
@@ -64,8 +73,10 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 | `employees.manage`       |   ✓   |    ✓     |         ✓          |           |          |
 | `products.read`          |   ✓   |    ✓     |         ✓          |     ✓     |          |
 | `products.manage`        |   ✓   |    ✓     |         ✓          |           |          |
+| `customers.read`         |   ✓   |    ✓     |         ✓          |     ✓     |          |
+| `customers.manage`       |   ✓   |    ✓     |         ✓          |           |          |
 
-`machines.manage` also manages machine types and locations; `employees.manage` departments, job titles and skills; `products.manage` operation types, product types and material shapes. Operators get product access later through their production orders. Every member reads catalog names and their own employee row.
+`machines.manage` also manages machine types and locations; `employees.manage` departments, job titles and skills; `products.manage` operation types, product types and materials. Operators get product access later through their production orders. Every member reads catalog names and their own employee row.
 
 System roles' permissions are fixed (changed only via migration); tenants can manage permissions of custom roles.
 
@@ -73,7 +84,7 @@ System roles' permissions are fixed (changed only via migration); tenants can ma
 
 ## Demo data
 
-Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent). Users: `scripts/lib/demo-users.ts`. The seed also enables module `production` and adds demo catalogs, machines `CNC-01`, `CNC-02`, `PILA-01` and employees 1 (Omer Operater, linked to `operater`, qualified for CNC-01/02) and 2 (Benjamin Bravar, no account) — `scripts/lib/demo-production.ts`. Products: operation types RZ, TO, GL, BS, BU, KT, CI (external) and product `DM-4711-02` (rev. A, 5 operations) — `scripts/lib/demo-products.ts`.
+Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent). Users: `scripts/lib/demo-users.ts`. The seed also enables module `production` and adds demo catalogs, machines `CNC-01`, `CNC-02`, `PILA-01` and employees 1 (Omer Operater, linked to `operater`, qualified for CNC-01/02) and 2 (Benjamin Bravar, no account) — `scripts/lib/demo-production.ts`. Products: operation types RZ, TO, GL, BS, BU, KT (inspection), CI (external), customer „Demo Kupac d.o.o." and product `DM-4711-02` (rev. A, C45 Ø45 × 125, 5 operations) — `scripts/lib/demo-products.ts`. Materials come from the migration's starter list.
 
 **Passwords are not in the repository** (it is public). All demo users share `DEMO_PASSWORD` from `.env.local`; `npm run seed:demo` applies it. Passwords committed before 2026-10-24 were rotated and no longer work.
 
@@ -104,7 +115,7 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - Machines/employees: no detail page, history view, attachments, serial number or shift data yet; machine status is manual (production reports in Phase 3 will drive running/stopped). Module activation (`org_modules`) is checked in pages for UX only; data access is governed by permissions/RLS.
 - New organizations do not get module `production` automatically (commercial activation via service role, `ensureModuleEnabled()`).
 - Supabase Auth: enable leaked-password protection in the dashboard (advisor warning). Advisor warnings for `write_audit`, `get_login_organization`, `set_machine_status` and `product_history` (SECURITY DEFINER, enforce their own rules) are intentional.
-- Products: operators cannot see products yet (comes with production orders); customer is free text, material grade is text (no link to the material warehouse yet); no BOM/assemblies; product types are a catalog, units a fixed list. Attachments: only PDF/images (no DXF/STEP/NC programs); files are never deleted from Storage (archived rows keep them, revision copies share them). History shows changed field names, not old/new values. Cycle times shown in minutes are rounded to 3 decimals for display (stored exactly in seconds).
+- Products: operators cannot see products yet (comes with production orders); materials are not linked to the material warehouse yet; no BOM/assemblies; no weight for profiles (shape "other"); product types are a catalog, units a fixed list. "Current operation" and production status per product/customer come with production orders. Attachments: only PDF/images (no DXF/STEP/NC programs); files are never deleted from Storage. History shows changed field names, not old/new values. Starter densities are typical data-sheet values (each organization can correct them). The old catalog kind `material_shape` is no longer offered (rows stay in the database).
 
 ## Next step
 
@@ -112,9 +123,17 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 2. **Org settings** (`org.settings.manage`): organization name, timezone; foundation for configurable shifts later.
 3. **Deploy:** connect the GitHub repo to Vercel (production from `main`, preview per PR), set env vars there, wildcard subdomain `*.zcore.ba`.
 4. **Test isolation:** separate Supabase project for `test:db`/e2e and add them to CI with GitHub secrets.
-5. **Phase 2 continued:** production orders (product revision + quantity + due date), generated from the product routing into order operations; operators then see products/drawings of their orders.
+5. **Phase 2/3 continued:** production orders (product revision + quantity + due date) with order operations generated from the routing; on the floor a worker starts an operation on a machine → machine status "running", estimated (setup + cycle × qty) vs. actual time; stopping / maintenance asks for a downtime reason and minutes; product list and customer page then show the current operation and production status.
 
 ## Log
+
+### 2026-10-24 — Products v2: customers, materials, raw piece weight, inspections
+
+- Product owner feedback on the first version: material as group → designation picked by typing; raw piece weight from shape, dimensions and density; "sirovi komad" instead of "sirovac"; cycle with one decimal; drag & drop plus arrows, no 10/20/30 numbers; revision optional and not in the list; upload when creating a product; customers as their own table with their products; inspection between operations configurable (automatic / manual / custom).
+- Weight formulas checked against public metal weight calculators (round π/4·d², tube π·s·(D−s), rectangular w·t, hexagon √3/2·s²; × length × density); unit tests use reference values (Ø45 × 125 C45 = 1,561 kg).
+- Migration `20261024160000_products_customers_materials` with data migrations (customer names, material grades, blank height → length, prismatic → rectangular). Types regenerated, demo re-seeded, advisors: no new warnings.
+- Found: the demo product's TO/GL order had been swapped by hand in the UI before this change (audit log, user `admin`); left as is.
+- Verified: `npm run check` (169), `npm run test:db` (91), `npm run e2e` (33), `npm run build`, `npm run format:check`; screens checked by screenshot (product form with material picker and weight, routing, materials).
 
 ### 2026-10-24 — Products and parts (revisions, routings, attachments)
 

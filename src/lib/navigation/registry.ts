@@ -14,6 +14,8 @@ export type NavLabelKey =
   | "machines"
   | "employees"
   | "products"
+  | "customers"
+  | "materials"
   | "catalogs"
   | "operationTypes"
   | "productionSettings"
@@ -25,6 +27,8 @@ export type NavIconKey =
   | "machine"
   | "employee"
   | "product"
+  | "customer"
+  | "material"
   | "catalog"
   | "operation"
   | "settings";
@@ -88,6 +92,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     section: "production",
   },
   {
+    id: "customers",
+    href: "/customers",
+    label: "customers",
+    icon: "customer",
+    module: "production",
+    permission: "customers.read",
+    surface: "app",
+    section: "production",
+  },
+  {
     id: "users",
     href: "/admin/users",
     label: "users",
@@ -112,6 +126,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     href: "/settings/operation-types",
     label: "operationTypes",
     icon: "operation",
+    module: "production",
+    permission: "products.manage",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "materials",
+    href: "/settings/materials",
+    label: "materials",
+    icon: "material",
     module: "production",
     permission: "products.manage",
     surface: "app",

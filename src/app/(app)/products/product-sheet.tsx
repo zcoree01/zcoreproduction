@@ -1,12 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, ScaleIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Controller, useForm, useWatch, type FieldError as FormFieldError } from "react-hook-form";
 import { toast } from "sonner";
+import { SearchSelect } from "@/components/shared/search-select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,62 +30,82 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDecimal } from "@/lib/decimal";
+import { formatDecimal, parseDecimal } from "@/lib/decimal";
 import type { CatalogOption } from "@/modules/catalogs/queries";
-import { createProductAction, updateProductAction } from "@/modules/products/actions";
-import type { ProductDetail, ProductRevision } from "@/modules/products/queries";
+import type { CustomerOption } from "@/modules/customers/queries";
+import type { MaterialOption } from "@/modules/materials/schemas";
 import {
+  createProductAction,
+  getCurrentRevisionIdAction,
+  updateProductAction,
+} from "@/modules/products/actions";
+import type { ProductDetail, ProductRevision } from "@/modules/products/queries";
+import { blankWeightKg, lengthWithKerf, type InspectionModeValue } from "@/modules/products/rules";
+import {
+  BLANK_DIMENSION_FIELDS,
+  BLANK_DIMENSIONS,
   BLANK_GEOMETRIES,
   createProductSchema,
+  INSPECTION_PLANS,
   PRODUCT_UNITS,
   type CreateProductInput,
   type ProductActionResult,
   type ProductField,
   type ProductFormValues,
 } from "@/modules/products/schemas";
+import { ACCEPT_ATTACHMENTS, uploadAttachment } from "./upload";
 
-export type ProductCatalogs = { types: CatalogOption[]; shapes: CatalogOption[] };
+export type ProductFormOptions = {
+  types: CatalogOption[];
+  customers: CustomerOption[];
+  materials: MaterialOption[];
+  inspectionMode: InspectionModeValue;
+};
 
 type FormError = Extract<ProductActionResult, { ok: false }>["error"];
 type Editing = { product: ProductDetail; revision: ProductRevision };
 
-const EMPTY: ProductFormValues = {
-  partNumber: "",
-  name: "",
-  customerName: "",
-  productTypeId: "",
-  unit: "pcs",
-  revision: "A",
-  drawingNumber: "",
-  description: "",
-  materialGrade: "",
-  materialShapeId: "",
-  blankGeometry: "",
-  blankDiameter: "",
-  blankWidth: "",
-  blankHeight: "",
-  blankThickness: "",
-  cutLength: "",
-  kerf: "",
-  netMass: "",
-};
+/** Files picked while creating a product; uploaded once the product exists. */
+type PendingFile = { key: string; file: File; kind: "main_drawing" | "image" | "other" };
+
+function emptyValues(mode: InspectionModeValue): ProductFormValues {
+  return {
+    partNumber: "",
+    name: "",
+    customerId: "",
+    productTypeId: "",
+    unit: "pcs",
+    // custom: the user answers below (default yes); other modes are decided on the server.
+    inspectionPlan: mode === "manual" ? "none" : "between",
+    revision: "",
+    drawingNumber: "",
+    description: "",
+    materialId: "",
+    blankGeometry: "",
+    blankDiameter: "",
+    blankWidth: "",
+    blankThickness: "",
+    cutLength: "",
+    kerf: "",
+    netMass: "",
+  };
+}
 
 function toFormValues({ product, revision }: Editing): ProductFormValues {
   return {
     partNumber: product.partNumber,
     name: product.name,
-    customerName: product.customerName ?? "",
+    customerId: product.customer?.id ?? "",
     productTypeId: product.type?.id ?? "",
     unit: product.unit,
-    revision: revision.revision,
+    inspectionPlan: product.inspectionPlan,
+    revision: revision.revision ?? "",
     drawingNumber: revision.drawingNumber ?? "",
     description: revision.description ?? "",
-    materialGrade: revision.materialGrade ?? "",
-    materialShapeId: revision.materialShape?.id ?? "",
+    materialId: revision.material?.id ?? "",
     blankGeometry: revision.blankGeometry ?? "",
     blankDiameter: formatDecimal(revision.blankDiameter),
     blankWidth: formatDecimal(revision.blankWidth),
-    blankHeight: formatDecimal(revision.blankHeight),
     blankThickness: formatDecimal(revision.blankThickness),
     cutLength: formatDecimal(revision.cutLength),
     kerf: formatDecimal(revision.kerf),
@@ -92,14 +113,14 @@ function toFormValues({ product, revision }: Editing): ProductFormValues {
   };
 }
 
-/** Catalog options plus the current value when it has been archived meanwhile. */
-function withCurrent(options: CatalogOption[], current: { id: string; name: string } | null) {
+/** Options plus the current value when it has been archived meanwhile. */
+function withCurrent<T extends { id: string }>(options: T[], current: T | null): T[] {
   return current && !options.some((option) => option.id === current.id)
-    ? [...options, { ...current, archived: true }]
+    ? [...options, current]
     : options;
 }
 
-export function CreateProductButton({ catalogs }: { catalogs: ProductCatalogs }) {
+export function CreateProductButton({ options }: { options: ProductFormOptions }) {
   const t = useTranslations("products.form");
   const [open, setOpen] = useState(false);
   return (
@@ -108,7 +129,7 @@ export function CreateProductButton({ catalogs }: { catalogs: ProductCatalogs })
         <PlusIcon />
         {t("open")}
       </Button>
-      <ProductSheet open={open} onOpenChange={setOpen} editing={null} catalogs={catalogs} />
+      <ProductSheet open={open} onOpenChange={setOpen} editing={null} options={options} />
     </>
   );
 }
@@ -118,12 +139,12 @@ export function ProductSheet({
   open,
   onOpenChange,
   editing,
-  catalogs,
+  options,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editing: Editing | null;
-  catalogs: ProductCatalogs;
+  options: ProductFormOptions;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -132,7 +153,7 @@ export function ProductSheet({
           <ProductForm
             key={editing?.revision.id ?? "new"}
             editing={editing}
-            catalogs={catalogs}
+            options={options}
             onDone={() => onOpenChange(false)}
           />
         ) : null}
@@ -141,32 +162,81 @@ export function ProductSheet({
   );
 }
 
-const DIMENSIONS = {
-  round: ["blankDiameter", "blankWidth", "blankHeight"],
-  prismatic: ["blankWidth", "blankHeight", "blankThickness"],
-} as const;
-
 function ProductForm({
   editing,
-  catalogs,
+  options,
   onDone,
 }: {
   editing: Editing | null;
-  catalogs: ProductCatalogs;
+  options: ProductFormOptions;
   onDone: () => void;
 }) {
   const t = useTranslations("products.form");
   const tUnit = useTranslations("productUnits");
   const tGeometry = useTranslations("blankGeometry");
+  const tPlan = useTranslations("inspectionPlans");
+  const tKind = useTranslations("products.attachments.kinds");
   const router = useRouter();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<PendingFile[]>([]);
   const [formError, setFormError] = useState<FormError | null>(null);
   const [pending, startTransition] = useTransition();
   const form = useForm<ProductFormValues, unknown, CreateProductInput>({
     // Editing keeps the revision label (disabled field); the server ignores it.
     resolver: zodResolver(createProductSchema),
-    defaultValues: editing ? toFormValues(editing) : EMPTY,
+    defaultValues: editing ? toFormValues(editing) : emptyValues(options.inspectionMode),
   });
-  const geometry = useWatch({ control: form.control, name: "blankGeometry" });
+  const [geometry, materialId, diameter, width, thickness, length, kerf] = useWatch({
+    control: form.control,
+    name: [
+      "blankGeometry",
+      "materialId",
+      "blankDiameter",
+      "blankWidth",
+      "blankThickness",
+      "cutLength",
+      "kerf",
+    ],
+  });
+  const used = BLANK_DIMENSIONS[geometry || "other"];
+  const materials = withCurrent(
+    options.materials,
+    editing?.revision.material
+      ? { ...editing.revision.material, density: editing.revision.material.density }
+      : null,
+  );
+  const material = materials.find((option) => option.id === materialId) ?? null;
+  const decimal = (value: string | undefined) => parseDecimal(value ?? "", 3);
+  const weight = blankWeightKg(
+    {
+      geometry: geometry || null,
+      diameter: decimal(diameter),
+      width: decimal(width),
+      thickness: decimal(thickness),
+      length: decimal(length),
+    },
+    material?.density ?? null,
+  );
+  const consumption = lengthWithKerf(decimal(length), decimal(kerf));
+
+  const uploadPending = async (productId: string) => {
+    if (files.length === 0) return;
+    const revision = await getCurrentRevisionIdAction(productId);
+    if (!revision.ok) return toast.error(t("uploadFailed", { count: files.length }));
+    let failed = 0;
+    for (const pendingFile of files) {
+      const result = await uploadAttachment({
+        revisionId: revision.id,
+        kind: pendingFile.kind,
+        title: "",
+        mainDrawingId: "",
+        operationId: "",
+        file: pendingFile.file,
+      });
+      if (!result.ok) failed += 1;
+    }
+    if (failed > 0) toast.error(t("uploadFailed", { count: failed }));
+  };
 
   const onSubmit = form.handleSubmit((values) => {
     setFormError(null);
@@ -177,9 +247,11 @@ function ProductForm({
         : await createProductAction(raw);
       if (result.ok) {
         const code = values.partNumber;
+        if (!editing) await uploadPending(result.id);
         toast.success(editing ? t("updatedToast", { code }) : t("createdToast", { code }));
         onDone();
-        if (!editing) router.push(`/products/${result.id}`);
+        if (editing) router.refresh();
+        else router.push(`/products/${result.id}`);
         return;
       }
       if (result.error === "part_number_taken" || result.error === "revision_taken") {
@@ -197,7 +269,7 @@ function ProductForm({
     error?.type === "server" && error.message ? error.message : t(`fieldErrors.${name}`);
 
   const textField = (
-    name: "partNumber" | "name" | "customerName" | "revision" | "drawingNumber" | "materialGrade",
+    name: "partNumber" | "name" | "revision" | "drawingNumber",
     options: { hint?: string; disabled?: boolean } = {},
   ) => (
     <Controller
@@ -224,15 +296,9 @@ function ProductForm({
   );
 
   const numberField = (
-    name:
-      | "blankDiameter"
-      | "blankWidth"
-      | "blankHeight"
-      | "blankThickness"
-      | "cutLength"
-      | "kerf"
-      | "netMass",
+    name: "blankDiameter" | "blankWidth" | "blankThickness" | "cutLength" | "kerf" | "netMass",
     unit: string,
+    label?: string,
   ) => (
     <Controller
       key={name}
@@ -241,7 +307,7 @@ function ProductForm({
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid || undefined}>
           <FieldLabel htmlFor={`product-${name}`}>
-            {t(name)} <span className="text-muted-foreground">({unit})</span>
+            {label ?? t(name)} <span className="text-muted-foreground">({unit})</span>
           </FieldLabel>
           <Input
             {...field}
@@ -256,46 +322,24 @@ function ProductForm({
     />
   );
 
-  const selectField = (
-    name: "productTypeId" | "materialShapeId",
-    none: string,
-    options: (CatalogOption & { archived?: boolean })[],
-  ) => (
-    <Controller
-      name={name}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid || undefined}>
-          <FieldLabel htmlFor={`product-${name}`}>{t(name)}</FieldLabel>
-          <NativeSelect
-            {...field}
-            id={`product-${name}`}
-            className="w-full"
-            aria-invalid={fieldState.invalid || undefined}
-          >
-            <NativeSelectOption value="">{none}</NativeSelectOption>
-            {options.map((option) => (
-              <NativeSelectOption key={option.id} value={option.id}>
-                {option.archived ? t("archivedOption", { name: option.name }) : option.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          {fieldState.invalid ? <FieldError>{t(`fieldErrors.${name}`)}</FieldError> : null}
-        </Field>
-      )}
-    />
-  );
+  // Labels depend on the shape: Ø vs. outer Ø vs. across flats, thickness vs. wall.
+  const dimensionLabel = (name: (typeof BLANK_DIMENSION_FIELDS)[number]) => {
+    if (name === "blankDiameter") {
+      return geometry === "tube"
+        ? t("outerDiameter")
+        : geometry === "hexagon"
+          ? t("acrossFlats")
+          : t("blankDiameter");
+    }
+    if (name === "blankThickness" && geometry === "tube") return t("wallThickness");
+    return t(name);
+  };
 
   return (
     <>
       <SheetHeader className="border-b">
         <SheetTitle>
-          {editing
-            ? t("editTitle", {
-                code: editing.product.partNumber,
-                revision: editing.revision.revision,
-              })
-            : t("createTitle")}
+          {editing ? t("editTitle", { code: editing.product.partNumber }) : t("createTitle")}
         </SheetTitle>
         <SheetDescription>{t("description")}</SheetDescription>
       </SheetHeader>
@@ -311,13 +355,49 @@ function ProductForm({
             <FieldGroup>
               {textField("partNumber", { hint: t("partNumberHint") })}
               {textField("name")}
-              {textField("customerName", { hint: t("customerNameHint") })}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {selectField(
-                  "productTypeId",
-                  t("productTypeNone"),
-                  withCurrent(catalogs.types, editing?.product.type ?? null),
+              <Controller
+                name="customerId"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid || undefined}>
+                    <FieldLabel htmlFor="product-customerId">{t("customerId")}</FieldLabel>
+                    <SearchSelect
+                      id="product-customerId"
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder={t("customerPlaceholder")}
+                      invalid={fieldState.invalid}
+                      options={withCurrent(
+                        options.customers,
+                        editing?.product.customer ?? null,
+                      ).map((customer) => ({ value: customer.id, label: customer.name }))}
+                    />
+                    {fieldState.invalid ? (
+                      <FieldError>{t("fieldErrors.customerId")}</FieldError>
+                    ) : (
+                      <FieldDescription>{t("customerHint")}</FieldDescription>
+                    )}
+                  </Field>
                 )}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Controller
+                  name="productTypeId"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Field>
+                      <FieldLabel htmlFor="product-productTypeId">{t("productTypeId")}</FieldLabel>
+                      <NativeSelect {...field} id="product-productTypeId" className="w-full">
+                        <NativeSelectOption value="">{t("productTypeNone")}</NativeSelectOption>
+                        {withCurrent(options.types, editing?.product.type ?? null).map((type) => (
+                          <NativeSelectOption key={type.id} value={type.id}>
+                            {type.name}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    </Field>
+                  )}
+                />
                 <Controller
                   name="unit"
                   control={form.control}
@@ -337,6 +417,54 @@ function ProductForm({
               </div>
             </FieldGroup>
           </FieldSet>
+
+          <FieldSet>
+            <FieldLegend>{t("sections.inspection")}</FieldLegend>
+            {editing ? (
+              <Controller
+                name="inspectionPlan"
+                control={form.control}
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel htmlFor="product-inspectionPlan">{t("inspectionPlan")}</FieldLabel>
+                    <NativeSelect {...field} id="product-inspectionPlan" className="w-full">
+                      {INSPECTION_PLANS.map((plan) => (
+                        <NativeSelectOption key={plan} value={plan}>
+                          {tPlan(plan)}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                    <FieldDescription>{t("inspectionPlanHint")}</FieldDescription>
+                  </Field>
+                )}
+              />
+            ) : options.inspectionMode === "custom" ? (
+              <Controller
+                name="inspectionPlan"
+                control={form.control}
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel htmlFor="product-inspectBetween">{t("inspectBetween")}</FieldLabel>
+                    <NativeSelect
+                      id="product-inspectBetween"
+                      className="w-full"
+                      value={field.value === "between" ? "yes" : "no"}
+                      onChange={(event) =>
+                        field.onChange(event.target.value === "yes" ? "between" : "final")
+                      }
+                    >
+                      <NativeSelectOption value="yes">{t("inspectBetweenYes")}</NativeSelectOption>
+                      <NativeSelectOption value="no">{t("inspectBetweenNo")}</NativeSelectOption>
+                    </NativeSelect>
+                    <FieldDescription>{t("inspectBetweenHint")}</FieldDescription>
+                  </Field>
+                )}
+              />
+            ) : (
+              <FieldDescription>{t(`inspectionMode.${options.inspectionMode}`)}</FieldDescription>
+            )}
+          </FieldSet>
+
           <FieldSet>
             <FieldLegend>{t("sections.drawing")}</FieldLegend>
             <FieldGroup>
@@ -367,22 +495,46 @@ function ProductForm({
               />
             </FieldGroup>
           </FieldSet>
+
           <FieldSet>
             <FieldLegend>{t("sections.material")}</FieldLegend>
             <FieldGroup>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {textField("materialGrade", { hint: t("materialGradeHint") })}
-                {selectField(
-                  "materialShapeId",
-                  t("materialShapeNone"),
-                  withCurrent(catalogs.shapes, editing?.revision.materialShape ?? null),
-                )}
-              </div>
               <Controller
-                name="blankGeometry"
+                name="materialId"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid || undefined}>
+                    <FieldLabel htmlFor="product-materialId">{t("materialId")}</FieldLabel>
+                    <SearchSelect
+                      id="product-materialId"
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder={t("materialPlaceholder")}
+                      invalid={fieldState.invalid}
+                      options={materials.map((option) => ({
+                        value: option.id,
+                        label: option.designation,
+                        hint: option.density
+                          ? t("materialHint", {
+                              group: option.groupName,
+                              density: formatDecimal(option.density),
+                            })
+                          : option.groupName,
+                      }))}
+                    />
+                    {fieldState.invalid ? (
+                      <FieldError>{t("fieldErrors.materialId")}</FieldError>
+                    ) : (
+                      <FieldDescription>{t("materialHelp")}</FieldDescription>
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                name="blankGeometry"
+                control={form.control}
+                render={({ field }) => (
+                  <Field>
                     <FieldLabel htmlFor="product-blankGeometry">{t("blankGeometry")}</FieldLabel>
                     <NativeSelect
                       {...field}
@@ -390,16 +542,11 @@ function ProductForm({
                       className="w-full"
                       onChange={(event) => {
                         field.onChange(event);
-                        // Clear dimensions that the new geometry does not use.
+                        // Clear dimensions that the new shape does not use.
                         const next = event.target.value as ProductFormValues["blankGeometry"];
-                        const used: readonly string[] = next ? DIMENSIONS[next] : [];
-                        for (const name of [
-                          "blankDiameter",
-                          "blankWidth",
-                          "blankHeight",
-                          "blankThickness",
-                        ] as const) {
-                          if (!used.includes(name)) form.setValue(name, "");
+                        const keep = BLANK_DIMENSIONS[next || "other"];
+                        for (const name of BLANK_DIMENSION_FIELDS) {
+                          if (!keep.includes(name)) form.setValue(name, "");
                         }
                       }}
                     >
@@ -410,13 +557,12 @@ function ProductForm({
                         </NativeSelectOption>
                       ))}
                     </NativeSelect>
-                    <FieldDescription>{t("blankGeometryHint")}</FieldDescription>
                   </Field>
                 )}
               />
-              {geometry ? (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {DIMENSIONS[geometry].map((name) => numberField(name, "mm"))}
+              {used.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {used.map((name) => numberField(name, "mm", dimensionLabel(name)))}
                 </div>
               ) : null}
               <div className="grid gap-4 sm:grid-cols-3">
@@ -424,8 +570,103 @@ function ProductForm({
                 {numberField("kerf", "mm")}
                 {numberField("netMass", "kg")}
               </div>
+              <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
+                <ScaleIcon className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
+                <div className="flex flex-col gap-1">
+                  <span>
+                    {weight
+                      ? t("blankWeight", { weight: formatDecimal(weight) })
+                      : t("blankWeightMissing")}
+                  </span>
+                  {consumption ? (
+                    <span className="text-muted-foreground">
+                      {t("consumption", { length: formatDecimal(consumption) })}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </FieldGroup>
           </FieldSet>
+
+          {editing ? null : (
+            <FieldSet>
+              <FieldLegend>{t("sections.files")}</FieldLegend>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="product-files">{t("files")}</FieldLabel>
+                  <Input
+                    ref={fileInput}
+                    id="product-files"
+                    type="file"
+                    multiple
+                    accept={ACCEPT_ATTACHMENTS}
+                    onChange={(event) => {
+                      const picked = Array.from(event.target.files ?? []);
+                      setFiles((current) => [
+                        ...current,
+                        ...picked.map((file, index) => ({
+                          key: `${Date.now()}-${index}-${file.name}`,
+                          file,
+                          kind:
+                            current.length === 0 && index === 0 && file.type === "application/pdf"
+                              ? ("main_drawing" as const)
+                              : file.type.startsWith("image/")
+                                ? ("image" as const)
+                                : ("other" as const),
+                        })),
+                      ]);
+                      if (fileInput.current) fileInput.current.value = "";
+                    }}
+                  />
+                  <FieldDescription>{t("filesHint")}</FieldDescription>
+                </Field>
+                {files.length > 0 ? (
+                  <ul className="flex flex-col gap-2">
+                    {files.map((pendingFile) => (
+                      <li
+                        key={pendingFile.key}
+                        className="flex items-center gap-2 rounded-md border p-2 text-sm"
+                      >
+                        <span className="min-w-0 flex-1 truncate">{pendingFile.file.name}</span>
+                        <NativeSelect
+                          size="sm"
+                          aria-label={t("fileKind", { name: pendingFile.file.name })}
+                          value={pendingFile.kind}
+                          onChange={(event) => {
+                            const kind = event.target.value as PendingFile["kind"];
+                            setFiles((current) =>
+                              current.map((item) =>
+                                item.key === pendingFile.key ? { ...item, kind } : item,
+                              ),
+                            );
+                          }}
+                        >
+                          {(["main_drawing", "image", "other"] as const).map((kind) => (
+                            <NativeSelectOption key={kind} value={kind}>
+                              {tKind(kind)}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("removeFile", { name: pendingFile.file.name })}
+                          onClick={() =>
+                            setFiles((current) =>
+                              current.filter((item) => item.key !== pendingFile.key),
+                            )
+                          }
+                        >
+                          <XIcon />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </FieldGroup>
+            </FieldSet>
+          )}
         </FieldGroup>
       </form>
       <SheetFooter className="border-t">

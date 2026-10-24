@@ -5,13 +5,15 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   FactoryIcon,
+  GripVerticalIcon,
   PencilIcon,
   PlusIcon,
   RotateCcwIcon,
+  ShieldCheckIcon,
   WorkflowIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition, type DragEvent } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -31,10 +33,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { addDecimals, compareDecimals, formatDecimal, parseDecimal } from "@/lib/decimal";
+import { cn } from "@/lib/utils";
 import type { CatalogOption } from "@/modules/catalogs/queries";
-import { moveOperationAction, setOperationArchivedAction } from "@/modules/products/actions";
+import { reorderOperationsAction, setOperationArchivedAction } from "@/modules/products/actions";
 import type { MachineChoice, OperationType, ProductOperation } from "@/modules/products/queries";
 import {
+  moveInOrder,
   operationSeconds,
   resolveCycleUnit,
   routingTotals,
@@ -70,15 +74,23 @@ export function OperationsPanel({
   const [editing, setEditing] = useState<ProductOperation | "new" | null>(null);
   const [archiving, setArchiving] = useState<ProductOperation | null>(null);
   const [quantity, setQuantity] = useState("1");
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; after: boolean } | null>(null);
+  // Optimistic order of the manual operations while a reorder is saved.
+  const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const active = useMemo(() => operations.filter((op) => !op.archived), [operations]);
-  const visible = showArchived ? operations : active;
+  const active = operations.filter((op) => !op.archived);
+  const manual = active.filter((op) => !op.autoInspection);
+  const manualIds = manual.map((op) => op.id);
+  const ordered = pendingOrder
+    ? [
+        ...pendingOrder.flatMap((id) => manual.filter((op) => op.id === id)),
+        ...active.filter((op) => op.autoInspection),
+      ]
+    : active;
+  const visible = showArchived ? [...ordered, ...operations.filter((op) => op.archived)] : ordered;
   const archivedCount = operations.length - active.length;
-  const nextSequence = Math.min(
-    9999,
-    Math.ceil((Math.max(0, ...operations.map((op) => op.sequence)) + 1) / 10) * 10,
-  );
 
   const unitOf = (op: ProductOperation) =>
     resolveCycleUnit(op.machine?.cycleTimeUnit ?? null, defaultUnit);
@@ -101,10 +113,52 @@ export function OperationsPanel({
       }
     });
 
+  const reorder = (order: string[]) => {
+    if (order.join() === manualIds.join()) return;
+    setPendingOrder(order);
+    startTransition(async () => {
+      const result = await reorderOperationsAction(revisionId, order);
+      if (!result.ok) toast.error(tErrors(result.error));
+      setPendingOrder(null);
+    });
+  };
+
   const duration = (seconds: string) => {
     const { hours, minutes, seconds: secs } = splitDuration(seconds);
     return t("duration", { hours, minutes, seconds: secs });
   };
+
+  const draggable = (op: ProductOperation) => editable && !op.archived && !op.autoInspection;
+  const onDragOver = (event: DragEvent<HTMLTableRowElement>, op: ProductOperation) => {
+    if (!dragging || !draggable(op) || op.id === dragging) return;
+    event.preventDefault();
+    const box = event.currentTarget.getBoundingClientRect();
+    const after = event.clientY > box.top + box.height / 2;
+    if (dropTarget?.id !== op.id || dropTarget.after !== after) setDropTarget({ id: op.id, after });
+  };
+  const onDrop = (event: DragEvent<HTMLTableRowElement>) => {
+    event.preventDefault();
+    if (dragging && dropTarget) {
+      const without = (pendingOrder ?? manualIds).filter((id) => id !== dragging);
+      const index = without.indexOf(dropTarget.id) + (dropTarget.after ? 1 : 0);
+      reorder([...without.slice(0, index), dragging, ...without.slice(index)]);
+    }
+    setDragging(null);
+    setDropTarget(null);
+  };
+
+  const sheet = editable ? (
+    <OperationSheet
+      open={editing !== null}
+      onOpenChange={(open) => !open && setEditing(null)}
+      revisionId={revisionId}
+      operation={editing === "new" ? null : editing}
+      operationTypes={operationTypes}
+      machineTypes={machineTypes}
+      machines={machines}
+      defaultUnit={defaultUnit}
+    />
+  ) : null;
 
   if (operations.length === 0) {
     return (
@@ -122,19 +176,7 @@ export function OperationsPanel({
             ) : null
           }
         />
-        {editable ? (
-          <OperationSheet
-            open={editing !== null}
-            onOpenChange={(open) => !open && setEditing(null)}
-            revisionId={revisionId}
-            operation={null}
-            nextSequence={nextSequence}
-            operationTypes={operationTypes}
-            machineTypes={machineTypes}
-            machines={machines}
-            defaultUnit={defaultUnit}
-          />
-        ) : null}
+        {sheet}
       </>
     );
   }
@@ -142,17 +184,20 @@ export function OperationsPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        {archivedCount > 0 ? (
-          <Label className="flex items-center gap-2 text-sm font-normal">
-            <Checkbox
-              checked={showArchived}
-              onCheckedChange={(value) => setShowArchived(value === true)}
-            />
-            {t("showArchived", { count: archivedCount })}
-          </Label>
-        ) : (
-          <span />
-        )}
+        <div className="flex flex-wrap items-center gap-4">
+          {editable && manual.length > 1 ? (
+            <span className="text-sm text-muted-foreground">{t("dragHint")}</span>
+          ) : null}
+          {archivedCount > 0 ? (
+            <Label className="flex items-center gap-2 text-sm font-normal">
+              <Checkbox
+                checked={showArchived}
+                onCheckedChange={(value) => setShowArchived(value === true)}
+              />
+              {t("showArchived", { count: archivedCount })}
+            </Label>
+          ) : null}
+        </div>
         {editable ? (
           <Button onClick={() => setEditing("new")}>
             <PlusIcon />
@@ -165,7 +210,12 @@ export function OperationsPanel({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">{t("columns.sequence")}</TableHead>
+              {editable ? (
+                <TableHead className="w-8">
+                  <span className="sr-only">{t("columns.drag")}</span>
+                </TableHead>
+              ) : null}
+              <TableHead className="w-24">{t("columns.code")}</TableHead>
               <TableHead>{t("columns.operation")}</TableHead>
               <TableHead>{t("columns.resource")}</TableHead>
               <TableHead className="text-right">{t("columns.setup")}</TableHead>
@@ -181,24 +231,65 @@ export function OperationsPanel({
           <TableBody>
             {visible.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={editable ? 7 : 6} className="text-center text-muted-foreground">
+                <TableCell colSpan={editable ? 8 : 6} className="text-center text-muted-foreground">
                   {t("allArchived")}
                 </TableCell>
               </TableRow>
             ) : null}
             {visible.map((op) => {
               const unit = unitOf(op);
-              const position = active.indexOf(op);
+              const position = (pendingOrder ?? manualIds).indexOf(op.id);
+              const move = (direction: -1 | 1) =>
+                reorder(moveInOrder(pendingOrder ?? manualIds, op.id, direction));
               return (
-                <TableRow key={op.id} className={op.archived ? "opacity-60" : undefined}>
-                  <TableCell className="font-mono tabular-nums">{op.sequence}</TableCell>
+                <TableRow
+                  key={op.id}
+                  draggable={draggable(op) && !pending}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    setDragging(op.id);
+                  }}
+                  onDragEnd={() => {
+                    setDragging(null);
+                    setDropTarget(null);
+                  }}
+                  onDragOver={(event) => onDragOver(event, op)}
+                  onDrop={onDrop}
+                  className={cn(
+                    op.archived && "opacity-60",
+                    op.autoInspection && "bg-muted/30",
+                    dragging === op.id && "opacity-40",
+                    dropTarget?.id === op.id &&
+                      (dropTarget.after
+                        ? "shadow-[inset_0_-2px_0_var(--color-primary)]"
+                        : "shadow-[inset_0_2px_0_var(--color-primary)]"),
+                  )}
+                >
+                  {editable ? (
+                    <TableCell className="w-8 pr-0">
+                      {draggable(op) ? (
+                        <GripVerticalIcon
+                          className="size-4 cursor-grab text-muted-foreground"
+                          aria-hidden
+                        />
+                      ) : null}
+                    </TableCell>
+                  ) : null}
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">
+                      {op.type.code}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-0.5">
                       <span className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="font-mono">
-                          {op.type.code}
-                        </Badge>
                         <span className="font-medium">{op.type.name}</span>
+                        {op.autoInspection ? (
+                          <Badge variant="secondary" className="gap-1">
+                            <ShieldCheckIcon className="size-3" aria-hidden />
+                            {t("autoInspection")}
+                          </Badge>
+                        ) : null}
                         {op.archived ? (
                           <Badge variant="secondary">{t("archivedBadge")}</Badge>
                         ) : null}
@@ -246,16 +337,16 @@ export function OperationsPanel({
                   {editable ? (
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        {op.archived ? (
+                        {op.autoInspection ? null : op.archived ? (
                           <Button
                             variant="ghost"
                             size="icon-sm"
                             disabled={pending}
-                            aria-label={t("restore", { sequence: op.sequence })}
+                            aria-label={t("restore", { name: op.type.name })}
                             onClick={() =>
                               run(
                                 () => setOperationArchivedAction(op.id, false),
-                                t("restoredToast", { sequence: op.sequence }),
+                                t("restoredToast", { name: op.type.name }),
                               )
                             }
                           >
@@ -267,24 +358,24 @@ export function OperationsPanel({
                               variant="ghost"
                               size="icon-sm"
                               disabled={pending || position <= 0}
-                              aria-label={t("moveUp", { sequence: op.sequence })}
-                              onClick={() => run(() => moveOperationAction(op.id, -1))}
+                              aria-label={t("moveUp", { name: op.type.name })}
+                              onClick={() => move(-1)}
                             >
                               <ArrowUpIcon />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              disabled={pending || position === active.length - 1}
-                              aria-label={t("moveDown", { sequence: op.sequence })}
-                              onClick={() => run(() => moveOperationAction(op.id, 1))}
+                              disabled={pending || position === manual.length - 1}
+                              aria-label={t("moveDown", { name: op.type.name })}
+                              onClick={() => move(1)}
                             >
                               <ArrowDownIcon />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              aria-label={t("edit", { sequence: op.sequence })}
+                              aria-label={t("edit", { name: op.type.name })}
                               onClick={() => setEditing(op)}
                             >
                               <PencilIcon />
@@ -292,7 +383,7 @@ export function OperationsPanel({
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              aria-label={t("archive", { sequence: op.sequence })}
+                              aria-label={t("archive", { name: op.type.name })}
                               onClick={() => setArchiving(op)}
                             >
                               <ArchiveIcon />
@@ -308,7 +399,7 @@ export function OperationsPanel({
           </TableBody>
           <TableFooter>
             <TableRow>
-              <TableCell colSpan={3}>{t("totals")}</TableCell>
+              <TableCell colSpan={editable ? 4 : 3}>{t("totals")}</TableCell>
               <TableCell className="text-right tabular-nums">
                 {duration(totals.setupSeconds)}
               </TableCell>
@@ -346,34 +437,22 @@ export function OperationsPanel({
         </p>
       </div>
 
+      {sheet}
       {editable ? (
-        <>
-          <OperationSheet
-            open={editing !== null}
-            onOpenChange={(open) => !open && setEditing(null)}
-            revisionId={revisionId}
-            operation={editing === "new" ? null : editing}
-            nextSequence={nextSequence}
-            operationTypes={operationTypes}
-            machineTypes={machineTypes}
-            machines={machines}
-            defaultUnit={defaultUnit}
-          />
-          <ConfirmDialog
-            open={archiving !== null}
-            onOpenChange={(open) => !open && setArchiving(null)}
-            title={t("archiveTitle", { sequence: archiving?.sequence ?? 0 })}
-            description={t("archiveDescription")}
-            confirmLabel={t("archiveConfirm")}
-            destructive
-            onConfirm={async () => {
-              if (!archiving) return;
-              const result = await setOperationArchivedAction(archiving.id, true);
-              if (result.ok) toast.success(t("archivedToast", { sequence: archiving.sequence }));
-              else toast.error(tErrors(result.error));
-            }}
-          />
-        </>
+        <ConfirmDialog
+          open={archiving !== null}
+          onOpenChange={(open) => !open && setArchiving(null)}
+          title={t("archiveTitle", { name: archiving?.type.name ?? "" })}
+          description={t("archiveDescription")}
+          confirmLabel={t("archiveConfirm")}
+          destructive
+          onConfirm={async () => {
+            if (!archiving) return;
+            const result = await setOperationArchivedAction(archiving.id, true);
+            if (result.ok) toast.success(t("archivedToast", { name: archiving.type.name }));
+            else toast.error(tErrors(result.error));
+          }}
+        />
       ) : null}
     </div>
   );

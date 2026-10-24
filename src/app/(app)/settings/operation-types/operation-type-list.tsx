@@ -7,6 +7,7 @@ import {
   PencilIcon,
   PlusIcon,
   RotateCcwIcon,
+  ShieldCheckIcon,
   WorkflowIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -102,7 +103,12 @@ export function OperationTypeList({ items }: { items: OperationType[] }) {
                   </TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>
-                    {item.isExternal ? (
+                    {item.isInspection ? (
+                      <span className="flex items-center gap-1">
+                        <ShieldCheckIcon className="size-4 text-muted-foreground" aria-hidden />
+                        {t("inspection")}
+                      </span>
+                    ) : item.isExternal ? (
                       <span className="flex items-center gap-1">
                         <FactoryIcon className="size-4 text-muted-foreground" aria-hidden />
                         {t("external")}
@@ -188,8 +194,13 @@ function OperationTypeForm({ item, onDone }: { item: OperationType | null; onDon
   const form = useForm<OperationTypeFormValues>({
     resolver: zodResolver(operationTypeSchema),
     defaultValues: item
-      ? { name: item.name, code: item.code, isExternal: item.isExternal }
-      : { name: "", code: "", isExternal: false },
+      ? {
+          name: item.name,
+          code: item.code,
+          isExternal: item.isExternal,
+          isInspection: item.isInspection,
+        }
+      : { name: "", code: "", isExternal: false, isInspection: false },
   });
 
   const onSubmit = form.handleSubmit(() => {
@@ -276,6 +287,25 @@ function OperationTypeForm({ item, onDone }: { item: OperationType | null; onDon
                     {t("fields.isExternal")}
                   </FieldLabel>
                   <FieldDescription>{t("isExternalHint")}</FieldDescription>
+                </div>
+              </Field>
+            )}
+          />
+          <Controller
+            name="isInspection"
+            control={form.control}
+            render={({ field }) => (
+              <Field orientation="horizontal">
+                <Checkbox
+                  id="operation-type-isInspection"
+                  checked={field.value}
+                  onCheckedChange={(value) => field.onChange(value === true)}
+                />
+                <div className="flex flex-col gap-1">
+                  <FieldLabel htmlFor="operation-type-isInspection">
+                    {t("fields.isInspection")}
+                  </FieldLabel>
+                  <FieldDescription>{t("isInspectionHint")}</FieldDescription>
                 </div>
               </Field>
             )}

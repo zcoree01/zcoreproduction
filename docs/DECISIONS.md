@@ -106,3 +106,17 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **History** is the audit log (row triggers + semantic `write_audit` entries), exposed per product by `product_history` (SECURITY DEFINER with its own `products.read` check), because `audit_log` itself needs `audit.read`.
 - **Permissions:** `products.read` (admin, director, head of production, warehouse), `products.manage` (admin, director, head of production; also operation types, product types, material shapes). Operators will read products through their production orders.
   **Consequences:** Production orders reference `product_revisions.id`. Changing an older revision requires making it current first (audited). Storage files are never deleted by the app.
+
+## D-015 — Customers, materials, raw piece weight and inspection planning (2026-10-24)
+
+**Context:** First user feedback on products: customers and materials must be lists (not text), the raw piece weight should be calculated, revision labels are often absent, routing numbers are noise, and some companies inspect after every operation.
+**Decision:**
+
+- **Customers** are a tenant table (`customers.read/manage`); products reference them. Existing free-text names were migrated, the text column dropped. Production status per customer comes with orders.
+- **Materials** are two levels: `material_groups` (default density) → `materials` (designation, optional density). A starter list is seeded per organization by a trigger (and for existing ones in the migration); densities are editable data, not code. Revisions reference a material; old text grades were matched or created in group "Ostalo".
+- **Raw piece:** one shape field decides which dimensions apply (DB check + Zod mirror). The piece length is `cut_length_mm`; weight is derived, never stored (`rules.blankWeightKg`, exact decimals). The `material_shape` catalog kind was replaced by the shape.
+- **Routing order is owned by the database:** `sequence` is an internal position; reordering sends the full ordered id list (`reorder_product_operations`). `private.normalize_routing` renumbers and places generated inspections (`auto_inspection`, deletable only by the function via an RLS policy limited to those rows) according to `products.inspection_plan`; it runs after every routing change, revision copy and plan change. Generated inspections reuse rows when possible so the audit log stays readable; the history view hides them and pure renumbering, and logs `products.routing_reordered` instead.
+- **Inspection mode** is an organization setting (`settings.inspection_mode`: automatic → plan "between", manual → "none", custom → asked per product: "between" or "final"). The plan stays editable per product. The inspection operation type is marked with `operation_types.is_inspection` (never external).
+- **Revision labels are optional** for the first revision; new revisions require one.
+- Native HTML5 drag & drop (no new dependency) with arrow buttons as the keyboard/touch alternative.
+  **Consequences:** Production orders will copy the normalized routing (including generated inspections) into order operations. Changing the organization's mode does not change existing products.

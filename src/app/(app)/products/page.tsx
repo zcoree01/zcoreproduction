@@ -7,8 +7,10 @@ import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { listCatalogOptions } from "@/modules/catalogs/queries";
+import { listCustomerOptions } from "@/modules/customers/queries";
+import { listMaterialOptions } from "@/modules/materials/queries";
 import { parseProductListParams } from "@/modules/products/list-params";
-import { listProductsPage } from "@/modules/products/queries";
+import { getProductionSettings, listProductsPage } from "@/modules/products/queries";
 import { CreateProductButton } from "./product-sheet";
 import { ProductsTable } from "./products-table";
 
@@ -32,18 +34,26 @@ async function ProductsContent({ searchParams }: { searchParams: Promise<SearchP
   const canManage = access.permissions.has("products.manage");
 
   const params = parseProductListParams(await searchParams);
-  const [page, catalogs] = await Promise.all([
+  const [page, catalogs, customers, materials, settings] = await Promise.all([
     listProductsPage(organizationId, params),
-    listCatalogOptions(organizationId, ["product_type", "material_shape"]),
+    listCatalogOptions(organizationId, ["product_type"]),
+    listCustomerOptions(organizationId),
+    canManage ? listMaterialOptions(organizationId) : Promise.resolve([]),
+    getProductionSettings(organizationId),
   ]);
-  const catalogOptions = { types: catalogs.product_type, shapes: catalogs.material_shape };
+  const formOptions = {
+    types: catalogs.product_type,
+    customers,
+    materials,
+    inspectionMode: settings.inspectionMode,
+  };
 
   return (
     <>
       <PageHeader
         title={t("title")}
         description={t("description")}
-        actions={canManage ? <CreateProductButton catalogs={catalogOptions} /> : null}
+        actions={canManage ? <CreateProductButton options={formOptions} /> : null}
       />
       <ProductsTable
         rows={page.rows}
@@ -53,10 +63,11 @@ async function ProductsContent({ searchParams }: { searchParams: Promise<SearchP
           pageSize: params.pageSize,
           q: params.q,
           type: params.type ?? "",
-          shape: params.shape ?? "",
+          customer: params.customer ?? "",
           view: params.view ?? "",
         }}
-        catalogs={catalogOptions}
+        types={catalogs.product_type}
+        customers={customers}
         canManage={canManage}
       />
     </>

@@ -1,7 +1,9 @@
 import {
+  BuildingIcon,
   CogIcon,
   HardHatIcon,
   HouseIcon,
+  LayersIcon,
   LayoutDashboardIcon,
   ListIcon,
   PackageIcon,
@@ -20,6 +22,8 @@ const ICONS: Record<NavIconKey, LucideIcon> = {
   machine: CogIcon,
   employee: HardHatIcon,
   product: PackageIcon,
+  customer: BuildingIcon,
+  material: LayersIcon,
   catalog: ListIcon,
   operation: WorkflowIcon,
   settings: SettingsIcon,

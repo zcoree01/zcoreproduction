@@ -14,6 +14,8 @@ export const PERMISSION_KEYS = [
   "employees.manage",
   "products.read",
   "products.manage",
+  "customers.read",
+  "customers.manage",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

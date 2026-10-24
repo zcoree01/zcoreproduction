@@ -1,15 +1,34 @@
 import { z } from "zod";
 import type { ActionResult } from "@/lib/actions/result";
 import { optionalDecimal, optionalText, optionalUuid, requiredText } from "@/lib/forms";
-import { numericParam } from "@/lib/supabase/numeric";
+import { compareDecimals, multiplyDecimal } from "@/lib/decimal";
 import { minutesToSeconds } from "./rules";
 
-// Must match the CHECKs in supabase/migrations/20261024140000_products.sql.
+// Must match the CHECKs in the products migrations (20261024140000, 20261024160000).
 export const PRODUCT_UNITS = ["pcs", "kg", "m", "m2", "set"] as const;
 export type ProductUnit = (typeof PRODUCT_UNITS)[number];
 
-export const BLANK_GEOMETRIES = ["round", "prismatic"] as const;
+/** Raw piece shape; decides which dimensions apply (see BLANK_DIMENSIONS). */
+export const BLANK_GEOMETRIES = ["round", "tube", "rectangular", "hexagon", "other"] as const;
 export type BlankGeometry = (typeof BLANK_GEOMETRIES)[number];
+
+export const BLANK_DIMENSION_FIELDS = ["blankDiameter", "blankWidth", "blankThickness"] as const;
+export type BlankDimensionField = (typeof BLANK_DIMENSION_FIELDS)[number];
+
+/** Dimensions used per shape (the length of the piece is cutLength for every shape). */
+export const BLANK_DIMENSIONS: Record<BlankGeometry, readonly BlankDimensionField[]> = {
+  round: ["blankDiameter"],
+  tube: ["blankDiameter", "blankThickness"],
+  rectangular: ["blankWidth", "blankThickness"],
+  hexagon: ["blankDiameter"],
+  other: [],
+};
+
+export const INSPECTION_PLANS = ["between", "final", "none"] as const;
+export type InspectionPlan = (typeof INSPECTION_PLANS)[number];
+
+export const INSPECTION_MODES = ["automatic", "manual", "custom"] as const;
+export type InspectionMode = (typeof INSPECTION_MODES)[number];
 
 export const CYCLE_TIME_UNITS = ["min", "s"] as const;
 export type CycleTimeUnit = (typeof CYCLE_TIME_UNITS)[number];
@@ -45,24 +64,31 @@ export const revisionLabelSchema = z
   .regex(/^[A-Za-z0-9.-]+$/)
   .transform((value) => value.toUpperCase());
 
+/** Optional label of a first revision (only when the drawing carries one). */
+const optionalRevisionLabel = z
+  .string()
+  .trim()
+  .max(10)
+  .regex(/^[A-Za-z0-9.-]*$/)
+  .transform((value) => value.toUpperCase() || null);
+
 const millimetres = optionalDecimal({ maxScale: 3, max: "9999999", exclusiveMin: true });
 
 const productFields = {
   partNumber: requiredText(100),
   name: requiredText(200),
-  customerName: optionalText(200),
+  customerId: optionalUuid,
   productTypeId: optionalUuid,
   unit: z.enum(PRODUCT_UNITS),
+  inspectionPlan: z.enum(INSPECTION_PLANS),
   drawingNumber: optionalText(100),
   description: optionalText(2000),
-  materialGrade: optionalText(100),
-  materialShapeId: optionalUuid,
+  materialId: optionalUuid,
   blankGeometry: z
     .union([z.literal(""), z.enum(BLANK_GEOMETRIES)])
     .transform((value) => value || null),
   blankDiameter: millimetres,
   blankWidth: millimetres,
-  blankHeight: millimetres,
   blankThickness: millimetres,
   cutLength: millimetres,
   kerf: optionalDecimal({ maxScale: 3, max: "99999" }),
@@ -73,31 +99,33 @@ type BlankFields = {
   blankGeometry: BlankGeometry | null;
   blankDiameter: string | null;
   blankWidth: string | null;
-  blankHeight: string | null;
   blankThickness: string | null;
 };
 
 /**
- * Round blanks have a diameter (plus width and height), prismatic ones width,
- * height and thickness. Mirrors product_revisions_blank_check.
+ * Only the dimensions of the chosen shape may be set; a tube wall must be
+ * thinner than half the outer diameter. Mirrors product_revisions_blank_check.
  */
 function checkBlank(value: BlankFields, ctx: z.RefinementCtx) {
-  const misplaced = (field: keyof BlankFields) =>
-    ctx.addIssue({ code: "custom", path: [field], message: "not used for this geometry" });
-  if (value.blankGeometry === null) {
-    for (const field of ["blankDiameter", "blankWidth", "blankHeight", "blankThickness"] as const) {
-      if (value[field] !== null) misplaced(field);
+  const used = BLANK_DIMENSIONS[value.blankGeometry ?? "other"];
+  for (const field of BLANK_DIMENSION_FIELDS) {
+    if (value[field] !== null && !used.includes(field)) {
+      ctx.addIssue({ code: "custom", path: [field], message: "not used for this shape" });
     }
-  } else if (value.blankGeometry === "round") {
-    if (value.blankThickness !== null) misplaced("blankThickness");
-  } else if (value.blankDiameter !== null) {
-    misplaced("blankDiameter");
+  }
+  if (
+    value.blankGeometry === "tube" &&
+    value.blankDiameter !== null &&
+    value.blankThickness !== null &&
+    compareDecimals(multiplyDecimal(value.blankThickness, "2"), value.blankDiameter) >= 0
+  ) {
+    ctx.addIssue({ code: "custom", path: ["blankThickness"], message: "wall too thick" });
   }
 }
 
 export const productSchema = z.object(productFields).superRefine(checkBlank);
 export const createProductSchema = z
-  .object({ ...productFields, revision: revisionLabelSchema })
+  .object({ ...productFields, revision: optionalRevisionLabel })
   .superRefine(checkBlank);
 
 export type ProductInput = z.infer<typeof productSchema>;
@@ -107,18 +135,17 @@ export type ProductFormValues = z.input<typeof createProductSchema>;
 export const PRODUCT_FIELDS = [
   "partNumber",
   "name",
-  "customerName",
+  "customerId",
   "productTypeId",
   "unit",
+  "inspectionPlan",
   "revision",
   "drawingNumber",
   "description",
-  "materialGrade",
-  "materialShapeId",
+  "materialId",
   "blankGeometry",
   "blankDiameter",
   "blankWidth",
-  "blankHeight",
   "blankThickness",
   "cutLength",
   "kerf",
@@ -127,29 +154,32 @@ export const PRODUCT_FIELDS = [
 
 export type ProductField = (typeof PRODUCT_FIELDS)[number];
 export type ProductError =
-  "part_number_taken" | "revision_taken" | "invalid_reference" | "not_current";
+  | "part_number_taken"
+  | "revision_taken"
+  | "invalid_reference"
+  | "not_current"
+  | "inspection_type_missing";
 export type ProductActionResult = ActionResult<ProductField, ProductError>;
 
 /** JSON arguments of create_product / update_product. */
-export function toProductRpcArgs(input: ProductInput, revision?: string) {
+export function toProductRpcArgs(input: ProductInput, revision?: string | null) {
   return {
     product: {
       part_number: input.partNumber,
       name: input.name,
-      customer_name: input.customerName,
+      customer_id: input.customerId,
       product_type_id: input.productTypeId,
       unit: input.unit,
+      inspection_plan: input.inspectionPlan,
     },
     revision: {
       ...(revision === undefined ? {} : { revision }),
       drawing_number: input.drawingNumber,
       description: input.description,
-      material_grade: input.materialGrade,
-      material_shape_id: input.materialShapeId,
+      material_id: input.materialId,
       blank_geometry: input.blankGeometry,
       blank_diameter_mm: input.blankDiameter,
       blank_width_mm: input.blankWidth,
-      blank_height_mm: input.blankHeight,
       blank_thickness_mm: input.blankThickness,
       cut_length_mm: input.cutLength,
       kerf_mm: input.kerf,
@@ -167,7 +197,7 @@ export type NewRevisionFormValues = z.input<typeof newRevisionSchema>;
 export const copyProductSchema = z.object({
   partNumber: requiredText(100),
   name: requiredText(200),
-  revision: revisionLabelSchema,
+  revision: optionalRevisionLabel,
 });
 export type CopyProductFormValues = z.input<typeof copyProductSchema>;
 
@@ -190,12 +220,6 @@ const resourceSchema = z.string().transform((value, ctx) => {
 });
 
 export const operationSchema = z.object({
-  sequence: z
-    .string()
-    .trim()
-    .regex(/^\d{1,4}$/)
-    .transform(Number)
-    .refine((value) => value >= 1),
   operationTypeId: z.uuid(),
   description: optionalText(200),
   resource: resourceSchema,
@@ -232,7 +256,6 @@ export type OperationInput = z.infer<typeof validOperationSchema>;
 export type OperationFormValues = z.input<typeof operationSchema>;
 
 export const OPERATION_FIELDS = [
-  "sequence",
   "operationTypeId",
   "description",
   "resource",
@@ -244,23 +267,22 @@ export const OPERATION_FIELDS = [
 ] as const;
 export type OperationField = (typeof OPERATION_FIELDS)[number];
 export type OperationError =
-  "sequence_taken" | "invalid_reference" | "external_rules" | "not_current";
+  "invalid_reference" | "external_rules" | "not_current" | "inspection_type_missing";
 export type OperationActionResult = ActionResult<OperationField, OperationError>;
 
 /**
- * Row for public.product_operations. External operations carry no machine,
- * setup or cycle time; internal ones no external company.
+ * JSON for save_product_operation. External operations carry no machine,
+ * setup or cycle time; internal ones no external company. Decimals stay strings.
  */
 export function toOperationRow(input: OperationInput, external: boolean) {
   return {
-    sequence: input.sequence,
     operation_type_id: input.operationTypeId,
     description: input.description,
     machine_type_id: external ? null : input.resource.machineTypeId,
     machine_id: external ? null : input.resource.machineId,
     external_company: external ? input.externalCompany : null,
-    setup_time_min: numericParam(external ? null : input.setupTime),
-    cycle_time_s: numericParam(external ? null : input.cycleTimeSeconds),
+    setup_time_min: external ? null : input.setupTime,
+    cycle_time_s: external ? null : input.cycleTimeSeconds,
     notes: input.notes,
   };
 }
@@ -268,17 +290,23 @@ export function toOperationRow(input: OperationInput, external: boolean) {
 // ---------------------------------------------------------------------------
 // Operation types
 // ---------------------------------------------------------------------------
-export const operationTypeSchema = z.object({
-  name: requiredText(100),
-  code: z
-    .string()
-    .trim()
-    .transform((value) => value.toLocaleUpperCase("bs"))
-    .pipe(z.string().regex(/^[A-Z0-9ČĆĐŠŽ-]{1,10}$/u)),
-  isExternal: z.boolean(),
-});
+export const operationTypeSchema = z
+  .object({
+    name: requiredText(100),
+    code: z
+      .string()
+      .trim()
+      .transform((value) => value.toLocaleUpperCase("bs"))
+      .pipe(z.string().regex(/^[A-Z0-9ČĆĐŠŽ-]{1,10}$/u)),
+    isExternal: z.boolean(),
+    isInspection: z.boolean(),
+  })
+  .refine((value) => !(value.isExternal && value.isInspection), {
+    path: ["isInspection"],
+    message: "an inspection is done in-house",
+  });
 export type OperationTypeFormValues = z.input<typeof operationTypeSchema>;
-export const OPERATION_TYPE_FIELDS = ["name", "code", "isExternal"] as const;
+export const OPERATION_TYPE_FIELDS = ["name", "code", "isExternal", "isInspection"] as const;
 export type OperationTypeField = (typeof OPERATION_TYPE_FIELDS)[number];
 export type OperationTypeActionResult = ActionResult<
   OperationTypeField,
@@ -327,5 +355,8 @@ export type AttachmentActionResult = ActionResult<AttachmentField, AttachmentErr
 // ---------------------------------------------------------------------------
 // Production settings (organizations.settings)
 // ---------------------------------------------------------------------------
-export const productionSettingsSchema = z.object({ cycleTimeUnit: cycleTimeUnitSchema });
+export const productionSettingsSchema = z.object({
+  cycleTimeUnit: cycleTimeUnitSchema,
+  inspectionMode: z.enum(INSPECTION_MODES),
+});
 export type ProductionSettingsFormValues = z.input<typeof productionSettingsSchema>;

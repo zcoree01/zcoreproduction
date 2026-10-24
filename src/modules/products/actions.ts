@@ -7,8 +7,14 @@ import { actionFail, invalidFields, violates, type DbError } from "@/lib/actions
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { nullableParam } from "@/lib/supabase/numeric";
 import type { Json } from "@/lib/supabase/types";
-import { attachmentStoragePath, isProductStoragePath } from "./rules";
+import {
+  attachmentStoragePath,
+  inspectionModeFromSettings,
+  inspectionPlanFor,
+  isProductStoragePath,
+} from "./rules";
 import {
   ATTACHMENT_CONTENT_TYPES,
   ATTACHMENT_FIELDS,
@@ -50,6 +56,9 @@ function revalidateProductScreens() {
 
 /** Postgres/PostgREST error → shared result kind. */
 function errorKind(error: DbError) {
+  if ((error?.message ?? "").includes("inspection_type_missing")) {
+    return "inspection_type_missing" as const;
+  }
   switch (error?.code) {
     case "23505":
       return "unique" as const;
@@ -77,8 +86,10 @@ function mapProductError(error: DbError): ProductActionResult {
     return failProduct("revision_taken", ["revision"]);
   }
   switch (errorKind(error)) {
+    case "inspection_type_missing":
+      return failProduct("inspection_type_missing");
     case "foreign_key":
-      return failProduct("invalid_reference", ["productTypeId", "materialShapeId"]);
+      return failProduct("invalid_reference", ["customerId", "productTypeId", "materialId"]);
     case "check":
       return failProduct("invalid");
     case "not_current":
@@ -99,6 +110,17 @@ async function managerOrg(): Promise<string | null> {
   return (await permitAction(organizationId, "products.manage")) ? organizationId : null;
 }
 
+async function readSettings(organizationId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("settings")
+    .eq("id", organizationId)
+    .single();
+  if (error) throw error;
+  return data.settings;
+}
+
 // ---------------------------------------------------------------------------
 // Products and revisions
 // ---------------------------------------------------------------------------
@@ -111,7 +133,9 @@ export async function createProductAction(input: unknown): Promise<ProductAction
   const parsed = createProductSchema.safeParse(input);
   if (!parsed.success) return failProduct("invalid", invalidFields(parsed.error, PRODUCT_FIELDS));
 
-  const args = toProductRpcArgs(parsed.data, parsed.data.revision);
+  const mode = inspectionModeFromSettings(await readSettings(organizationId));
+  const inspectionPlan = inspectionPlanFor(mode, parsed.data.inspectionPlan === "between");
+  const args = toProductRpcArgs({ ...parsed.data, inspectionPlan }, parsed.data.revision);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_product", {
     p_org_id: organizationId,
@@ -225,12 +249,33 @@ export async function copyProductAction(
     p_source_revision_id: parsedId.data,
     p_part_number: parsed.data.partNumber,
     p_name: parsed.data.name,
-    p_revision: parsed.data.revision,
+    // "" = no label (copy_product stores it as null).
+    p_revision: parsed.data.revision ?? "",
   });
   if (error) return mapProductError(error);
 
   revalidateProductScreens();
   return { ok: true, id: data };
+}
+
+/** Current revision of a product (e.g. to upload files right after creating it). */
+export async function getCurrentRevisionIdAction(
+  productId: unknown,
+): Promise<{ ok: true; id: string } | { ok: false; error: "invalid" | "not_found" }> {
+  const member = await requireMember();
+  const parsed = z.uuid().safeParse(productId);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("product_revisions")
+    .select("id")
+    .eq("organization_id", member.organization.id)
+    .eq("product_id", parsed.data)
+    .eq("is_current", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? { ok: true, id: data.id } : { ok: false, error: "not_found" };
 }
 
 /** Makes an older revision the current one again. */
@@ -253,10 +298,9 @@ export async function setCurrentRevisionAction(revisionId: unknown): Promise<Pro
 // Operations
 // ---------------------------------------------------------------------------
 function mapOperationError(error: DbError): OperationActionResult {
-  if (violates(error, "product_operations_sequence_key")) {
-    return failOperation("sequence_taken", ["sequence"]);
-  }
   switch (errorKind(error)) {
+    case "inspection_type_missing":
+      return failOperation("inspection_type_missing");
     case "foreign_key":
       return failOperation("invalid_reference", ["operationTypeId", "resource"]);
     case "check":
@@ -273,7 +317,10 @@ function mapOperationError(error: DbError): OperationActionResult {
   }
 }
 
-/** Creates (operationId null) or updates an operation of a revision. */
+/**
+ * Creates (operationId null, appended at the end) or updates an operation.
+ * The database re-places generated inspections afterwards.
+ */
 export async function saveOperationAction(
   revisionId: unknown,
   operationId: unknown,
@@ -301,27 +348,15 @@ export async function saveOperationAction(
   if (type.error) return mapOperationError(type.error);
   if (!type.data) return failOperation("invalid_reference", ["operationTypeId"]);
 
-  const row = toOperationRow(parsed.data, type.data.is_external);
-  const { data, error } = ids.data.operationId
-    ? await supabase
-        .from("product_operations")
-        .update(row)
-        .eq("organization_id", organizationId)
-        .eq("revision_id", ids.data.revisionId)
-        .eq("id", ids.data.operationId)
-        .is("archived_at", null)
-        .select("id")
-        .maybeSingle()
-    : await supabase
-        .from("product_operations")
-        .insert({ ...row, organization_id: organizationId, revision_id: ids.data.revisionId })
-        .select("id")
-        .single();
+  const { data, error } = await supabase.rpc("save_product_operation", {
+    p_revision_id: ids.data.revisionId,
+    p_operation_id: nullableParam(ids.data.operationId),
+    p_operation: toOperationRow(parsed.data, type.data.is_external) as Json,
+  });
   if (error) return mapOperationError(error);
-  if (!data) return failOperation("not_found");
 
   revalidateProductScreens();
-  return { ok: true, id: data.id };
+  return { ok: true, id: data };
 }
 
 export async function setOperationArchivedAction(
@@ -335,41 +370,40 @@ export async function setOperationArchivedAction(
   if (!parsed.success) return failOperation("invalid");
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("product_operations")
-    .update({ archived_at: parsed.data.archived ? new Date().toISOString() : null })
-    .eq("organization_id", organizationId)
-    .eq("id", parsed.data.id)
-    .select("id");
-  if (error) return mapOperationError(error);
-  if (data.length === 0) return failOperation("not_found");
-
-  revalidateProductScreens();
-  return { ok: true, id: parsed.data.id };
-}
-
-/** Moves an operation one place up (-1) or down (+1) by swapping numbers. */
-export async function moveOperationAction(
-  id: unknown,
-  direction: unknown,
-): Promise<OperationActionResult> {
-  const organizationId = await managerOrg();
-  if (!organizationId) return failOperation("denied");
-
-  const parsed = z
-    .object({ id: z.uuid(), direction: z.union([z.literal(-1), z.literal(1)]) })
-    .safeParse({ id, direction });
-  if (!parsed.success) return failOperation("invalid");
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("move_product_operation", {
+  const { error } = await supabase.rpc("set_product_operation_archived", {
     p_operation_id: parsed.data.id,
-    p_direction: parsed.data.direction,
+    p_archived: parsed.data.archived,
   });
   if (error) return mapOperationError(error);
 
   revalidateProductScreens();
   return { ok: true, id: parsed.data.id };
+}
+
+/** New order of the manual operations (drag & drop or the arrow buttons). */
+export async function reorderOperationsAction(
+  revisionId: unknown,
+  operationIds: unknown,
+): Promise<OperationActionResult> {
+  const organizationId = await managerOrg();
+  if (!organizationId) return failOperation("denied");
+
+  const parsed = z
+    .object({ revisionId: z.uuid(), operationIds: z.array(z.uuid()).max(500) })
+    .safeParse({ revisionId, operationIds });
+  if (!parsed.success) return failOperation("invalid");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reorder_product_operations", {
+    p_revision_id: parsed.data.revisionId,
+    p_operation_ids: parsed.data.operationIds,
+  });
+  // 22023: the routing changed meanwhile (another user); the page reloads.
+  if (error?.code === "22023") return failOperation("not_found");
+  if (error) return mapOperationError(error);
+
+  revalidateProductScreens();
+  return { ok: true, id: parsed.data.revisionId };
 }
 
 // ---------------------------------------------------------------------------
@@ -568,7 +602,7 @@ function mapOperationTypeError(error: DbError): OperationTypeActionResult {
   if (violates(error, "operation_types_code_key")) return failOperationType("code_taken", ["code"]);
   switch (errorKind(error)) {
     case "check":
-      return failOperationType("invalid", ["code"]);
+      return failOperationType("invalid", ["code", "isInspection"]);
     case "denied":
       return failOperationType("denied");
     default:
@@ -595,6 +629,7 @@ export async function saveOperationTypeAction(
     name: parsed.data.name,
     code: parsed.data.code,
     is_external: parsed.data.isExternal,
+    is_inspection: parsed.data.isInspection,
   };
   const supabase = await createClient();
   const { data, error } = parsedId.data
@@ -674,7 +709,13 @@ export async function saveProductionSettingsAction(
 
   const { error } = await supabase
     .from("organizations")
-    .update({ settings: { ...settings, cycle_time_unit: parsed.data.cycleTimeUnit } })
+    .update({
+      settings: {
+        ...settings,
+        cycle_time_unit: parsed.data.cycleTimeUnit,
+        inspection_mode: parsed.data.inspectionMode,
+      },
+    })
     .eq("id", organizationId);
   if (error) {
     console.error("settings update failed", error);

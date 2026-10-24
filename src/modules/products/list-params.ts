@@ -8,7 +8,7 @@ import {
 
 const filtersSchema = z.object({
   type: z.uuid().optional().catch(undefined),
-  shape: z.uuid().optional().catch(undefined),
+  customer: z.uuid().optional().catch(undefined),
   // Default: current products; "archived": only archived ones.
   view: z.enum(["archived"]).optional().catch(undefined),
 });
@@ -20,7 +20,7 @@ export function parseProductListParams(searchParams: SearchParamsRecord): Produc
     ...parseTableParams(searchParams),
     ...filtersSchema.parse({
       type: firstParam(searchParams.type) || undefined,
-      shape: firstParam(searchParams.shape) || undefined,
+      customer: firstParam(searchParams.customer) || undefined,
       view: firstParam(searchParams.view) || undefined,
     }),
   };

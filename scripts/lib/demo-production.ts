@@ -15,7 +15,6 @@ const CATALOGS: Record<CatalogKind, string[]> = {
   job_title: ["CNC operater", "Bravar"],
   skill: ["CNC programiranje", "Čitanje tehničkog crteža", "Zavarivanje TIG"],
   product_type: ["Gotov proizvod"],
-  material_shape: ["Šipka", "Lim", "Cijev", "Profil"],
 };
 
 const MACHINES = [

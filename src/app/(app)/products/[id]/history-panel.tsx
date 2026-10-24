@@ -23,22 +23,20 @@ type Labelled<T> = T & { createdLabel: string };
 const FIELD_KEYS = [
   "part_number",
   "name",
-  "customer_name",
   "product_type_id",
   "unit",
   "drawing_number",
   "description",
-  "material_grade",
-  "material_shape_id",
+  "material_id",
+  "customer_id",
+  "inspection_plan",
   "blank_geometry",
   "blank_diameter_mm",
   "blank_width_mm",
-  "blank_height_mm",
   "blank_thickness_mm",
   "cut_length_mm",
   "kerf_mm",
   "net_mass_kg",
-  "sequence",
   "operation_type_id",
   "machine_type_id",
   "machine_id",
@@ -62,7 +60,7 @@ export function HistoryPanel({
   canRestore,
 }: {
   productId: string;
-  revisions: Labelled<RevisionSummary>[];
+  revisions: (Labelled<RevisionSummary> & { label: string })[];
   entries: Labelled<HistoryEntry>[];
   canRestore: boolean;
 }) {
@@ -90,7 +88,7 @@ export function HistoryPanel({
                     }
                     className="font-mono font-medium underline-offset-4 hover:underline"
                   >
-                    {t("revisionLabel", { revision: revision.revision })}
+                    {t("revisionLabel", { revision: revision.label })}
                   </Link>
                   {revision.isCurrent ? <Badge>{t("current")}</Badge> : null}
                   <span className="text-sm text-muted-foreground">
@@ -98,7 +96,7 @@ export function HistoryPanel({
                   </span>
                 </div>
                 {canRestore && !revision.isCurrent ? (
-                  <SetCurrentRevisionButton revisionId={revision.id} revision={revision.revision} />
+                  <SetCurrentRevisionButton revisionId={revision.id} revision={revision.label} />
                 ) : null}
               </li>
             ))}

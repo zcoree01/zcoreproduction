@@ -121,6 +121,65 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_machines: {
         Row: {
           created_at: string
@@ -394,6 +453,85 @@ export type Database = {
           },
         ]
       }
+      material_groups: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          density_kg_dm3: number | null
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          density_kg_dm3?: number | null
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          density_kg_dm3?: number | null
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_groups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          density_kg_dm3: number | null
+          designation: string
+          group_id: string
+          id: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          density_kg_dm3?: number | null
+          designation: string
+          group_id: string
+          id?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          density_kg_dm3?: number | null
+          designation?: string
+          group_id?: string
+          id?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_organization_id_group_id_fkey"
+            columns: ["organization_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "material_groups"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           archived_at: string | null
@@ -471,6 +609,7 @@ export type Database = {
           created_at: string
           id: string
           is_external: boolean
+          is_inspection: boolean
           name: string
           organization_id: string
           updated_at: string
@@ -481,6 +620,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_external?: boolean
+          is_inspection?: boolean
           name: string
           organization_id: string
           updated_at?: string
@@ -491,6 +631,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_external?: boolean
+          is_inspection?: boolean
           name?: string
           organization_id?: string
           updated_at?: string
@@ -691,6 +832,7 @@ export type Database = {
       product_operations: {
         Row: {
           archived_at: string | null
+          auto_inspection: boolean
           created_at: string
           cycle_time_s: number | null
           description: string | null
@@ -709,6 +851,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          auto_inspection?: boolean
           created_at?: string
           cycle_time_s?: number | null
           description?: string | null
@@ -727,6 +870,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          auto_inspection?: boolean
           created_at?: string
           cycle_time_s?: number | null
           description?: string | null
@@ -785,7 +929,6 @@ export type Database = {
         Row: {
           blank_diameter_mm: number | null
           blank_geometry: string | null
-          blank_height_mm: number | null
           blank_thickness_mm: number | null
           blank_width_mm: number | null
           created_at: string
@@ -796,19 +939,16 @@ export type Database = {
           id: string
           is_current: boolean
           kerf_mm: number | null
-          material_grade: string | null
-          material_shape_id: string | null
-          material_shape_kind: string | null
+          material_id: string | null
           net_mass_kg: number | null
           organization_id: string
           product_id: string
-          revision: string
+          revision: string | null
           updated_at: string
         }
         Insert: {
           blank_diameter_mm?: number | null
           blank_geometry?: string | null
-          blank_height_mm?: number | null
           blank_thickness_mm?: number | null
           blank_width_mm?: number | null
           created_at?: string
@@ -819,19 +959,16 @@ export type Database = {
           id?: string
           is_current?: boolean
           kerf_mm?: number | null
-          material_grade?: string | null
-          material_shape_id?: string | null
-          material_shape_kind?: string | null
+          material_id?: string | null
           net_mass_kg?: number | null
           organization_id: string
           product_id: string
-          revision: string
+          revision?: string | null
           updated_at?: string
         }
         Update: {
           blank_diameter_mm?: number | null
           blank_geometry?: string | null
-          blank_height_mm?: number | null
           blank_thickness_mm?: number | null
           blank_width_mm?: number | null
           created_at?: string
@@ -842,26 +979,20 @@ export type Database = {
           id?: string
           is_current?: boolean
           kerf_mm?: number | null
-          material_grade?: string | null
-          material_shape_id?: string | null
-          material_shape_kind?: string | null
+          material_id?: string | null
           net_mass_kg?: number | null
           organization_id?: string
           product_id?: string
-          revision?: string
+          revision?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "product_revisions_organization_id_material_shape_kind_mate_fkey"
-            columns: [
-              "organization_id",
-              "material_shape_kind",
-              "material_shape_id",
-            ]
+            foreignKeyName: "product_revisions_material_fkey"
+            columns: ["organization_id", "material_id"]
             isOneToOne: false
-            referencedRelation: "catalog_items"
-            referencedColumns: ["organization_id", "kind", "id"]
+            referencedRelation: "materials"
+            referencedColumns: ["organization_id", "id"]
           },
           {
             foreignKeyName: "product_revisions_organization_id_product_id_fkey"
@@ -883,8 +1014,9 @@ export type Database = {
         Row: {
           archived_at: string | null
           created_at: string
-          customer_name: string | null
+          customer_id: string | null
           id: string
+          inspection_plan: string
           name: string
           organization_id: string
           part_number: string
@@ -896,8 +1028,9 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           created_at?: string
-          customer_name?: string | null
+          customer_id?: string | null
           id?: string
+          inspection_plan?: string
           name: string
           organization_id: string
           part_number: string
@@ -909,8 +1042,9 @@ export type Database = {
         Update: {
           archived_at?: string | null
           created_at?: string
-          customer_name?: string | null
+          customer_id?: string | null
           id?: string
+          inspection_plan?: string
           name?: string
           organization_id?: string
           part_number?: string
@@ -920,6 +1054,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_customer_fkey"
+            columns: ["organization_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "products_organization_id_fkey"
             columns: ["organization_id"]
@@ -1161,12 +1302,14 @@ export type Database = {
         Row: {
           archived_at: string | null
           created_at: string | null
+          customer_id: string | null
           customer_name: string | null
           drawing_number: string | null
           id: string | null
-          material_grade: string | null
-          material_shape_id: string | null
-          material_shape_name: string | null
+          inspection_plan: string | null
+          material_designation: string | null
+          material_group_name: string | null
+          material_id: string | null
           name: string | null
           operation_count: number | null
           organization_id: string | null
@@ -1178,6 +1321,13 @@ export type Database = {
           unit: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_customer_fkey"
+            columns: ["organization_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "products_organization_id_fkey"
             columns: ["organization_id"]
@@ -1221,10 +1371,6 @@ export type Database = {
         Returns: boolean
       }
       is_session_active: { Args: never; Returns: boolean }
-      move_product_operation: {
-        Args: { p_direction: number; p_operation_id: string }
-        Returns: undefined
-      }
       product_history: {
         Args: { p_limit?: number; p_product_id: string }
         Returns: {
@@ -1238,6 +1384,10 @@ export type Database = {
           entity_type: string
           id: number
         }[]
+      }
+      reorder_product_operations: {
+        Args: { p_operation_ids: string[]; p_revision_id: string }
+        Returns: undefined
       }
       save_employee: {
         Args: {
@@ -1255,12 +1405,24 @@ export type Database = {
         }
         Returns: string
       }
+      save_product_operation: {
+        Args: {
+          p_operation: Json
+          p_operation_id: string
+          p_revision_id: string
+        }
+        Returns: string
+      }
       set_current_revision: {
         Args: { p_revision_id: string }
         Returns: undefined
       }
       set_machine_status: {
         Args: { p_machine_id: string; p_status: string }
+        Returns: undefined
+      }
+      set_product_operation_archived: {
+        Args: { p_archived: boolean; p_operation_id: string }
         Returns: undefined
       }
       update_product: {

@@ -5,7 +5,7 @@ import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
-import { getDefaultCycleUnit } from "@/modules/products/queries";
+import { getProductionSettings } from "@/modules/products/queries";
 import { ProductionSettingsForm } from "./production-settings-form";
 
 export default function ProductionSettingsPage() {
@@ -28,11 +28,14 @@ async function ProductionSettingsContent() {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 
-  const cycleTimeUnit = await getDefaultCycleUnit(member.organization.id);
+  const settings = await getProductionSettings(member.organization.id);
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
-      <ProductionSettingsForm cycleTimeUnit={cycleTimeUnit} />
+      <ProductionSettingsForm
+        cycleTimeUnit={settings.cycleTimeUnit}
+        inspectionMode={settings.inspectionMode}
+      />
     </>
   );
 }

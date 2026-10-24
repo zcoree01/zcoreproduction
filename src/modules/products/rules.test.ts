@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   attachmentStoragePath,
+  blankCrossSection,
+  blankWeightKg,
+  inspectionModeFromSettings,
+  inspectionPlanFor,
+  lengthWithKerf,
+  moveInOrder,
   changedFields,
   cycleUnitFromSettings,
   describeHistoryEntry,
@@ -37,6 +43,11 @@ describe("nextRevisionLabel", () => {
     expect(nextRevisionLabel("A", ["A", "B", "c"])).toBe("D");
   });
 
+  it("starts with A after a revision without a label", () => {
+    expect(nextRevisionLabel(null)).toBe("A");
+    expect(nextRevisionLabel(null, ["A"])).toBe("B");
+  });
+
   it("returns null when no rule applies or the label gets too long", () => {
     expect(nextRevisionLabel("A-")).toBeNull();
     expect(nextRevisionLabel("ZZZZZZZZZZ")).toBeNull();
@@ -49,10 +60,14 @@ describe("cycle times", () => {
     expect(minutesToSeconds("0.01")).toBe("0.6");
   });
 
-  it("shows seconds in the chosen unit", () => {
+  it("shows seconds in the chosen unit with one decimal", () => {
     expect(secondsToUnit("90", "min")).toBe("1.5");
-    expect(secondsToUnit("7", "min")).toBe("0.117");
+    expect(secondsToUnit("150", "min")).toBe("2.5");
+    expect(secondsToUnit("95", "min")).toBe("1.6");
+    expect(secondsToUnit("7", "min")).toBe("0.1");
     expect(secondsToUnit("7.50", "s")).toBe("7.5");
+    expect(secondsToUnit("7.04", "s")).toBe("7");
+    expect(secondsToUnit("7", "min", 3)).toBe("0.117");
   });
 
   it("uses the machine unit before the organization default", () => {
@@ -156,7 +171,42 @@ describe("history", () => {
     ).toBeNull();
   });
 
-  it("names operations by number and attachments by file", () => {
+  it("hides generated inspections and pure renumbering, logs reordering", () => {
+    expect(
+      describeHistoryEntry({
+        action: "product_operations.insert",
+        entityType: "product_operations",
+        before: null,
+        after: { auto_inspection: true },
+      }),
+    ).toBeNull();
+    expect(
+      describeHistoryEntry({
+        action: "product_operations.update",
+        entityType: "product_operations",
+        before: { sequence: 1, auto_inspection: false },
+        after: { sequence: 2, auto_inspection: false },
+      }),
+    ).toBeNull();
+    expect(
+      describeHistoryEntry({
+        action: "product_operations.update",
+        entityType: "product_operations",
+        before: { sequence: 1, notes: null, auto_inspection: false },
+        after: { sequence: 2, notes: "x", auto_inspection: false },
+      }),
+    ).toEqual({ event: "operation_updated", fields: ["notes"], subject: null });
+    expect(
+      describeHistoryEntry({
+        action: "products.routing_reordered",
+        entityType: "products",
+        before: null,
+        after: {},
+      })?.event,
+    ).toBe("routing_reordered");
+  });
+
+  it("names attachments by file", () => {
     expect(
       describeHistoryEntry({
         action: "product_operations.update",
@@ -164,7 +214,7 @@ describe("history", () => {
         before: { sequence: 20, archived_at: null },
         after: { sequence: 20, archived_at: "x" },
       }),
-    ).toEqual({ event: "operation_archived", fields: [], subject: "20" });
+    ).toEqual({ event: "operation_archived", fields: [], subject: null });
     expect(
       describeHistoryEntry({
         action: "product_attachments.insert",
@@ -179,5 +229,71 @@ describe("history", () => {
     expect(
       describeHistoryEntry({ action: "x.y", entityType: "x", before: null, after: null }),
     ).toBeNull();
+  });
+});
+
+describe("raw piece weight", () => {
+  const blank = { diameter: null, width: null, thickness: null, length: "1000" };
+
+  it("weighs round bars (π/4 · d² · L · ρ)", () => {
+    // Ø45 × 125 mm steel ≈ 12,48 kg/m × 0,125 m.
+    expect(
+      blankWeightKg({ ...blank, geometry: "round", diameter: "45", length: "125" }, "7.85"),
+    ).toBe("1.561");
+  });
+
+  it("weighs tubes (π · s · (D − s) · L · ρ)", () => {
+    expect(
+      blankWeightKg({ ...blank, geometry: "tube", diameter: "40", thickness: "5" }, "7.85"),
+    ).toBe("4.316");
+  });
+
+  it("weighs rectangular and hexagon bars", () => {
+    expect(
+      blankWeightKg({ ...blank, geometry: "rectangular", width: "50", thickness: "10" }, "7.85"),
+    ).toBe("3.925");
+    // Brass hexagon SW30, 1 m ≈ 6,6 kg.
+    expect(blankWeightKg({ ...blank, geometry: "hexagon", diameter: "30" }, "8.47")).toBe("6.602");
+  });
+
+  it("returns null without shape, dimensions, length or density", () => {
+    expect(blankWeightKg({ ...blank, geometry: "other" }, "7.85")).toBeNull();
+    expect(blankWeightKg({ ...blank, geometry: "round" }, "7.85")).toBeNull();
+    expect(
+      blankWeightKg({ ...blank, geometry: "round", diameter: "45", length: null }, "7.85"),
+    ).toBeNull();
+    expect(blankWeightKg({ ...blank, geometry: "round", diameter: "45" }, null)).toBeNull();
+    expect(blankCrossSection({ ...blank, geometry: "rectangular", width: "50" })).toBeNull();
+  });
+
+  it("adds the saw cut to the material per piece", () => {
+    expect(lengthWithKerf("125", "2.5")).toBe("127.5");
+    expect(lengthWithKerf("125", null)).toBe("125");
+    expect(lengthWithKerf(null, "2")).toBeNull();
+  });
+});
+
+describe("routing order", () => {
+  it("moves one place up or down and stays put at the ends", () => {
+    expect(moveInOrder(["a", "b", "c"], "b", -1)).toEqual(["b", "a", "c"]);
+    expect(moveInOrder(["a", "b", "c"], "b", 1)).toEqual(["a", "c", "b"]);
+    expect(moveInOrder(["a", "b", "c"], "a", -1)).toEqual(["a", "b", "c"]);
+    expect(moveInOrder(["a", "b", "c"], "c", 1)).toEqual(["a", "b", "c"]);
+    expect(moveInOrder(["a", "b"], "x", 1)).toEqual(["a", "b"]);
+  });
+});
+
+describe("inspection settings", () => {
+  it("reads the organization mode (manual by default)", () => {
+    expect(inspectionModeFromSettings({})).toBe("manual");
+    expect(inspectionModeFromSettings({ inspection_mode: "custom" })).toBe("custom");
+    expect(inspectionModeFromSettings({ inspection_mode: "x" })).toBe("manual");
+  });
+
+  it("derives the plan of a new product from the mode", () => {
+    expect(inspectionPlanFor("automatic", false)).toBe("between");
+    expect(inspectionPlanFor("manual", true)).toBe("none");
+    expect(inspectionPlanFor("custom", true)).toBe("between");
+    expect(inspectionPlanFor("custom", false)).toBe("final");
   });
 });

@@ -14,10 +14,12 @@ import { requireMember } from "@/lib/auth/session";
 import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { cn } from "@/lib/utils";
 import { listCatalogOptions } from "@/modules/catalogs/queries";
+import { listCustomerOptions } from "@/modules/customers/queries";
+import { listMaterialOptions } from "@/modules/materials/queries";
 import { parseProductDetailParams } from "@/modules/products/list-params";
 import {
-  getDefaultCycleUnit,
   getProduct,
+  getProductionSettings,
   getProductHistory,
   getRevision,
   listAttachments,
@@ -94,21 +96,26 @@ async function ProductContent({
     catalogs,
     operationTypes,
     machines,
-    cycleUnit,
+    settings,
+    customers,
+    materials,
   ] = await Promise.all([
     getRevision(organizationId, selected.id),
     listOperations(organizationId, selected.id),
     listAttachments(organizationId, selected.id),
     getProductHistory(product.id),
-    listCatalogOptions(organizationId, ["product_type", "material_shape", "machine_type"]),
+    listCatalogOptions(organizationId, ["product_type", "machine_type"]),
     listOperationTypes(organizationId, { includeArchived: true }),
     editable ? listMachineChoices(organizationId) : Promise.resolve([]),
-    getDefaultCycleUnit(organizationId),
+    getProductionSettings(organizationId),
+    canManage ? listCustomerOptions(organizationId) : Promise.resolve([]),
+    canManage ? listMaterialOptions(organizationId) : Promise.resolve([]),
   ]);
   if (!revision) throw new Error(`Revision ${selected.id} not readable`);
 
-  const labels = product.revisions.map((r) => r.revision);
-  const suggestedRevision = nextRevisionLabel(current?.revision ?? revision.revision, labels) ?? "";
+  const labels = product.revisions.flatMap((r) => (r.revision ? [r.revision] : []));
+  const suggestedRevision = nextRevisionLabel(current?.revision ?? null, labels) ?? "";
+  const label = (value: string | null) => value ?? t("detail.unlabeled");
 
   return (
     <>
@@ -126,15 +133,23 @@ async function ProductContent({
               <h1 className="font-mono text-2xl font-semibold tracking-tight">
                 {product.partNumber}
               </h1>
-              <Badge variant={selected.isCurrent ? "default" : "outline"}>
-                {t("detail.revisionBadge", { revision: selected.revision })}
-              </Badge>
+              {selected.revision || !selected.isCurrent ? (
+                <Badge variant={selected.isCurrent ? "default" : "outline"}>
+                  {t("detail.revisionBadge", { revision: label(selected.revision) })}
+                </Badge>
+              ) : null}
               {product.archived ? <Badge variant="secondary">{t("detail.archived")}</Badge> : null}
             </div>
             <p className="text-lg">{product.name}</p>
-            {product.customerName ? (
+            {product.customer ? (
               <p className="text-sm text-muted-foreground">
-                {t("detail.customer", { customer: product.customerName })}
+                {t("detail.customerLabel")}{" "}
+                <Link
+                  href={`/customers/${product.customer.id}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  {product.customer.name}
+                </Link>
               </p>
             ) : null}
           </div>
@@ -150,7 +165,12 @@ async function ProductContent({
                 revision={revision}
                 editable={editable}
                 suggestedRevision={suggestedRevision}
-                catalogs={{ types: catalogs.product_type, shapes: catalogs.material_shape }}
+                options={{
+                  types: catalogs.product_type,
+                  customers,
+                  materials,
+                  inspectionMode: settings.inspectionMode,
+                }}
               />
             ) : null}
           </div>
@@ -159,11 +179,18 @@ async function ProductContent({
 
       {!selected.isCurrent ? (
         <Alert>
-          <AlertTitle>{t("detail.oldRevisionTitle", { revision: selected.revision })}</AlertTitle>
+          <AlertTitle>
+            {t("detail.oldRevisionTitle", { revision: label(selected.revision) })}
+          </AlertTitle>
           <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            <span>{t("detail.oldRevisionDescription", { current: current?.revision ?? "—" })}</span>
+            <span>
+              {t("detail.oldRevisionDescription", { current: label(current?.revision ?? null) })}
+            </span>
             {canManage && !product.archived ? (
-              <SetCurrentRevisionButton revisionId={selected.id} revision={selected.revision} />
+              <SetCurrentRevisionButton
+                revisionId={selected.id}
+                revision={label(selected.revision)}
+              />
             ) : null}
           </AlertDescription>
         </Alert>
@@ -187,7 +214,7 @@ async function ProductContent({
             operationTypes={operationTypes}
             machineTypes={catalogs.machine_type}
             machines={machines}
-            defaultUnit={cycleUnit}
+            defaultUnit={settings.cycleTimeUnit}
             editable={editable}
           />
         }
@@ -195,7 +222,7 @@ async function ProductContent({
           <AttachmentsPanel
             revisionId={revision.id}
             attachments={attachments}
-            operations={operations.filter((op) => !op.archived)}
+            operations={operations.filter((op) => !op.archived && !op.autoInspection)}
             editable={editable}
           />
         }
@@ -203,6 +230,7 @@ async function ProductContent({
           <HistoryPanel
             revisions={product.revisions.map((r) => ({
               ...r,
+              label: label(r.revision),
               createdLabel: format.dateTime(new Date(r.createdAt), {
                 dateStyle: "medium",
                 timeStyle: "short",

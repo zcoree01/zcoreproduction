@@ -41,7 +41,6 @@ type FormError = Extract<OperationActionResult, { ok: false }>["error"];
 type Props = {
   revisionId: string;
   operation: ProductOperation | null;
-  nextSequence: number;
   operationTypes: OperationType[];
   machineTypes: CatalogOption[];
   machines: MachineChoice[];
@@ -77,7 +76,6 @@ function resourceValue(operation: ProductOperation): string {
 function OperationForm({
   revisionId,
   operation,
-  nextSequence,
   operationTypes,
   machineTypes,
   machines,
@@ -108,7 +106,6 @@ function OperationForm({
   const form = useForm<OperationFormValues, unknown, OperationInput>({
     resolver: zodResolver(validOperationSchema),
     defaultValues: {
-      sequence: String(operation?.sequence ?? nextSequence),
       operationTypeId: operation?.type.id ?? "",
       description: operation?.description ?? "",
       resource: initialResource,
@@ -140,16 +137,12 @@ function OperationForm({
           : raw;
       const result = await saveOperationAction(revisionId, operation?.id ?? null, values);
       if (result.ok) {
-        const sequence = raw.sequence.trim();
-        toast.success(
-          operation ? t("updatedToast", { sequence }) : t("createdToast", { sequence }),
-        );
+        const name = selectedType?.name ?? "";
+        toast.success(operation ? t("updatedToast", { name }) : t("createdToast", { name }));
         onDone();
         return;
       }
-      if (result.error === "sequence_taken") {
-        form.setError("sequence", { type: "server", message: t("errors.sequence_taken") });
-      } else if (result.error === "invalid" && result.fields.length > 0) {
+      if (result.error === "invalid" && result.fields.length > 0) {
         for (const field of result.fields) form.setError(field, { type: "server" });
       } else {
         setFormError(result.error);
@@ -161,7 +154,7 @@ function OperationForm({
     error?.type === "server" && error.message ? error.message : t(`fieldErrors.${name}`);
 
   const input = (
-    name: "sequence" | "description" | "externalCompany" | "setupTime" | "cycleTime",
+    name: "description" | "externalCompany" | "setupTime" | "cycleTime",
     options: { label?: string; hint?: string; decimal?: boolean } = {},
   ) => (
     <Controller
@@ -174,7 +167,7 @@ function OperationForm({
             {...field}
             id={`operation-${name}`}
             autoComplete="off"
-            inputMode={options.decimal ? "decimal" : name === "sequence" ? "numeric" : undefined}
+            inputMode={options.decimal ? "decimal" : undefined}
             aria-invalid={fieldState.invalid || undefined}
           />
           {fieldState.invalid ? (
@@ -191,7 +184,7 @@ function OperationForm({
     <>
       <SheetHeader className="border-b">
         <SheetTitle>
-          {operation ? t("editTitle", { sequence: operation.sequence }) : t("createTitle")}
+          {operation ? t("editTitle", { name: operation.type.name }) : t("createTitle")}
         </SheetTitle>
         <SheetDescription>{t("sheetDescription")}</SheetDescription>
       </SheetHeader>
@@ -207,7 +200,6 @@ function OperationForm({
               <AlertDescription>{t(`errors.${formError}`)}</AlertDescription>
             </Alert>
           ) : null}
-          {input("sequence", { hint: t("sequenceHint") })}
           <Controller
             name="operationTypeId"
             control={form.control}

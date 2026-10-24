@@ -1,6 +1,7 @@
-// Demo operation types and one product with a routing for the "demo"
-// organization. DEMO ONLY (seeded by `npm run seed:demo`). Idempotent: rows are
-// matched by operation code and part number and never duplicated.
+// Demo operation types, a customer and one product with a routing for the
+// "demo" organization. DEMO ONLY (seeded by `npm run seed:demo`). Idempotent:
+// rows are matched by operation code, customer name and part number and never
+// duplicated. Materials come from the migration's starter list.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { numericParam } from "@/lib/supabase/numeric";
 import type { Database } from "@/lib/supabase/types";
@@ -9,35 +10,35 @@ import type { ProvisionedOrganization } from "@/modules/organizations/provision"
 type Admin = SupabaseClient<Database>;
 
 const OPERATION_TYPES = [
-  { code: "RZ", name: "Rezanje", isExternal: false },
-  { code: "TO", name: "Tokarenje", isExternal: false },
-  { code: "GL", name: "Glodanje", isExternal: false },
-  { code: "BS", name: "Bušenje", isExternal: false },
-  { code: "BU", name: "Brušenje unutrašnje", isExternal: false },
-  { code: "KT", name: "Kontrola", isExternal: false },
-  { code: "CI", name: "Cinčanje", isExternal: true },
+  { code: "RZ", name: "Rezanje", isExternal: false, isInspection: false },
+  { code: "TO", name: "Tokarenje", isExternal: false, isInspection: false },
+  { code: "GL", name: "Glodanje", isExternal: false, isInspection: false },
+  { code: "BS", name: "Bušenje", isExternal: false, isInspection: false },
+  { code: "BU", name: "Brušenje unutrašnje", isExternal: false, isInspection: false },
+  { code: "KT", name: "Kontrola", isExternal: false, isInspection: true },
+  { code: "CI", name: "Cinčanje", isExternal: true, isInspection: false },
 ] as const;
+
+const CUSTOMER = { name: "Demo Kupac d.o.o.", city: "Zenica", country: "Bosna i Hercegovina" };
 
 const PRODUCT = {
   partNumber: "DM-4711-02",
   name: "Osovina Ø40",
-  customer: "Demo Kupac d.o.o.",
   revision: "A",
   drawingNumber: "C-4711",
-  materialGrade: "C45",
-  shape: "Šipka",
+  material: "C45",
   geometry: "round",
   diameter: "45",
-  height: "125",
   cutLength: "125",
   kerf: "2",
   netMass: "1.25",
+  // Final inspection is part of the routing itself (inspection plan "none").
   operations: [
-    { sequence: 10, code: "RZ", machine: "PILA-01", setupMin: "5", cycleS: "60" },
-    { sequence: 20, code: "TO", machine: "CNC-02", setupMin: "30", cycleS: "95" },
-    { sequence: 30, code: "GL", machine: "CNC-01", setupMin: "20", cycleS: "140" },
-    { sequence: 40, code: "CI", external: "Cinkara Zenica" },
-    { sequence: 50, code: "KT", setupMin: "0", cycleS: "30" },
+    { sequence: 1, code: "RZ", machine: "PILA-01", setupMin: "5", cycleS: "60" },
+    { sequence: 2, code: "TO", machine: "CNC-02", setupMin: "30", cycleS: "95" },
+    { sequence: 3, code: "GL", machine: "CNC-01", setupMin: "20", cycleS: "140" },
+    { sequence: 4, code: "CI", external: "Cinkara Zenica" },
+    { sequence: 5, code: "KT", setupMin: "0", cycleS: "30" },
   ],
 } as const;
 
@@ -46,12 +47,19 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
   for (const type of OPERATION_TYPES) {
     const existing = await admin
       .from("operation_types")
-      .select("id")
+      .select("id, is_inspection")
       .eq("organization_id", org.id)
       .eq("code", type.code)
       .is("archived_at", null)
       .maybeSingle()
       .throwOnError();
+    if (existing.data && existing.data.is_inspection !== type.isInspection) {
+      await admin
+        .from("operation_types")
+        .update({ is_inspection: type.isInspection })
+        .eq("id", existing.data.id)
+        .throwOnError();
+    }
     const id =
       existing.data?.id ??
       (
@@ -62,6 +70,7 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
             code: type.code,
             name: type.name,
             is_external: type.isExternal,
+            is_inspection: type.isInspection,
           })
           .select("id")
           .single()
@@ -69,6 +78,25 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
       ).data.id;
     typeIds.set(type.code, id);
   }
+
+  const existingCustomer = await admin
+    .from("customers")
+    .select("id")
+    .eq("organization_id", org.id)
+    .eq("name", CUSTOMER.name)
+    .is("archived_at", null)
+    .maybeSingle()
+    .throwOnError();
+  const customerId =
+    existingCustomer.data?.id ??
+    (
+      await admin
+        .from("customers")
+        .insert({ organization_id: org.id, ...CUSTOMER })
+        .select("id")
+        .single()
+        .throwOnError()
+    ).data.id;
 
   const existing = await admin
     .from("products")
@@ -80,7 +108,7 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
     .throwOnError();
   if (existing.data) return;
 
-  const [productType, shape, machines] = await Promise.all([
+  const [productType, material, machines] = await Promise.all([
     admin
       .from("catalog_items")
       .select("id")
@@ -91,11 +119,10 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
       .single()
       .throwOnError(),
     admin
-      .from("catalog_items")
+      .from("materials")
       .select("id")
       .eq("organization_id", org.id)
-      .eq("kind", "material_shape")
-      .eq("name", PRODUCT.shape)
+      .eq("designation", PRODUCT.material)
       .is("archived_at", null)
       .single()
       .throwOnError(),
@@ -123,7 +150,7 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
       organization_id: org.id,
       part_number: PRODUCT.partNumber,
       name: PRODUCT.name,
-      customer_name: PRODUCT.customer,
+      customer_id: customerId,
       product_type_id: productType.data.id,
     })
     .select("id")
@@ -138,11 +165,9 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
       revision: PRODUCT.revision,
       is_current: true,
       drawing_number: PRODUCT.drawingNumber,
-      material_grade: PRODUCT.materialGrade,
-      material_shape_id: shape.data.id,
+      material_id: material.data.id,
       blank_geometry: PRODUCT.geometry,
       blank_diameter_mm: numericParam(PRODUCT.diameter),
-      blank_height_mm: numericParam(PRODUCT.height),
       cut_length_mm: numericParam(PRODUCT.cutLength),
       kerf_mm: numericParam(PRODUCT.kerf),
       net_mass_kg: numericParam(PRODUCT.netMass),

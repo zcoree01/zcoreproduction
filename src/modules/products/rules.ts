@@ -1,6 +1,7 @@
-// Product domain rules: revision labels, cycle-time units and durations,
-// attachment files, history entries. Pure functions (unit-tested).
-import { addDecimals, divideDecimal, multiplyDecimal, parseDecimal, toScaled } from "@/lib/decimal";
+// Product domain rules: revision labels, raw piece weight, cycle-time units
+// and durations, inspection settings, attachment files, history entries.
+// Pure functions (unit-tested).
+import { addDecimals, divideDecimal, multiplyDecimal, toScaled } from "@/lib/decimal";
 
 // ---------------------------------------------------------------------------
 // Revisions
@@ -19,11 +20,12 @@ function nextLetters(letters: string): string {
 }
 
 /**
- * Suggested label after `current`: A → B, Z → AA, 01 → 02, A1 → A2.
- * Skips labels that already exist; null when no rule applies.
+ * Suggested label after `current`: A → B, Z → AA, 01 → 02, A1 → A2; a first
+ * revision without a label is followed by A. Skips labels that already exist;
+ * null when no rule applies.
  */
 export function nextRevisionLabel(
-  current: string,
+  current: string | null,
   existing: readonly string[] = [],
 ): string | null {
   const taken = new Set(existing.map((label) => label.toUpperCase()));
@@ -38,7 +40,8 @@ export function nextRevisionLabel(
     return null;
   };
 
-  let candidate = step(current.trim().toUpperCase());
+  let candidate =
+    current === null || current.trim() === "" ? "A" : step(current.trim().toUpperCase());
   for (let guard = 0; candidate !== null && taken.has(candidate) && guard < 1000; guard += 1) {
     candidate = step(candidate);
   }
@@ -54,9 +57,20 @@ export function minutesToSeconds(minutes: string): string {
   return multiplyDecimal(minutes, "60");
 }
 
-/** Seconds → display value in `unit` (minutes rounded to 3 decimals). */
-export function secondsToUnit(seconds: string, unit: TimeUnit): string {
-  return unit === "s" ? (parseDecimal(seconds, 6) ?? seconds) : divideDecimal(seconds, "60", 3);
+/** Seconds → value in `unit`, rounded to `decimals` (display: 1, e.g. 2,5 min). */
+export function secondsToUnit(seconds: string, unit: TimeUnit, decimals = 1): string {
+  return divideDecimal(seconds, unit === "s" ? "1" : "60", decimals);
+}
+
+/** Order after moving `id` one place up (-1) or down (+1); unchanged at the ends. */
+export function moveInOrder(ids: readonly string[], id: string, direction: -1 | 1): string[] {
+  const order = [...ids];
+  const index = order.indexOf(id);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= order.length) return order;
+  order.splice(index, 1);
+  order.splice(target, 0, id);
+  return order;
 }
 
 /** Unit for an operation: the machine's own unit, otherwise the organization default. */
@@ -107,6 +121,98 @@ export function splitDuration(seconds: string): {
 }
 
 // ---------------------------------------------------------------------------
+// Inspection settings
+// ---------------------------------------------------------------------------
+export type InspectionModeValue = "automatic" | "manual" | "custom";
+export type InspectionPlanValue = "between" | "final" | "none";
+
+/** Organization mode from organizations.settings (manual unless set). */
+export function inspectionModeFromSettings(settings: unknown): InspectionModeValue {
+  const value =
+    settings && typeof settings === "object" && !Array.isArray(settings)
+      ? (settings as Record<string, unknown>).inspection_mode
+      : undefined;
+  return value === "automatic" || value === "custom" ? value : "manual";
+}
+
+/**
+ * Inspection plan of a new product: automatic → after every operation,
+ * manual → none generated, custom → the user's answer (yes: between,
+ * no: one final inspection, further ones added by hand).
+ */
+export function inspectionPlanFor(
+  mode: InspectionModeValue,
+  inspectBetween: boolean | null,
+): InspectionPlanValue {
+  if (mode === "automatic") return "between";
+  if (mode === "manual") return "none";
+  return inspectBetween ? "between" : "final";
+}
+
+// ---------------------------------------------------------------------------
+// Raw piece weight
+// ---------------------------------------------------------------------------
+export type BlankShape = "round" | "tube" | "rectangular" | "hexagon" | "other";
+
+export type BlankDimensions = {
+  geometry: BlankShape | null;
+  /** Round: Ø; tube: outer Ø; hexagon: across flats (mm). */
+  diameter: string | null;
+  /** Rectangular: width (mm). */
+  width: string | null;
+  /** Rectangular: thickness; tube: wall thickness (mm). */
+  thickness: string | null;
+  /** Length of the raw piece (mm). */
+  length: string | null;
+};
+
+const PI = "3.14159265358979";
+const HALF_SQRT3 = "0.866025403784439";
+const SCALE = 12;
+
+/** Cross-section in mm², or null when a dimension is missing or the shape has none. */
+export function blankCrossSection(blank: BlankDimensions): string | null {
+  const { diameter: d, width: w, thickness: t } = blank;
+  const times = (a: string, b: string) => multiplyDecimal(a, b, SCALE);
+  switch (blank.geometry) {
+    case "round":
+      // π/4 · d²
+      return d ? times(divideDecimal(PI, "4", SCALE), times(d, d)) : null;
+    case "tube":
+      // π · s · (D − s)  (= π/4 · (D² − (D − 2s)²))
+      return d && t ? times(PI, times(t, addDecimals([d, `-${t}`], SCALE))) : null;
+    case "rectangular":
+      return w && t ? times(w, t) : null;
+    case "hexagon":
+      // √3/2 · s² (s = across flats)
+      return d ? times(HALF_SQRT3, times(d, d)) : null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Mass of the raw piece in kg (3 decimals): cross-section (mm²) × length (mm)
+ * × density (kg/dm³) / 10⁶. Null when shape, dimensions or density are missing.
+ */
+export function blankWeightKg(blank: BlankDimensions, densityKgDm3: string | null): string | null {
+  const area = blankCrossSection(blank);
+  if (!area || !blank.length || !densityKgDm3) return null;
+  const volumeDm3 = divideDecimal(multiplyDecimal(area, blank.length, SCALE), "1000000", SCALE);
+  return divideDecimal(multiplyDecimal(volumeDm3, densityKgDm3, SCALE), "1", 3);
+}
+
+/** Material per piece including the saw cut (mm), for later consumption. */
+export function lengthWithKerf(length: string | null, kerf: string | null): string | null {
+  return length ? addDecimals([length, kerf ?? "0"], 3) : null;
+}
+
+/** Density of a designation, falling back to its group. */
+export function materialDensity(own: string | null, group: string | null): string | null {
+  return own ?? group;
+}
+
+// ---------------------------------------------------------------------------
 // Attachments
 // ---------------------------------------------------------------------------
 
@@ -147,7 +253,8 @@ export type HistoryEvent =
   | "attachment_added"
   | "attachment_updated"
   | "attachment_archived"
-  | "attachment_restored";
+  | "attachment_restored"
+  | "routing_reordered";
 
 export type HistoryEntryInput = {
   action: string;
@@ -206,7 +313,16 @@ export function describeHistoryEntry(entry: HistoryEntryInput): HistoryDescripti
   const archivedChange = fields.includes("archived_at");
   const archiveEvent = after.archived_at ? "archived" : "restored";
 
+  if (
+    entry.entityType === "product_operations" &&
+    (before.auto_inspection || after.auto_inspection)
+  ) {
+    return null;
+  }
+
   switch (entry.action) {
+    case "products.routing_reordered":
+      return { event: "routing_reordered", fields: [], subject: null };
     case "products.revision_created":
       return { event: "revision_created", fields: [], subject: text(after.revision) };
     case "products.revision_restored":
@@ -228,12 +344,17 @@ export function describeHistoryEntry(entry: HistoryEntryInput): HistoryDescripti
       return { event: "revision_updated", fields: changed, subject: text(after.revision) };
     }
     case "product_operations.insert":
-      return { event: "operation_added", fields: [], subject: text(after.sequence) };
+      return { event: "operation_added", fields: [], subject: null };
     case "product_operations.update":
-      if (fields.length === 0) return null;
+      // Positions are renumbered on every change; moves are logged as routing_reordered.
+      if (fields.length === 0 || (fields.length === 1 && fields[0] === "sequence")) return null;
       return archivedChange
-        ? { event: `operation_${archiveEvent}`, fields: [], subject: text(after.sequence) }
-        : { event: "operation_updated", fields, subject: text(after.sequence) };
+        ? { event: `operation_${archiveEvent}`, fields: [], subject: null }
+        : {
+            event: "operation_updated",
+            fields: fields.filter((field) => field !== "sequence"),
+            subject: null,
+          };
     case "product_attachments.insert":
       return { event: "attachment_added", fields: [], subject: text(after.file_name) };
     case "product_attachments.update":

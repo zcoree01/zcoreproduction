@@ -7,3 +7,10 @@ export function numericParam(value: string | null): number | null;
 export function numericParam(value: string | null): number | null {
   return value as unknown as number | null;
 }
+
+// Generated RPC argument types are never nullable, but SQL functions receive
+// null for an omitted value (e.g. "create" instead of "update"). This cast
+// states that intent in one place.
+export function nullableParam<T>(value: T | null): T {
+  return value as T;
+}
