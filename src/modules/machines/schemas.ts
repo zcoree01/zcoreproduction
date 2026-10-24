@@ -25,6 +25,8 @@ export const machineSchema = z.object({
   locationId: optionalUuid,
   status: machineStatusSchema,
   notes: optionalText(2000),
+  // "" = organization default (Postavke proizvodnje).
+  cycleTimeUnit: z.enum(["", "min", "s"]).transform((value) => value || null),
 });
 
 export type MachineInput = z.infer<typeof machineSchema>;
@@ -39,6 +41,7 @@ export const MACHINE_FIELDS = [
   "locationId",
   "status",
   "notes",
+  "cycleTimeUnit",
 ] as const;
 
 export type MachineField = (typeof MACHINE_FIELDS)[number];
@@ -56,5 +59,6 @@ export function toMachineRow(input: MachineInput) {
     location_id: input.locationId,
     status: input.status,
     notes: input.notes,
+    cycle_time_unit: input.cycleTimeUnit,
   };
 }

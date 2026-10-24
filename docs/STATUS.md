@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** started (see `ZCORE_CONTEXT.md` §14): machines, employees and catalogs are implemented. Remaining Phase 1: complete user management, org settings, Vercel deploy. Next in Phase 2: products/parts, production orders.
+**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** in progress (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs and products/parts (revisions, routings, attachments) are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. Next in Phase 2: production orders and operations.
 
 ## Implemented
 
@@ -35,9 +35,16 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - Views `machine_directory`, `employee_directory` (security_invoker) for list screens.
   - Screens: `/machines` and `/employees` (server-paginated tables, search, filters incl. skill, archive view, add/edit sheets, archive/restore with confirmation, quick machine status change), `/settings/catalogs` (per-kind lists: add, rename, archive, restore), `/floor/machines` (operator: own machines, large status buttons). Module-disabled, permission-denied, empty, no-results and error states.
   - Domain code in `src/modules/{catalogs,machines,employees}`; shared helpers `src/lib/forms.ts` (form Zod helpers), `src/lib/actions/result.ts` (action results, Postgres error mapping), `permitAction()` and `getMemberAccess()`.
-- Tests: `npm run check` (103 unit tests), `npm run test:db` (65 RLS/integration tests), `npm run e2e` (30 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out).
+- **Module `production` — products and parts** (`20261024140000_products`, D-014):
+  - Tables: `operation_types` (name + abbreviation, internal/external), `products` (customer part number unique among active, name, customer as text, product type, unit `pcs/kg/m/m2/set`), `product_revisions` (one current per product; drawing number, description, material grade, material shape, blank geometry round/prismatic with numeric dimensions, cut length, kerf, net mass), `product_operations` (sequence 10/20/30 unique per revision incl. archived, operation type, machine type or machine, external company, setup min, cycle **seconds**, operator note), `product_attachments` (main drawing, machine drawing linked to a main drawing and optionally an operation, image, other). New catalog kinds `product_type`, `material_shape`; `machines.cycle_time_unit` (null = org default) and `organizations.settings.cycle_time_unit` (`min` default).
+  - Integrity in the database: only the current revision of a non-archived product can change (triggers, `55000`); external operations have no machine/times (`23514`); attachment links stay within the revision; storage paths must start with the organization id.
+  - RPCs (invoker, one transaction): `create_product`, `update_product`, `create_product_revision` (copies data, operations, attachments; becomes current), `copy_product` (new part number, no attachments), `set_current_revision` (go back to an older revision), `move_product_operation` (swap numbers); `product_history` (definer, `products.read`) reads the audit log of the product and its children. Semantic audit entries `products.revision_created/revision_restored/copied`.
+  - Private Storage bucket `product-files` (PDF/PNG/JPG/WEBP, 20 MB): read with `products.read`, upload with `products.manage`, only in the own organization's folder; no update/delete (attachments are archived). Upload = server action issues a signed upload URL for a server-chosen path → browser uploads → server action reads size/type back from Storage and records the row. Download via 5-minute signed URL.
+  - Screens: `/products` (server-paginated, search part number/name/customer/drawing, filters type/shape/archive), `/products/[id]` with tabs Osnovno / Operacije (reorder, archive, totals, quantity calculator) / Prilozi (upload, main + machine drawings) / Historija (revisions with "set as current", change log); add/edit sheet, new revision, copy as new part, archive/restore. `/settings/operation-types`, `/settings/production` (cycle-time unit, `org.settings.manage`), cycle-time unit in the machine form; catalogs page shows the new kinds.
+  - Decimal values are handled as strings end to end (`src/lib/decimal.ts`, `optionalDecimal`, `numericParam`), never as floats.
+- Tests: `npm run check` (146 unit tests), `npm run test:db` (84 RLS/integration tests), `npm run e2e` (33 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing and totals, warehouse read-only, admin builds operation type → product → operation → PDF upload → revision B → history → archive).
 - **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
-- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`6380873`, machines/employees). DB and e2e tests need Supabase secrets, so they are not in CI yet.
+- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`5e1116c`). DB and e2e tests need Supabase secrets, so they are not in CI yet.
 - **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
 - Claude Code: Prettier hook after every Write/Edit; slash commands `/feature`, `/verify`, `/status`.
 
@@ -55,8 +62,10 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 | `machines.status.update` |       |          |                    |           |    ✓     |
 | `employees.read`         |   ✓   |    ✓     |         ✓          |           |          |
 | `employees.manage`       |   ✓   |    ✓     |         ✓          |           |          |
+| `products.read`          |   ✓   |    ✓     |         ✓          |     ✓     |          |
+| `products.manage`        |   ✓   |    ✓     |         ✓          |           |          |
 
-`machines.manage` also manages machine types and locations; `employees.manage` departments, job titles and skills. Every member reads catalog names and their own employee row.
+`machines.manage` also manages machine types and locations; `employees.manage` departments, job titles and skills; `products.manage` operation types, product types and material shapes. Operators get product access later through their production orders. Every member reads catalog names and their own employee row.
 
 System roles' permissions are fixed (changed only via migration); tenants can manage permissions of custom roles.
 
@@ -64,7 +73,7 @@ System roles' permissions are fixed (changed only via migration); tenants can ma
 
 ## Demo data
 
-Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent). Users: `scripts/lib/demo-users.ts`. The seed also enables module `production` and adds demo catalogs, machines `CNC-01`, `CNC-02`, `PILA-01` and employees 1 (Omer Operater, linked to `operater`, qualified for CNC-01/02) and 2 (Benjamin Bravar, no account) — `scripts/lib/demo-production.ts`.
+Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent). Users: `scripts/lib/demo-users.ts`. The seed also enables module `production` and adds demo catalogs, machines `CNC-01`, `CNC-02`, `PILA-01` and employees 1 (Omer Operater, linked to `operater`, qualified for CNC-01/02) and 2 (Benjamin Bravar, no account) — `scripts/lib/demo-production.ts`. Products: operation types RZ, TO, GL, BS, BU, KT, CI (external) and product `DM-4711-02` (rev. A, 5 operations) — `scripts/lib/demo-products.ts`.
 
 **Passwords are not in the repository** (it is public). All demo users share `DEMO_PASSWORD` from `.env.local`; `npm run seed:demo` applies it. Passwords committed before 2026-10-24 were rotated and no longer work.
 
@@ -94,7 +103,8 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - E2E tests run serially (`workers: 1`, ~2.5 min), because a sign-in revokes the same user's sessions in parallel tests.
 - Machines/employees: no detail page, history view, attachments, serial number or shift data yet; machine status is manual (production reports in Phase 3 will drive running/stopped). Module activation (`org_modules`) is checked in pages for UX only; data access is governed by permissions/RLS.
 - New organizations do not get module `production` automatically (commercial activation via service role, `ensureModuleEnabled()`).
-- Supabase Auth: enable leaked-password protection in the dashboard (advisor warning). Advisor warnings for `write_audit`, `get_login_organization` and `set_machine_status` (SECURITY DEFINER, enforces its own rules) are intentional.
+- Supabase Auth: enable leaked-password protection in the dashboard (advisor warning). Advisor warnings for `write_audit`, `get_login_organization`, `set_machine_status` and `product_history` (SECURITY DEFINER, enforce their own rules) are intentional.
+- Products: operators cannot see products yet (comes with production orders); customer is free text, material grade is text (no link to the material warehouse yet); no BOM/assemblies; product types are a catalog, units a fixed list. Attachments: only PDF/images (no DXF/STEP/NC programs); files are never deleted from Storage (archived rows keep them, revision copies share them). History shows changed field names, not old/new values. Cycle times shown in minutes are rounded to 3 decimals for display (stored exactly in seconds).
 
 ## Next step
 
@@ -102,16 +112,22 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 2. **Org settings** (`org.settings.manage`): organization name, timezone; foundation for configurable shifts later.
 3. **Deploy:** connect the GitHub repo to Vercel (production from `main`, preview per PR), set env vars there, wildcard subdomain `*.zcore.ba`.
 4. **Test isolation:** separate Supabase project for `test:db`/e2e and add them to CI with GitHub secrets.
-5. **Phase 2 continued:** products/parts, then production orders and operations (machine and employee assignments build on this module).
+5. **Phase 2 continued:** production orders (product revision + quantity + due date), generated from the product routing into order operations; operators then see products/drawings of their orders.
 
 ## Log
+
+### 2026-10-24 — Products and parts (revisions, routings, attachments)
+
+- Product answers (asked before implementation): revision = own record, old ones stay as history, going back to an older revision must be possible; part number comes from the customer; product types distinguish finished products (no semi-finished); blank dimensions as separate numbers (round: diameter/width/height, otherwise width/height/thickness), one piece per cut; operations from a catalog with abbreviation (e.g. BU); cycle time per piece in minutes by default, switchable to seconds per organization and per machine; external operations with company, no machine/times; main drawings plus machine drawings (CNC dimensions) linked to them; operators see products only through their orders (later).
+- Migration `20261024140000_products` (also extends `catalog_items.kind`, `catalog_manage_permission`, adds `machines.cycle_time_unit`, an `organizations.settings` check and recreates `machine_directory` with the new column). Types regenerated; advisors reviewed (only the intentional `product_history` definer warning is new).
+- Verified: `npm run check` (146), `npm run test:db` (84), `npm run e2e` (33), `npm run build`, `npm run format:check`; screens checked by screenshot (list, detail tabs, sheets, dark mode). Demo seed re-run (`npm run seed:demo`).
 
 ### 2026-10-24 — One session per user, device-only sign-out
 
 - Product decision: a user may be signed in on one device only; signing in on a new device signs the old one out; sign-out affects only the current device.
 - Migration `20261024120000_single_session` (`is_session_active()`), `src/lib/auth/route-guard.ts` (proxy decision, unit-tested), `signInAction` revokes other sessions (`scope: "others"`), sign-out uses `scope: "local"`, login notice for replaced sessions.
 - Playwright now runs serially. Deleted the merged branch `feat/machines-employees` (local + GitHub).
-- Committed locally (`189ce31`); not pushed yet.
+- Pushed to `main` together with the STATUS update (`5e1116c`); CI green.
 - Verified: `npm run check` (103), `npm run test:db` (65), `npm run e2e` (30), `npm run build`, `npm run format:check`.
 
 ### 2026-10-24 — Machines, employees, catalogs (Phase 2 start)

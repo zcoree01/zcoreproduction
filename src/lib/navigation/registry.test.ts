@@ -79,6 +79,25 @@ describe("buildNavigation", () => {
     expect(catalogs([])).toBe(false);
     expect(catalogs(["employees.manage"])).toBe(true);
     expect(catalogs(["machines.manage"])).toBe(true);
+    expect(catalogs(["products.manage"])).toBe(true);
+  });
+
+  it("shows products to readers and product settings to managers and admins", () => {
+    const visible = (permissions: string[]) =>
+      ids(buildNavigation("app", access(["core", "production"], permissions)));
+    expect(visible(["products.read"])).toEqual([
+      ["overview", ["dashboard"]],
+      ["production", ["products"]],
+    ]);
+    expect(visible(["products.read", "products.manage"])).toEqual([
+      ["overview", ["dashboard"]],
+      ["production", ["products"]],
+      ["administration", ["catalogs", "operation-types"]],
+    ]);
+    expect(visible(["org.settings.manage"])).toEqual([
+      ["overview", ["dashboard"]],
+      ["administration", ["production-settings"]],
+    ]);
   });
 
   it("offers operators their machines on the floor", () => {

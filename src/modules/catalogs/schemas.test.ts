@@ -7,13 +7,15 @@ import {
 } from "./schemas";
 
 describe("catalog permissions", () => {
-  it("machine catalogs belong to machines.manage, employee catalogs to employees.manage", () => {
+  it("machine, employee and product catalogs belong to their manage permission", () => {
     expect(CATALOG_MANAGE_PERMISSION).toEqual({
       machine_type: "machines.manage",
       location: "machines.manage",
       department: "employees.manage",
       job_title: "employees.manage",
       skill: "employees.manage",
+      product_type: "products.manage",
+      material_shape: "products.manage",
     });
   });
 
@@ -24,9 +26,13 @@ describe("catalog permissions", () => {
       "job_title",
       "skill",
     ]);
-    expect(manageableCatalogKinds(new Set(["machines.manage", "employees.manage"]))).toEqual([
-      ...CATALOG_KINDS,
+    expect(manageableCatalogKinds(new Set(["products.manage"]))).toEqual([
+      "product_type",
+      "material_shape",
     ]);
+    expect(
+      manageableCatalogKinds(new Set(["machines.manage", "employees.manage", "products.manage"])),
+    ).toEqual([...CATALOG_KINDS]);
   });
 });
 

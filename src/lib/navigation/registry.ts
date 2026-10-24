@@ -8,8 +8,26 @@ import type { PermissionKey } from "@/lib/auth/permissions";
 export type NavSurface = "app" | "floor";
 export type NavSectionKey = "overview" | "production" | "administration" | "work";
 export type NavLabelKey =
-  "dashboard" | "users" | "floorHome" | "machines" | "employees" | "catalogs" | "floorMachines";
-export type NavIconKey = "dashboard" | "users" | "home" | "machine" | "employee" | "catalog";
+  | "dashboard"
+  | "users"
+  | "floorHome"
+  | "machines"
+  | "employees"
+  | "products"
+  | "catalogs"
+  | "operationTypes"
+  | "productionSettings"
+  | "floorMachines";
+export type NavIconKey =
+  | "dashboard"
+  | "users"
+  | "home"
+  | "machine"
+  | "employee"
+  | "product"
+  | "catalog"
+  | "operation"
+  | "settings";
 
 export type NavItemDef = {
   id: string;
@@ -60,6 +78,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     section: "production",
   },
   {
+    id: "products",
+    href: "/products",
+    label: "products",
+    icon: "product",
+    module: "production",
+    permission: "products.read",
+    surface: "app",
+    section: "production",
+  },
+  {
     id: "users",
     href: "/admin/users",
     label: "users",
@@ -75,7 +103,27 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "catalogs",
     icon: "catalog",
     module: "production",
-    permission: ["machines.manage", "employees.manage"],
+    permission: ["machines.manage", "employees.manage", "products.manage"],
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "operation-types",
+    href: "/settings/operation-types",
+    label: "operationTypes",
+    icon: "operation",
+    module: "production",
+    permission: "products.manage",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "production-settings",
+    href: "/settings/production",
+    label: "productionSettings",
+    icon: "settings",
+    module: "production",
+    permission: "org.settings.manage",
     surface: "app",
     section: "administration",
   },

@@ -49,6 +49,7 @@ const EMPTY: MachineFormValues = {
   locationId: "",
   status: "available",
   notes: "",
+  cycleTimeUnit: "",
 };
 
 function toFormValues(machine: MachineRow): MachineFormValues {
@@ -61,6 +62,7 @@ function toFormValues(machine: MachineRow): MachineFormValues {
     locationId: machine.location?.id ?? "",
     status: machine.status,
     notes: machine.notes ?? "",
+    cycleTimeUnit: machine.cycleTimeUnit ?? "",
   };
 }
 
@@ -263,6 +265,26 @@ function MachineForm({
                   ))}
                 </NativeSelect>
                 {fieldState.invalid ? <FieldError>{t("fieldErrors.status")}</FieldError> : null}
+              </Field>
+            )}
+          />
+          <Controller
+            name="cycleTimeUnit"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid || undefined}>
+                <FieldLabel htmlFor="machine-cycleTimeUnit">{t("cycleTimeUnit")}</FieldLabel>
+                <NativeSelect
+                  {...field}
+                  id="machine-cycleTimeUnit"
+                  className="w-full"
+                  aria-invalid={fieldState.invalid || undefined}
+                >
+                  <NativeSelectOption value="">{t("cycleTimeUnitDefault")}</NativeSelectOption>
+                  <NativeSelectOption value="min">{t("cycleTimeUnitMin")}</NativeSelectOption>
+                  <NativeSelectOption value="s">{t("cycleTimeUnitS")}</NativeSelectOption>
+                </NativeSelect>
+                <FieldDescription>{t("cycleTimeUnitHint")}</FieldDescription>
               </Field>
             )}
           />

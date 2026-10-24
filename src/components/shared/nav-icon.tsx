@@ -4,7 +4,10 @@ import {
   HouseIcon,
   LayoutDashboardIcon,
   ListIcon,
+  PackageIcon,
+  SettingsIcon,
   UsersIcon,
+  WorkflowIcon,
   type LucideIcon,
 } from "lucide-react";
 import type { NavIconKey } from "@/lib/navigation/registry";
@@ -16,7 +19,10 @@ const ICONS: Record<NavIconKey, LucideIcon> = {
   home: HouseIcon,
   machine: CogIcon,
   employee: HardHatIcon,
+  product: PackageIcon,
   catalog: ListIcon,
+  operation: WorkflowIcon,
+  settings: SettingsIcon,
 };
 
 export function NavIcon({ icon, className }: { icon: NavIconKey; className?: string }) {

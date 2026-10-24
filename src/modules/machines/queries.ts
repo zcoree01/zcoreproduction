@@ -15,13 +15,14 @@ export type MachineRow = {
   status: MachineStatus;
   statusChangedAt: string;
   notes: string | null;
+  cycleTimeUnit: "min" | "s" | null;
   archived: boolean;
 };
 
 export type MachinePage = { rows: MachineRow[]; total: number };
 
 const COLUMNS =
-  "id, code, name, type_id, type_name, manufacturer, model, location_id, location_name, status, status_changed_at, notes, archived_at";
+  "id, code, name, type_id, type_name, manufacturer, model, location_id, location_name, status, status_changed_at, notes, archived_at, cycle_time_unit";
 
 type DirectoryRow = {
   id: string | null;
@@ -37,6 +38,7 @@ type DirectoryRow = {
   status_changed_at: string | null;
   notes: string | null;
   archived_at: string | null;
+  cycle_time_unit: string | null;
 };
 
 function toMachineRow(row: DirectoryRow): MachineRow[] {
@@ -57,6 +59,8 @@ function toMachineRow(row: DirectoryRow): MachineRow[] {
       status: status.data,
       statusChangedAt: row.status_changed_at,
       notes: row.notes,
+      cycleTimeUnit:
+        row.cycle_time_unit === "min" || row.cycle_time_unit === "s" ? row.cycle_time_unit : null,
       archived: row.archived_at !== null,
     },
   ];

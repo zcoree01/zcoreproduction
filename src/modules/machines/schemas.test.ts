@@ -13,6 +13,7 @@ const VALID = {
   locationId: "",
   status: "available",
   notes: "  ",
+  cycleTimeUnit: "",
 };
 
 describe("machineSchema", () => {
@@ -26,7 +27,13 @@ describe("machineSchema", () => {
       locationId: null,
       status: "available",
       notes: null,
+      cycleTimeUnit: null,
     });
+  });
+
+  it("keeps a machine-specific cycle time unit", () => {
+    expect(machineSchema.parse({ ...VALID, cycleTimeUnit: "s" }).cycleTimeUnit).toBe("s");
+    expect(machineSchema.safeParse({ ...VALID, cycleTimeUnit: "h" }).success).toBe(false);
   });
 
   it("requires code, name and a known status", () => {
@@ -49,6 +56,7 @@ describe("machineSchema", () => {
       location_id: null,
       status: "available",
       notes: null,
+      cycle_time_unit: null,
     });
   });
 });

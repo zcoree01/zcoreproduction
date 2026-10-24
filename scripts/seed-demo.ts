@@ -1,5 +1,5 @@
 // Seeds the "demo" organization with one user per system role, the production
-// module and demo machines/employees.
+// module and demo machines/employees/products.
 // Idempotent: safe to run repeatedly (existing users get their password reset).
 // Usage: npm run seed:demo
 //
@@ -12,6 +12,7 @@ import {
 } from "@/modules/organizations/provision";
 import { createAdminClient } from "./lib/admin-client";
 import { seedDemoProduction } from "./lib/demo-production";
+import { seedDemoProducts } from "./lib/demo-products";
 import { DEMO_ORG, DEMO_USERS, demoPassword } from "./lib/demo-users";
 
 async function main() {
@@ -27,7 +28,8 @@ async function main() {
 
   await ensureModuleEnabled(admin, org, "production");
   await seedDemoProduction(admin, org);
-  console.log("  production module, machines and employees seeded");
+  await seedDemoProducts(admin, org);
+  console.log("  production module, machines, employees and products seeded");
 }
 
 main().catch((error: unknown) => {

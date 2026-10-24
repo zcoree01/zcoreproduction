@@ -314,6 +314,7 @@ export type Database = {
           archived_at: string | null
           code: string
           created_at: string
+          cycle_time_unit: string | null
           id: string
           location_id: string | null
           location_kind: string | null
@@ -333,6 +334,7 @@ export type Database = {
           archived_at?: string | null
           code: string
           created_at?: string
+          cycle_time_unit?: string | null
           id?: string
           location_id?: string | null
           location_kind?: string | null
@@ -352,6 +354,7 @@ export type Database = {
           archived_at?: string | null
           code?: string
           created_at?: string
+          cycle_time_unit?: string | null
           id?: string
           location_id?: string | null
           location_kind?: string | null
@@ -461,6 +464,47 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_types: {
+        Row: {
+          archived_at: string | null
+          code: string
+          created_at: string
+          id: string
+          is_external: boolean
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          is_external?: boolean
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          is_external?: boolean
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_modules: {
         Row: {
           created_at: string
@@ -565,6 +609,330 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "modules"
             referencedColumns: ["key"]
+          },
+        ]
+      }
+      product_attachments: {
+        Row: {
+          archived_at: string | null
+          content_type: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          kind: string
+          main_drawing_id: string | null
+          operation_id: string | null
+          organization_id: string
+          revision_id: string
+          size_bytes: number
+          storage_path: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          content_type: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          kind: string
+          main_drawing_id?: string | null
+          operation_id?: string | null
+          organization_id: string
+          revision_id: string
+          size_bytes: number
+          storage_path: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          kind?: string
+          main_drawing_id?: string | null
+          operation_id?: string | null
+          organization_id?: string
+          revision_id?: string
+          size_bytes?: number
+          storage_path?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_attachments_organization_id_main_drawing_id_fkey"
+            columns: ["organization_id", "main_drawing_id"]
+            isOneToOne: false
+            referencedRelation: "product_attachments"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "product_attachments_organization_id_operation_id_fkey"
+            columns: ["organization_id", "operation_id"]
+            isOneToOne: false
+            referencedRelation: "product_operations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "product_attachments_organization_id_revision_id_fkey"
+            columns: ["organization_id", "revision_id"]
+            isOneToOne: false
+            referencedRelation: "product_revisions"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      product_operations: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          cycle_time_s: number | null
+          description: string | null
+          external_company: string | null
+          id: string
+          machine_id: string | null
+          machine_type_id: string | null
+          machine_type_kind: string | null
+          notes: string | null
+          operation_type_id: string
+          organization_id: string
+          revision_id: string
+          sequence: number
+          setup_time_min: number | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          cycle_time_s?: number | null
+          description?: string | null
+          external_company?: string | null
+          id?: string
+          machine_id?: string | null
+          machine_type_id?: string | null
+          machine_type_kind?: string | null
+          notes?: string | null
+          operation_type_id: string
+          organization_id: string
+          revision_id: string
+          sequence: number
+          setup_time_min?: number | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          cycle_time_s?: number | null
+          description?: string | null
+          external_company?: string | null
+          id?: string
+          machine_id?: string | null
+          machine_type_id?: string | null
+          machine_type_kind?: string | null
+          notes?: string | null
+          operation_type_id?: string
+          organization_id?: string
+          revision_id?: string
+          sequence?: number
+          setup_time_min?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_operations_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "product_operations_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "product_operations_organization_id_machine_type_kind_machi_fkey"
+            columns: ["organization_id", "machine_type_kind", "machine_type_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["organization_id", "kind", "id"]
+          },
+          {
+            foreignKeyName: "product_operations_organization_id_operation_type_id_fkey"
+            columns: ["organization_id", "operation_type_id"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "product_operations_organization_id_revision_id_fkey"
+            columns: ["organization_id", "revision_id"]
+            isOneToOne: false
+            referencedRelation: "product_revisions"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      product_revisions: {
+        Row: {
+          blank_diameter_mm: number | null
+          blank_geometry: string | null
+          blank_height_mm: number | null
+          blank_thickness_mm: number | null
+          blank_width_mm: number | null
+          created_at: string
+          created_by: string | null
+          cut_length_mm: number | null
+          description: string | null
+          drawing_number: string | null
+          id: string
+          is_current: boolean
+          kerf_mm: number | null
+          material_grade: string | null
+          material_shape_id: string | null
+          material_shape_kind: string | null
+          net_mass_kg: number | null
+          organization_id: string
+          product_id: string
+          revision: string
+          updated_at: string
+        }
+        Insert: {
+          blank_diameter_mm?: number | null
+          blank_geometry?: string | null
+          blank_height_mm?: number | null
+          blank_thickness_mm?: number | null
+          blank_width_mm?: number | null
+          created_at?: string
+          created_by?: string | null
+          cut_length_mm?: number | null
+          description?: string | null
+          drawing_number?: string | null
+          id?: string
+          is_current?: boolean
+          kerf_mm?: number | null
+          material_grade?: string | null
+          material_shape_id?: string | null
+          material_shape_kind?: string | null
+          net_mass_kg?: number | null
+          organization_id: string
+          product_id: string
+          revision: string
+          updated_at?: string
+        }
+        Update: {
+          blank_diameter_mm?: number | null
+          blank_geometry?: string | null
+          blank_height_mm?: number | null
+          blank_thickness_mm?: number | null
+          blank_width_mm?: number | null
+          created_at?: string
+          created_by?: string | null
+          cut_length_mm?: number | null
+          description?: string | null
+          drawing_number?: string | null
+          id?: string
+          is_current?: boolean
+          kerf_mm?: number | null
+          material_grade?: string | null
+          material_shape_id?: string | null
+          material_shape_kind?: string | null
+          net_mass_kg?: number | null
+          organization_id?: string
+          product_id?: string
+          revision?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_revisions_organization_id_material_shape_kind_mate_fkey"
+            columns: [
+              "organization_id",
+              "material_shape_kind",
+              "material_shape_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["organization_id", "kind", "id"]
+          },
+          {
+            foreignKeyName: "product_revisions_organization_id_product_id_fkey"
+            columns: ["organization_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "product_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "product_revisions_organization_id_product_id_fkey"
+            columns: ["organization_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          customer_name: string | null
+          id: string
+          name: string
+          organization_id: string
+          part_number: string
+          product_type_id: string | null
+          product_type_kind: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          part_number: string
+          product_type_id?: string | null
+          product_type_kind?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          part_number?: string
+          product_type_id?: string | null
+          product_type_kind?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_organization_id_product_type_kind_product_type_id_fkey"
+            columns: ["organization_id", "product_type_kind", "product_type_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["organization_id", "kind", "id"]
           },
         ]
       }
@@ -728,6 +1096,7 @@ export type Database = {
           archived_at: string | null
           code: string | null
           created_at: string | null
+          cycle_time_unit: string | null
           id: string | null
           location_id: string | null
           location_name: string | null
@@ -788,8 +1157,59 @@ export type Database = {
           },
         ]
       }
+      product_directory: {
+        Row: {
+          archived_at: string | null
+          created_at: string | null
+          customer_name: string | null
+          drawing_number: string | null
+          id: string | null
+          material_grade: string | null
+          material_shape_id: string | null
+          material_shape_name: string | null
+          name: string | null
+          operation_count: number | null
+          organization_id: string | null
+          part_number: string | null
+          product_type_id: string | null
+          product_type_name: string | null
+          revision: string | null
+          revision_id: string | null
+          unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      copy_product: {
+        Args: {
+          p_name: string
+          p_part_number: string
+          p_revision: string
+          p_source_revision_id: string
+        }
+        Returns: string
+      }
+      create_product: {
+        Args: { p_org_id: string; p_product: Json; p_revision: Json }
+        Returns: string
+      }
+      create_product_revision: {
+        Args: {
+          p_product_id: string
+          p_revision: string
+          p_source_revision_id?: string
+        }
+        Returns: string
+      }
       get_login_organization: {
         Args: { p_slug: string }
         Returns: {
@@ -801,6 +1221,24 @@ export type Database = {
         Returns: boolean
       }
       is_session_active: { Args: never; Returns: boolean }
+      move_product_operation: {
+        Args: { p_direction: number; p_operation_id: string }
+        Returns: undefined
+      }
+      product_history: {
+        Args: { p_limit?: number; p_product_id: string }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_username: string
+          after: Json
+          before: Json
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: number
+        }[]
+      }
       save_employee: {
         Args: {
           p_department_id?: string
@@ -817,9 +1255,17 @@ export type Database = {
         }
         Returns: string
       }
+      set_current_revision: {
+        Args: { p_revision_id: string }
+        Returns: undefined
+      }
       set_machine_status: {
         Args: { p_machine_id: string; p_status: string }
         Returns: undefined
+      }
+      update_product: {
+        Args: { p_product: Json; p_product_id: string; p_revision: Json }
+        Returns: string
       }
       write_audit: {
         Args: {
