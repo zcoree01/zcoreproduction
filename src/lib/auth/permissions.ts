@@ -1,12 +1,17 @@
 import { z } from "zod";
 
-// Must match public.permissions (verified by tests/db/permissions-catalog.test.ts).
+// Must match public.permissions (verified by tests/db/tenant-isolation.test.ts).
 export const PERMISSION_KEYS = [
   "org.settings.manage",
   "users.read",
   "users.manage",
   "roles.manage",
   "audit.read",
+  "machines.read",
+  "machines.manage",
+  "machines.status.update",
+  "employees.read",
+  "employees.manage",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

@@ -1,6 +1,11 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { checkPermission, PermissionDeniedError, type PermissionKey } from "./permissions";
+import {
+  checkPermission,
+  PermissionDeniedError,
+  UnauthenticatedError,
+  type PermissionKey,
+} from "./permissions";
 
 /**
  * Server-side guard for every mutation (server actions, route handlers).
@@ -21,6 +26,25 @@ export async function hasPermission(
     return true;
   } catch (error) {
     if (error instanceof PermissionDeniedError) return false;
+    throw error;
+  }
+}
+
+/**
+ * requirePermission for server actions that report "denied" as a result
+ * instead of throwing. Returns false when signed out or lacking the permission.
+ */
+export async function permitAction(
+  organizationId: string,
+  permission: PermissionKey,
+): Promise<boolean> {
+  try {
+    await requirePermission(organizationId, permission);
+    return true;
+  } catch (error) {
+    if (error instanceof PermissionDeniedError || error instanceof UnauthenticatedError) {
+      return false;
+    }
     throw error;
   }
 }

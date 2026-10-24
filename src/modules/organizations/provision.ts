@@ -36,6 +36,24 @@ export async function ensureOrganization(
   return created.data;
 }
 
+/** Enables a module for the organization (commercial activation, service role only). */
+export async function ensureModuleEnabled(
+  admin: AdminClient,
+  org: ProvisionedOrganization,
+  moduleKey: string,
+): Promise<void> {
+  const { error } = await admin.from("org_modules").upsert(
+    {
+      organization_id: org.id,
+      module_key: moduleKey,
+      enabled: true,
+      enabled_at: new Date().toISOString(),
+    },
+    { onConflict: "organization_id,module_key", ignoreDuplicates: true },
+  );
+  if (error) throw error;
+}
+
 export const provisionUserSchema = z.object({
   username: usernameSchema,
   password: z.string().min(8),

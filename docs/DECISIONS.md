@@ -70,3 +70,13 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Forms:** react-hook-form + the same Zod schema as the server action; server actions take a plain object and re-validate; server field errors (e.g. username taken) are set on the field, others shown above the form; success via toast.
 - **TanStack Table v9** (current stable) instead of v8 used in shadcn docs.
 - **Spacing:** 8px grid (Tailwind spacing in steps of 2: `gap-2/4/6`, `p-4/6`); controls 32px, touch targets on the floor ≥48px.
+
+## D-012 — Machines, employees and catalogs (module `production`) (2026-10-24)
+
+- **Module `production`** groups machines and employees (and later production orders). Activation stays a commercial, service-role-only decision (`org_modules`); pages check it for UX, access is governed by permissions + RLS.
+- **Catalogs are one table `catalog_items` with a `kind`** (machine_type, location, department, job_title, skill) instead of one table per list. Referencing tables carry a generated constant column (`type_kind = 'machine_type'` …) and a composite FK `(organization_id, kind, id)`, so a reference is always same-tenant and of the right kind. New configurable lists (downtime reasons, scrap reasons …) add a `kind` value, not a table. Names are unique per kind among non-archived items; archiving keeps existing references.
+- **Permissions:** `machines.read/manage`, `machines.status.update`, `employees.read/manage`. Catalog kinds map to `machines.manage` or `employees.manage` (`private.catalog_manage_permission`, mirrored in `CATALOG_MANAGE_PERMISSION`).
+- **Machine status changes by operators go through `set_machine_status`** (SECURITY DEFINER): operators have no UPDATE on `machines`; the function allows them only machines they are qualified for (active, non-archived employee linked to their account) and never `inactive`. Status bookkeeping (`status_changed_at/by`) is a trigger, history is the audit log.
+- **Employee writes go through `save_employee`** (SECURITY INVOKER, so RLS still applies): employee row, skills and machine assignments in one transaction; employee numbers assigned as max+1 under a per-organization advisory lock and never reused (archived employees keep theirs).
+- **Archive vs. status:** `status` is operational (machine `inactive`, employee `inactive`), `archived_at` removes a record from lists/selects (mistakes, decommissioned). Both are kept, both reversible.
+- **An account belongs to at most one non-archived employee** (partial unique index); an employee needs no account.

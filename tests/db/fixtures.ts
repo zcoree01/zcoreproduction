@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { toAuthEmail } from "@/lib/auth/username";
 import type { Database } from "@/lib/supabase/types";
 import {
+  ensureModuleEnabled,
   ensureOrganization,
   ensureUser,
   type ProvisionedOrganization,
@@ -47,6 +48,7 @@ async function setupTenant(
   name: string,
 ): Promise<Tenant> {
   const org = await ensureOrganization(service, { slug, name });
+  await ensureModuleEnabled(service, org, "production");
   const adminId = await ensureUser(service, org, {
     username: "admin",
     password: testTenantPassword(),

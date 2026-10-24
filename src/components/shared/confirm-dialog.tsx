@@ -17,9 +17,13 @@ import { Button } from "@/components/ui/button";
 /**
  * Confirmation before an action. `onConfirm` may be async (e.g. a server
  * action); the dialog stays open with a pending button until it settles.
+ * Uncontrolled with a `trigger`, or controlled with `open`/`onOpenChange`
+ * (e.g. opened from a dropdown menu item, which unmounts when it closes).
  */
 export function ConfirmDialog({
   trigger,
+  open: controlledOpen,
+  onOpenChange,
   title,
   description,
   confirmLabel,
@@ -27,7 +31,9 @@ export function ConfirmDialog({
   destructive = false,
   onConfirm,
 }: {
-  trigger: ReactElement;
+  trigger?: ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description?: string;
   confirmLabel: string;
@@ -36,12 +42,17 @@ export function ConfirmDialog({
   onConfirm: () => void | Promise<void>;
 }) {
   const t = useTranslations("common");
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
-      <AlertDialogTrigger render={trigger} />
+      {trigger ? <AlertDialogTrigger render={trigger} /> : null}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

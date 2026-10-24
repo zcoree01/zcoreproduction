@@ -4,7 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { Controller, useForm, type FieldPath } from "react-hook-form";
+import {
+  Controller,
+  useForm,
+  type FieldPath,
+  type FieldError as FormFieldError,
+} from "react-hook-form";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -61,8 +66,8 @@ export function CreateUserSheet({ roles }: { roles: { id: string; label: string 
   });
 
   // Server messages win; otherwise a Bosnian message per field.
-  const errorFor = (name: FieldPath<CreateUserFormValues>, message: string | undefined) =>
-    message ?? t(`fieldErrors.${name}`);
+  const errorFor = (name: FieldPath<CreateUserFormValues>, error: FormFieldError | undefined) =>
+    error?.type === "server" && error.message ? error.message : t(`fieldErrors.${name}`);
 
   return (
     <Sheet
@@ -109,7 +114,7 @@ export function CreateUserSheet({ roles }: { roles: { id: string; label: string 
                     aria-invalid={fieldState.invalid || undefined}
                   />
                   {fieldState.invalid ? (
-                    <FieldError>{errorFor("username", fieldState.error?.message)}</FieldError>
+                    <FieldError>{errorFor("username", fieldState.error)}</FieldError>
                   ) : (
                     <FieldDescription>{t("usernameHint")}</FieldDescription>
                   )}

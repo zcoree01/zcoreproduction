@@ -168,6 +168,8 @@ test("admin adds a user who can then sign in", async ({ page }) => {
   await page.getByRole("button", { name: "Dodaj korisnika" }).click();
   const sheet = page.getByRole("dialog");
   await sheet.getByRole("button", { name: "Kreiraj korisnika" }).click();
+  // Bosnian field messages, never the validator's English defaults.
+  await expect(sheet.getByText("Neispravno korisničko ime.")).toBeVisible();
   await expect(sheet.getByText("Unesite ime i prezime.")).toBeVisible();
   await expect(sheet.getByText("Odaberite ulogu.")).toBeVisible();
 

@@ -6,9 +6,10 @@ import type { PermissionKey } from "@/lib/auth/permissions";
 // page and action enforces access on the server.
 
 export type NavSurface = "app" | "floor";
-export type NavSectionKey = "overview" | "administration" | "work";
-export type NavLabelKey = "dashboard" | "users" | "floorHome";
-export type NavIconKey = "dashboard" | "users" | "home";
+export type NavSectionKey = "overview" | "production" | "administration" | "work";
+export type NavLabelKey =
+  "dashboard" | "users" | "floorHome" | "machines" | "employees" | "catalogs" | "floorMachines";
+export type NavIconKey = "dashboard" | "users" | "home" | "machine" | "employee" | "catalog";
 
 export type NavItemDef = {
   id: string;
@@ -17,13 +18,14 @@ export type NavItemDef = {
   icon: NavIconKey;
   /** modules.key that must be enabled in org_modules. */
   module: string;
-  permission?: PermissionKey;
+  /** Required permission; with a list, any one of them is enough. */
+  permission?: PermissionKey | readonly PermissionKey[];
   surface: NavSurface;
   section: NavSectionKey;
 };
 
 export const NAV_SECTIONS: Record<NavSurface, readonly NavSectionKey[]> = {
-  app: ["overview", "administration"],
+  app: ["overview", "production", "administration"],
   floor: ["work"],
 };
 
@@ -38,12 +40,42 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     section: "overview",
   },
   {
+    id: "machines",
+    href: "/machines",
+    label: "machines",
+    icon: "machine",
+    module: "production",
+    permission: "machines.read",
+    surface: "app",
+    section: "production",
+  },
+  {
+    id: "employees",
+    href: "/employees",
+    label: "employees",
+    icon: "employee",
+    module: "production",
+    permission: "employees.read",
+    surface: "app",
+    section: "production",
+  },
+  {
     id: "users",
     href: "/admin/users",
     label: "users",
     icon: "users",
     module: "core",
     permission: "users.read",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "catalogs",
+    href: "/settings/catalogs",
+    label: "catalogs",
+    icon: "catalog",
+    module: "production",
+    permission: ["machines.manage", "employees.manage"],
     surface: "app",
     section: "administration",
   },
@@ -56,12 +88,31 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     surface: "floor",
     section: "work",
   },
+  {
+    id: "floor-machines",
+    href: "/floor/machines",
+    label: "floorMachines",
+    icon: "machine",
+    module: "production",
+    permission: "machines.status.update",
+    surface: "floor",
+    section: "work",
+  },
 ];
 
 export type NavAccess = {
   modules: ReadonlySet<string>;
   permissions: ReadonlySet<string>;
 };
+
+function hasAnyPermission(
+  granted: ReadonlySet<string>,
+  required: NavItemDef["permission"],
+): boolean {
+  if (!required) return true;
+  const options: readonly PermissionKey[] = typeof required === "string" ? [required] : required;
+  return options.some((permission) => granted.has(permission));
+}
 
 export type NavSection = { section: NavSectionKey; items: NavItemDef[] };
 
@@ -74,7 +125,7 @@ export function buildNavigation(
     (item) =>
       item.surface === surface &&
       access.modules.has(item.module) &&
-      (!item.permission || access.permissions.has(item.permission)),
+      hasAnyPermission(access.permissions, item.permission),
   );
   return NAV_SECTIONS[surface]
     .map((section) => ({ section, items: visible.filter((item) => item.section === section) }))

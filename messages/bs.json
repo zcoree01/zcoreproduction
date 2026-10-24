@@ -4,7 +4,12 @@
     "loading": "Učitavanje…",
     "retry": "Pokušaj ponovo",
     "signOut": "Odjava",
-    "cancel": "Odustani"
+    "cancel": "Odustani",
+    "save": "Sačuvaj",
+    "edit": "Uredi",
+    "archive": "Arhiviraj",
+    "restore": "Vrati iz arhive",
+    "actions": "Akcije"
   },
   "metadata": {
     "title": "Zcore Production",
@@ -45,9 +50,14 @@
     "floorNavigation": "Navigacija",
     "sections": {
       "overview": "Pregled",
+      "production": "Proizvodnja",
       "administration": "Administracija",
       "work": "Rad"
-    }
+    },
+    "machines": "Mašine",
+    "employees": "Radnici",
+    "catalogs": "Šifarnici",
+    "floorMachines": "Mašine"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -123,6 +133,10 @@
     "dark": "Tamna",
     "system": "Sistemska"
   },
+  "moduleDisabled": {
+    "title": "Modul nije uključen",
+    "description": "Ovaj dio aplikacije nije uključen za vašu firmu. Obratite se Zcore podršci."
+  },
   "permissionDenied": {
     "title": "Nemate pristup",
     "description": "Za ovu stranicu nemate potrebnu dozvolu. Obratite se administratoru."
@@ -133,5 +147,264 @@
     "page": "Stranica {page} od {pageCount}",
     "previous": "Prethodna stranica",
     "next": "Sljedeća stranica"
+  },
+  "machineStatus": {
+    "available": "Dostupna",
+    "running": "Radi",
+    "stopped": "Stoji",
+    "maintenance": "Održavanje",
+    "inactive": "Neaktivna"
+  },
+  "machines": {
+    "title": "Mašine",
+    "description": "Registar mašina i opreme.",
+    "deniedDescription": "Za pregled mašina potrebna je dozvola za mašine.",
+    "searchPlaceholder": "Pretraži oznaku, naziv, proizvođača…",
+    "emptyTitle": "Nema mašina",
+    "emptyDescription": "Dodajte prvu mašinu putem forme.",
+    "emptyReadOnlyDescription": "Još nema unesenih mašina.",
+    "archivedEmptyTitle": "Nema arhiviranih mašina",
+    "archivedEmptyDescription": "Arhivirane mašine pojavit će se ovdje.",
+    "noResultsTitle": "Nema rezultata",
+    "noResultsDescription": "Promijenite pretragu ili filtere.",
+    "columns": {
+      "code": "Oznaka",
+      "name": "Naziv",
+      "type": "Tip",
+      "manufacturer": "Proizvođač / model",
+      "location": "Lokacija",
+      "status": "Status",
+      "actions": "Akcije"
+    },
+    "filters": {
+      "allStatuses": "Svi statusi",
+      "allTypes": "Svi tipovi",
+      "allLocations": "Sve lokacije",
+      "view": "Prikaz",
+      "current": "Trenutne mašine",
+      "archived": "Arhivirane mašine"
+    },
+    "rowActions": {
+      "menu": "Akcije za mašinu {code}",
+      "edit": "Uredi",
+      "setStatus": "Promijeni status",
+      "archive": "Arhiviraj",
+      "restore": "Vrati iz arhive"
+    },
+    "archiveTitle": "Arhivirati mašinu {code}?",
+    "archiveDescription": "Mašina se više neće prikazivati u listama i izborima. Historija ostaje sačuvana, a mašinu možete vratiti iz arhive.",
+    "archivedToast": "Mašina {code} je arhivirana.",
+    "restoredToast": "Mašina {code} je vraćena iz arhive.",
+    "statusChangedToast": "Mašina {code}: {status}.",
+    "form": {
+      "createTitle": "Dodaj mašinu",
+      "editTitle": "Uredi mašinu {code}",
+      "description": "Osnovni podaci o mašini. Tipove i lokacije uređujete u Šifarnicima.",
+      "code": "Oznaka",
+      "codeHint": "Jedinstvena unutar firme, npr. CNC-01.",
+      "name": "Naziv",
+      "type": "Tip mašine",
+      "typeNone": "Bez tipa",
+      "location": "Lokacija",
+      "locationNone": "Bez lokacije",
+      "manufacturer": "Proizvođač",
+      "model": "Model",
+      "status": "Status",
+      "notes": "Napomene",
+      "archivedOption": "{name} (arhivirano)",
+      "open": "Dodaj mašinu",
+      "submitCreate": "Dodaj mašinu",
+      "submitEdit": "Sačuvaj promjene",
+      "submitting": "Spremanje…",
+      "createdToast": "Mašina {code} je dodana.",
+      "updatedToast": "Mašina {code} je sačuvana.",
+      "errors": {
+        "invalid": "Provjerite označena polja.",
+        "denied": "Nemate dozvolu za ovu promjenu.",
+        "not_found": "Mašina ne postoji ili je arhivirana.",
+        "code_taken": "Oznaka je već zauzeta.",
+        "invalid_reference": "Odabrani tip ili lokacija više ne postoje.",
+        "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+      },
+      "fieldErrors": {
+        "code": "Unesite oznaku (do 50 znakova).",
+        "name": "Unesite naziv (do 200 znakova).",
+        "typeId": "Odaberite tip iz liste.",
+        "locationId": "Odaberite lokaciju iz liste.",
+        "manufacturer": "Najviše 100 znakova.",
+        "model": "Najviše 100 znakova.",
+        "status": "Odaberite status.",
+        "notes": "Najviše 2000 znakova."
+      }
+    }
+  },
+  "employeeStatus": {
+    "active": "Aktivan",
+    "inactive": "Neaktivan"
+  },
+  "skillLevels": {
+    "1": "Osnovno",
+    "2": "Samostalno",
+    "3": "Napredno"
+  },
+  "employees": {
+    "title": "Radnici",
+    "description": "Radnici, njihove vještine i mašine na kojima smiju raditi.",
+    "deniedDescription": "Za pregled radnika potrebna je dozvola za radnike.",
+    "searchPlaceholder": "Pretraži ime, broj, korisničko ime…",
+    "emptyTitle": "Nema radnika",
+    "emptyDescription": "Dodajte prvog radnika putem forme.",
+    "emptyReadOnlyDescription": "Još nema unesenih radnika.",
+    "archivedEmptyTitle": "Nema arhiviranih radnika",
+    "archivedEmptyDescription": "Arhivirani radnici pojavit će se ovdje.",
+    "noResultsTitle": "Nema rezultata",
+    "noResultsDescription": "Promijenite pretragu ili filtere.",
+    "columns": {
+      "number": "Broj",
+      "name": "Ime i prezime",
+      "department": "Odjel / radno mjesto",
+      "skills": "Vještine",
+      "machines": "Mašine",
+      "account": "Korisnički račun",
+      "status": "Status",
+      "actions": "Akcije"
+    },
+    "noAccount": "Bez računa",
+    "moreItems": "+{count}",
+    "filters": {
+      "allDepartments": "Svi odjeli",
+      "allSkills": "Sve vještine",
+      "allStatuses": "Svi statusi",
+      "view": "Prikaz",
+      "current": "Trenutni radnici",
+      "archived": "Arhivirani radnici"
+    },
+    "rowActions": {
+      "menu": "Akcije za radnika {name}",
+      "edit": "Uredi",
+      "archive": "Arhiviraj",
+      "restore": "Vrati iz arhive"
+    },
+    "archiveTitle": "Arhivirati radnika {name}?",
+    "archiveDescription": "Radnik se više neće prikazivati u listama. Historija ostaje sačuvana, a radnika možete vratiti iz arhive. Korisnički račun se ne mijenja.",
+    "archivedToast": "Radnik {name} je arhiviran.",
+    "restoredToast": "Radnik {name} je vraćen iz arhive.",
+    "form": {
+      "createTitle": "Dodaj radnika",
+      "editTitle": "Uredi radnika {name}",
+      "description": "Odjele, radna mjesta i vještine uređujete u Šifarnicima.",
+      "employeeNumber": "Broj radnika",
+      "employeeNumberHint": "Ostavite prazno za sljedeći slobodni broj.",
+      "employeeNumberEditHint": "Jedinstven unutar firme.",
+      "firstName": "Ime",
+      "lastName": "Prezime",
+      "department": "Odjel",
+      "departmentNone": "Bez odjela",
+      "jobTitle": "Radno mjesto",
+      "jobTitleNone": "Bez radnog mjesta",
+      "user": "Korisnički račun",
+      "userNone": "Bez korisničkog računa",
+      "userHint": "Ovim računom se radnik prijavljuje na mobitelu.",
+      "status": "Status",
+      "skills": "Vještine",
+      "skillsEmpty": "U Šifarnicima još nema vještina.",
+      "skillLevelNone": "Nema",
+      "skillLevelLabel": "Nivo za vještinu {skill}",
+      "machines": "Mašine na kojima smije raditi",
+      "machinesEmpty": "Još nema unesenih mašina.",
+      "archivedOption": "{name} (arhivirano)",
+      "open": "Dodaj radnika",
+      "submitCreate": "Dodaj radnika",
+      "submitEdit": "Sačuvaj promjene",
+      "submitting": "Spremanje…",
+      "createdToast": "Radnik {name} je dodan.",
+      "updatedToast": "Radnik {name} je sačuvan.",
+      "errors": {
+        "invalid": "Provjerite označena polja.",
+        "denied": "Nemate dozvolu za ovu promjenu.",
+        "not_found": "Radnik ne postoji ili je arhiviran.",
+        "number_taken": "Taj broj radnika je već zauzet.",
+        "user_taken": "Ovaj korisnički račun je već povezan s drugim radnikom.",
+        "invalid_reference": "Neka od odabranih stavki više ne postoji. Osvježite stranicu.",
+        "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+      },
+      "fieldErrors": {
+        "employeeNumber": "Unesite broj od 1 do 999999 ili ostavite prazno.",
+        "firstName": "Unesite ime.",
+        "lastName": "Unesite prezime.",
+        "departmentId": "Odaberite odjel iz liste.",
+        "jobTitleId": "Odaberite radno mjesto iz liste.",
+        "userId": "Odaberite korisnički račun iz liste.",
+        "status": "Odaberite status.",
+        "skills": "Provjerite vještine.",
+        "machineIds": "Provjerite mašine."
+      }
+    }
+  },
+  "catalogs": {
+    "title": "Šifarnici",
+    "description": "Liste koje se nude u formama i filterima za mašine i radnike.",
+    "deniedDescription": "Za uređivanje šifarnika potrebna je dozvola za mašine ili radnike.",
+    "kinds": {
+      "machine_type": "Tipovi mašina",
+      "location": "Lokacije",
+      "department": "Odjeli",
+      "job_title": "Radna mjesta",
+      "skill": "Vještine"
+    },
+    "kindsLabel": "Vrsta šifarnika",
+    "newLabel": "Novi naziv",
+    "add": "Dodaj",
+    "emptyTitle": "Lista je prazna",
+    "emptyDescription": "Dodajte prvu stavku iznad.",
+    "columns": {
+      "name": "Naziv",
+      "status": "Status",
+      "actions": "Akcije"
+    },
+    "status": {
+      "active": "Aktivno",
+      "archived": "Arhivirano"
+    },
+    "rename": "Preimenuj",
+    "renameLabel": "Novi naziv za {name}",
+    "archive": "Arhiviraj",
+    "restore": "Vrati",
+    "archiveTitle": "Arhivirati stavku {name}?",
+    "archiveDescription": "Stavka se više neće nuditi u formama. Mašine i radnici koji je već koriste zadržavaju je.",
+    "addedToast": "Dodano: {name}.",
+    "renamedToast": "Sačuvano: {name}.",
+    "archivedToast": "Arhivirano: {name}.",
+    "restoredToast": "Vraćeno: {name}.",
+    "errors": {
+      "invalid": "Unesite naziv (do 100 znakova).",
+      "denied": "Nemate dozvolu za ovaj šifarnik.",
+      "not_found": "Stavka ne postoji.",
+      "name_taken": "Aktivna stavka s tim nazivom već postoji.",
+      "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo."
+    }
+  },
+  "floorMachines": {
+    "title": "Moje mašine",
+    "description": "Postavite status mašine na kojoj radite.",
+    "deniedDescription": "Vaša uloga ne može mijenjati status mašina.",
+    "noEmployeeTitle": "Račun nije povezan s radnikom",
+    "noEmployeeDescription": "Zamolite šefa proizvodnje da vaš korisnički račun poveže s vašim radničkim profilom.",
+    "inactiveTitle": "Vaš radnički profil nije aktivan",
+    "inactiveDescription": "Status mašina može mijenjati samo aktivan radnik. Obratite se šefu proizvodnje.",
+    "emptyTitle": "Nema dodijeljenih mašina",
+    "emptyDescription": "Šef proizvodnje određuje na kojim mašinama smijete raditi.",
+    "since": "od {time}",
+    "inactiveMachine": "Mašina je van upotrebe. Status mijenja samo šef proizvodnje.",
+    "statusGroup": "Status mašine {code}",
+    "changedToast": "{code}: {status}",
+    "errors": {
+      "invalid": "Nepoznat status.",
+      "denied": "Ne možete promijeniti status ove mašine.",
+      "not_found": "Mašina više nije dostupna.",
+      "code_taken": "Status nije promijenjen zbog greške. Pokušajte ponovo.",
+      "invalid_reference": "Status nije promijenjen zbog greške. Pokušajte ponovo.",
+      "unexpected": "Status nije promijenjen zbog greške. Pokušajte ponovo."
+    }
   }
 }
