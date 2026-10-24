@@ -1,14 +1,17 @@
+import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { FLOOR_HOME, homePathFor } from "@/lib/auth/home";
-import { DEMO_ORG, DEMO_USERS } from "../scripts/lib/demo-users";
-import { TEST_TENANT_PASSWORD, TEST_TENANTS } from "../tests/shared/test-tenants";
+import { DEMO_ORG, DEMO_USERS, demoPassword } from "../scripts/lib/demo-users";
+import { TEST_TENANTS, testTenantPassword } from "../tests/shared/test-tenants";
 import { expectPath, login, signOutFromApp } from "./helpers";
 
 // Requires the seeded demo organization (npm run seed:demo) and the test
 // tenants (created by npm run test:db).
 
-const demoUser = (role: (typeof DEMO_USERS)[number]["role"]) =>
-  DEMO_USERS.find((user) => user.role === role)!;
+const demoUser = (role: (typeof DEMO_USERS)[number]["role"]) => ({
+  ...DEMO_USERS.find((user) => user.role === role)!,
+  password: demoPassword(),
+});
 
 // The app shell shows the organization in the breadcrumb (its header lives
 // inside <main>); the floor shell in the page banner.
@@ -24,7 +27,7 @@ test.describe("login of every seeded role", () => {
     const tag = user.role === "operator" ? " @mobile" : "";
 
     test(`${user.role} (${user.username}) lands on ${home}${tag}`, async ({ page }) => {
-      await login(page, user, DEMO_ORG.slug);
+      await login(page, { ...user, password: demoPassword() }, DEMO_ORG.slug);
       await expectPath(page, home);
       await expect(page.getByRole("heading", { level: 1 })).toContainText(user.fullName);
       await expect(organizationLabel(page, home)).toBeVisible();
@@ -154,9 +157,10 @@ test("theme can be switched to dark", async ({ page }) => {
 test("admin adds a user who can then sign in", async ({ page }) => {
   // Runs in a test tenant so demo data stays clean. Each run adds one user there.
   const username = `e2e.${Date.now().toString(36)}`;
-  const password = "Pocetna-Lozinka-1";
+  // Random per run: e2e users stay in the test tenant, so their password must not be in the repo.
+  const password = `Pocetna-${randomUUID()}`;
 
-  await login(page, { username: "admin", password: TEST_TENANT_PASSWORD }, TEST_TENANTS.a.slug);
+  await login(page, { username: "admin", password: testTenantPassword() }, TEST_TENANTS.a.slug);
   await expectPath(page, "/dashboard");
   await page.goto("/admin/users");
 

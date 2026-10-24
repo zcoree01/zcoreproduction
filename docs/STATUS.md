@@ -45,21 +45,23 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 System roles' permissions are fixed (changed only via migration); tenants can manage permissions of custom roles.
 
-## Demo data (DEMO ONLY — these credentials are public)
+## Demo data
 
-Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent; resets these passwords). Source of truth: `scripts/lib/demo-users.ts`.
+Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent). Users: `scripts/lib/demo-users.ts`.
+
+**Passwords are not in the repository** (it is public). All demo users share `DEMO_PASSWORD` from `.env.local`; `npm run seed:demo` applies it. Passwords committed before 2026-10-24 were rotated and no longer work.
 
 Local login: `http://localhost:3000/login?org=demo` or `http://demo.localhost:3000/login`.
 
-| Role               | Username          | Password        | Lands on     |
-| ------------------ | ----------------- | --------------- | ------------ |
-| admin              | `admin`           | `Demo-FDqqz3pO` | `/dashboard` |
-| director           | `direktor`        | `Demo-Pic6xDHu` | `/dashboard` |
-| head_of_production | `sef.proizvodnje` | `Demo-7AQcd2ap` | `/dashboard` |
-| warehouse          | `skladiste`       | `Demo-Y3bwUg7I` | `/dashboard` |
-| operator           | `operater`        | `Demo-BdVkdG3n` | `/floor`     |
+| Role               | Username          | Lands on     |
+| ------------------ | ----------------- | ------------ |
+| admin              | `admin`           | `/dashboard` |
+| director           | `direktor`        | `/dashboard` |
+| head_of_production | `sef.proizvodnje` | `/dashboard` |
+| warehouse          | `skladiste`       | `/dashboard` |
+| operator           | `operater`        | `/floor`     |
 
-Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-tenant-b` (users `admin`, `operater`). Created by `npm run test:db`; e2e needs them. Every e2e run adds one `e2e.*` operator user to `test-tenant-a`.
+Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-tenant-b` (users `admin`, `operater`, password `TEST_TENANT_PASSWORD` from `.env.local`). Created by `npm run test:db`; e2e needs them. Every e2e run adds one `e2e.*` operator user with a random password to `test-tenant-a`.
 
 ## Not done yet / known gaps
 

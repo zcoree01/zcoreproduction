@@ -7,7 +7,7 @@ import {
   type ProvisionedOrganization,
 } from "@/modules/organizations/provision";
 import { createAdminClient, readAdminEnv } from "../../scripts/lib/admin-client";
-import { TEST_TENANT_PASSWORD as TEST_PASSWORD, TEST_TENANTS } from "../shared/test-tenants";
+import { TEST_TENANTS, testTenantPassword } from "../shared/test-tenants";
 
 export type Tenant = {
   org: ProvisionedOrganization;
@@ -35,7 +35,7 @@ async function signIn(username: string, slug: string) {
   const client = anonClient();
   const { error } = await client.auth.signInWithPassword({
     email: toAuthEmail(username, slug),
-    password: TEST_PASSWORD,
+    password: testTenantPassword(),
   });
   if (error) throw error;
   return client;
@@ -49,13 +49,13 @@ async function setupTenant(
   const org = await ensureOrganization(service, { slug, name });
   const adminId = await ensureUser(service, org, {
     username: "admin",
-    password: TEST_PASSWORD,
+    password: testTenantPassword(),
     fullName: `${name} Admin`,
     role: "admin",
   });
   const operatorId = await ensureUser(service, org, {
     username: "operater",
-    password: TEST_PASSWORD,
+    password: testTenantPassword(),
     fullName: `${name} Operater`,
     role: "operator",
   });

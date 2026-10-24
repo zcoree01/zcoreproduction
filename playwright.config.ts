@@ -1,4 +1,8 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+
+// Test credentials (DEMO_PASSWORD, TEST_TENANT_PASSWORD) live in .env.local.
+if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
 const PORT = 3000;
 const baseURL = `http://localhost:${PORT}`;
