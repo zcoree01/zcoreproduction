@@ -14,7 +14,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Table,
   TableBody,
@@ -116,11 +116,11 @@ export function DataTable<TData extends RowData>({
               value={filter.value}
               onChange={(event) => update({ [filter.id]: event.target.value })}
             >
-              <option value="">{filter.allLabel}</option>
+              <NativeSelectOption value="">{filter.allLabel}</NativeSelectOption>
               {filter.options.map((option) => (
-                <option key={option.value} value={option.value}>
+                <NativeSelectOption key={option.value} value={option.value}>
                   {option.label}
-                </option>
+                </NativeSelectOption>
               ))}
             </NativeSelect>
           ))}
@@ -179,9 +179,9 @@ export function DataTable<TData extends RowData>({
               onChange={(event) => table.setPageSize(Number(event.target.value))}
             >
               {PAGE_SIZES.map((size) => (
-                <option key={size} value={size}>
+                <NativeSelectOption key={size} value={size}>
                   {size}
-                </option>
+                </NativeSelectOption>
               ))}
             </NativeSelect>
           </label>

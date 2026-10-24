@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Sheet,
   SheetContent,
@@ -146,13 +146,13 @@ export function CreateUserSheet({ roles }: { roles: { id: string; label: string 
                     className="w-full"
                     aria-invalid={fieldState.invalid || undefined}
                   >
-                    <option value="" disabled>
+                    <NativeSelectOption value="" disabled>
                       {t("rolePlaceholder")}
-                    </option>
+                    </NativeSelectOption>
                     {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
+                      <NativeSelectOption key={role.id} value={role.id}>
                         {role.label}
-                      </option>
+                      </NativeSelectOption>
                     ))}
                   </NativeSelect>
                   {fieldState.invalid ? <FieldError>{t("fieldErrors.roleId")}</FieldError> : null}
