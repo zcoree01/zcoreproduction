@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requestHost, resolveTenant } from "./resolve";
+import { requestHost, resolveTenant, tenantUrl } from "./resolve";
 
 describe("requestHost", () => {
   const headers = (values: Record<string, string>) => new Headers(values);
@@ -91,5 +91,27 @@ describe("resolveTenant", () => {
 
   it("returns nothing without a host", () => {
     expect(resolve(null, "demo").slug).toBeNull();
+  });
+});
+
+describe("tenantUrl", () => {
+  const path = "/floor/operations/abc";
+
+  it("keeps the tenant subdomain", () => {
+    expect(tenantUrl({ host: "demo.zcore.ba", protocol: null, slug: "demo", path })).toBe(
+      "https://demo.zcore.ba/floor/operations/abc",
+    );
+    expect(tenantUrl({ host: "demo.localhost:3000", protocol: null, slug: "demo", path })).toBe(
+      "http://demo.localhost:3000/floor/operations/abc",
+    );
+  });
+
+  it("adds ?org on hosts without a tenant subdomain", () => {
+    expect(tenantUrl({ host: "localhost:3000", protocol: "http", slug: "demo", path })).toBe(
+      "http://localhost:3000/floor/operations/abc?org=demo",
+    );
+    expect(
+      tenantUrl({ host: "zcore-git-x.vercel.app", protocol: "https", slug: "demo", path }),
+    ).toBe("https://zcore-git-x.vercel.app/floor/operations/abc?org=demo");
   });
 });

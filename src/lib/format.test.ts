@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initials } from "./format";
+import { formatDay, formatLocalDateTime, initials } from "./format";
 
 describe("initials", () => {
   it("uses first and last name", () => {
@@ -14,5 +14,13 @@ describe("initials", () => {
 
   it("handles empty input", () => {
     expect(initials("   ")).toBe("");
+  });
+});
+
+describe("formatDay / formatLocalDateTime", () => {
+  it("formats without locale data", () => {
+    expect(formatDay("2026-10-29")).toBe("29.10.2026.");
+    expect(formatDay("2027-01-05")).toBe("5.1.2027.");
+    expect(formatLocalDateTime("2026-10-29T08:05")).toBe("29.10. 08:05");
   });
 });

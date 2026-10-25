@@ -5,7 +5,10 @@ import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
+import { zonedDate } from "@/lib/timezone";
+import { getOrderSettings } from "@/modules/production-orders/queries";
 import { getProductionSettings } from "@/modules/products/queries";
+import { OrderSettingsForm } from "./order-settings-form";
 import { ProductionSettingsForm } from "./production-settings-form";
 
 export default function ProductionSettingsPage() {
@@ -28,13 +31,20 @@ async function ProductionSettingsContent() {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 
-  const settings = await getProductionSettings(member.organization.id);
+  const [settings, orderSettings] = await Promise.all([
+    getProductionSettings(member.organization.id),
+    getOrderSettings(member.organization.id),
+  ]);
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
       <ProductionSettingsForm
         cycleTimeUnit={settings.cycleTimeUnit}
         inspectionMode={settings.inspectionMode}
+      />
+      <OrderSettingsForm
+        settings={orderSettings}
+        today={zonedDate(new Date(), member.organization.timezone)}
       />
     </>
   );

@@ -89,3 +89,27 @@ export function resolveTenant(input: {
 
   return NONE;
 }
+
+/**
+ * Absolute link to `path` in the tenant's app, e.g. for QR codes on printed
+ * orders. Subdomain hosts carry the tenant; localhost and preview hosts get
+ * ?org=<slug> so a phone opening the link lands in the right organization.
+ */
+export function tenantUrl(input: {
+  host: string;
+  protocol: string | null;
+  slug: string;
+  path: string;
+}): string {
+  const hostname = hostnameOf(input.host);
+  const local = hostname === "localhost" || hostname.endsWith(".localhost");
+  const protocol = input.protocol === "http" || input.protocol === "https" ? input.protocol : null;
+  const origin = `${protocol ?? (local ? "http" : "https")}://${input.host.trim().toLowerCase()}`;
+  const url = new URL(input.path, origin);
+  const fromSubdomain =
+    subdomainSlug(hostname, ROOT_DOMAIN) ?? subdomainSlug(hostname, "localhost");
+  if (fromSubdomain !== input.slug && allowsOrgOverride(hostname)) {
+    url.searchParams.set("org", input.slug);
+  }
+  return url.toString();
+}

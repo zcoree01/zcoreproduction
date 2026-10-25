@@ -10,13 +10,19 @@ import type { ProvisionedOrganization } from "@/modules/organizations/provision"
 type Admin = SupabaseClient<Database>;
 
 const OPERATION_TYPES = [
-  { code: "RZ", name: "Rezanje", isExternal: false, isInspection: false },
-  { code: "TO", name: "Tokarenje", isExternal: false, isInspection: false },
-  { code: "GL", name: "Glodanje", isExternal: false, isInspection: false },
-  { code: "BS", name: "Bušenje", isExternal: false, isInspection: false },
-  { code: "BU", name: "Brušenje unutrašnje", isExternal: false, isInspection: false },
-  { code: "KT", name: "Kontrola", isExternal: false, isInspection: true },
-  { code: "CI", name: "Cinčanje", isExternal: true, isInspection: false },
+  { code: "RZ", name: "Rezanje", isExternal: false, isInspection: false, isCutting: true },
+  { code: "TO", name: "Tokarenje", isExternal: false, isInspection: false, isCutting: false },
+  { code: "GL", name: "Glodanje", isExternal: false, isInspection: false, isCutting: false },
+  { code: "BS", name: "Bušenje", isExternal: false, isInspection: false, isCutting: false },
+  {
+    code: "BU",
+    name: "Brušenje unutrašnje",
+    isExternal: false,
+    isInspection: false,
+    isCutting: false,
+  },
+  { code: "KT", name: "Kontrola", isExternal: false, isInspection: true, isCutting: false },
+  { code: "CI", name: "Cinčanje", isExternal: true, isInspection: false, isCutting: false },
 ] as const;
 
 const CUSTOMER = { name: "Demo Kupac d.o.o.", city: "Zenica", country: "Bosna i Hercegovina" };
@@ -47,16 +53,20 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
   for (const type of OPERATION_TYPES) {
     const existing = await admin
       .from("operation_types")
-      .select("id, is_inspection")
+      .select("id, is_inspection, is_cutting")
       .eq("organization_id", org.id)
       .eq("code", type.code)
       .is("archived_at", null)
       .maybeSingle()
       .throwOnError();
-    if (existing.data && existing.data.is_inspection !== type.isInspection) {
+    if (
+      existing.data &&
+      (existing.data.is_inspection !== type.isInspection ||
+        existing.data.is_cutting !== type.isCutting)
+    ) {
       await admin
         .from("operation_types")
-        .update({ is_inspection: type.isInspection })
+        .update({ is_inspection: type.isInspection, is_cutting: type.isCutting })
         .eq("id", existing.data.id)
         .throwOnError();
     }
@@ -71,6 +81,7 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
             name: type.name,
             is_external: type.isExternal,
             is_inspection: type.isInspection,
+            is_cutting: type.isCutting,
           })
           .select("id")
           .single()

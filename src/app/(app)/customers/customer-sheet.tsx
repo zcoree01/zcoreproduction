@@ -7,9 +7,10 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -32,6 +33,7 @@ import {
 type FormError = Extract<CustomerActionResult, { ok: false }>["error"];
 
 const EMPTY: CustomerFormValues = {
+  customerNumber: "",
   name: "",
   taxId: "",
   address: "",
@@ -45,6 +47,7 @@ const EMPTY: CustomerFormValues = {
 
 function toFormValues(customer: CustomerRow): CustomerFormValues {
   return {
+    customerNumber: String(customer.number),
     name: customer.name,
     taxId: customer.taxId ?? "",
     address: customer.address ?? "",
@@ -99,16 +102,17 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
   const t = useTranslations("customers.form");
   const router = useRouter();
   const [formError, setFormError] = useState<FormError | null>(null);
+  const [confirmReuse, setConfirmReuse] = useState(false);
   const [pending, startTransition] = useTransition();
   const form = useForm<CustomerFormValues, unknown, CustomerInput>({
     resolver: zodResolver(customerSchema),
     defaultValues: customer ? toFormValues(customer) : EMPTY,
   });
 
-  const onSubmit = form.handleSubmit((values) => {
+  const save = (values: CustomerInput, reuse: boolean) => {
     setFormError(null);
     startTransition(async () => {
-      const result = await saveCustomerAction(customer?.id ?? null, form.getValues());
+      const result = await saveCustomerAction(customer?.id ?? null, form.getValues(), reuse);
       if (result.ok) {
         toast.success(
           customer
@@ -122,16 +126,21 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
       }
       if (result.error === "name_taken") {
         form.setError("name", { type: "server", message: t("errors.name_taken") });
+      } else if (result.error === "number_taken") {
+        form.setError("customerNumber", { type: "server", message: t("errors.number_taken") });
+      } else if (result.error === "number_of_archived") {
+        setConfirmReuse(true);
       } else if (result.error === "invalid" && result.fields.length > 0) {
         for (const field of result.fields) form.setError(field, { type: "server" });
       } else {
         setFormError(result.error);
       }
     });
-  });
+  };
+  const onSubmit = form.handleSubmit((values) => save(values, false));
 
   const field = (
-    name: Exclude<keyof CustomerFormValues, "notes">,
+    name: Exclude<keyof CustomerFormValues, "notes" | "customerNumber">,
     options: { type?: string; inputMode?: "email" | "tel" } = {},
   ) => (
     <Controller
@@ -181,6 +190,33 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
               <AlertDescription>{t(`errors.${formError}`)}</AlertDescription>
             </Alert>
           ) : null}
+          <Controller
+            name="customerNumber"
+            control={form.control}
+            render={({ field: input, fieldState }) => (
+              <Field data-invalid={fieldState.invalid || undefined}>
+                <FieldLabel htmlFor="customer-customerNumber">{t("customerNumber")}</FieldLabel>
+                <Input
+                  {...input}
+                  id="customer-customerNumber"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder={t("customerNumberPlaceholder")}
+                  className="max-w-40 tabular-nums"
+                  aria-invalid={fieldState.invalid || undefined}
+                />
+                {fieldState.invalid ? (
+                  <FieldError>
+                    {fieldState.error?.type === "server" && fieldState.error.message
+                      ? fieldState.error.message
+                      : t("fieldErrors.customerNumber")}
+                  </FieldError>
+                ) : (
+                  <FieldDescription>{t("customerNumberHint")}</FieldDescription>
+                )}
+              </Field>
+            )}
+          />
           {field("name")}
           {field("taxId")}
           {field("address")}
@@ -216,6 +252,17 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
           {pending ? t("submitting") : customer ? t("submitEdit") : t("submitCreate")}
         </Button>
       </SheetFooter>
+      <ConfirmDialog
+        open={confirmReuse}
+        onOpenChange={setConfirmReuse}
+        title={t("reuseTitle", { number: form.getValues("customerNumber") })}
+        description={t("reuseDescription")}
+        confirmLabel={t("reuseConfirm")}
+        onConfirm={() => {
+          const parsed = customerSchema.safeParse(form.getValues());
+          if (parsed.success) save(parsed.data, true);
+        }}
+      />
     </>
   );
 }

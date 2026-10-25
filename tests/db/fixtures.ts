@@ -32,7 +32,7 @@ function anonClient() {
   });
 }
 
-async function signIn(username: string, slug: string) {
+export async function signIn(username: string, slug: string) {
   const client = anonClient();
   const { error } = await client.auth.signInWithPassword({
     email: toAuthEmail(username, slug),

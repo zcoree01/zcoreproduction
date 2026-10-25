@@ -11,12 +11,13 @@ describe("homePathFor", () => {
       head_of_production: "/dashboard",
       warehouse: "/dashboard",
       operator: "/floor",
+      quality_inspector: "/dashboard",
     });
   });
 
   it("treats custom roles as management users", () => {
-    expect(homePathFor("quality_inspector")).toBe("/dashboard");
-    expect(canUseManagementApp("quality_inspector")).toBe(true);
+    expect(homePathFor("maintenance")).toBe("/dashboard");
+    expect(canUseManagementApp("maintenance")).toBe(true);
   });
 
   it("keeps operators out of the management app", () => {

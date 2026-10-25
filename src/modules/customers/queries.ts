@@ -5,6 +5,7 @@ import type { CustomerListParams } from "./list-params";
 
 export type CustomerRow = {
   id: string;
+  number: number;
   name: string;
   taxId: string | null;
   address: string | null;
@@ -21,10 +22,11 @@ export type CustomerRow = {
 export type CustomerPage = { rows: CustomerRow[]; total: number };
 
 const COLUMNS =
-  "id, name, tax_id, address, city, country, contact_person, phone, email, notes, archived_at, products(count)";
+  "id, customer_number, name, tax_id, address, city, country, contact_person, phone, email, notes, archived_at, products(count)";
 
 type Row = {
   id: string;
+  customer_number: number;
   name: string;
   tax_id: string | null;
   address: string | null;
@@ -41,6 +43,7 @@ type Row = {
 function toCustomerRow(row: Row): CustomerRow {
   return {
     id: row.id,
+    number: row.customer_number,
     name: row.name,
     taxId: row.tax_id,
     address: row.address,
@@ -103,17 +106,17 @@ export async function getCustomer(organizationId: string, id: string): Promise<C
   return data ? toCustomerRow(data) : null;
 }
 
-export type CustomerOption = { id: string; name: string };
+export type CustomerOption = { id: string; name: string; number: number };
 
 /** Active customers for selects. */
 export async function listCustomerOptions(organizationId: string): Promise<CustomerOption[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, name")
+    .select("id, name, customer_number")
     .eq("organization_id", organizationId)
     .is("archived_at", null)
     .order("name");
   if (error) throw error;
-  return data;
+  return data.map((row) => ({ id: row.id, name: row.name, number: row.customer_number }));
 }

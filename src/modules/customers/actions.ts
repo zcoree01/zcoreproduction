@@ -11,18 +11,21 @@ import {
   customerSchema,
   toCustomerRow,
   type CustomerActionResult,
+  type CustomerError,
   type CustomerField,
 } from "./schemas";
 
-const fail = actionFail<CustomerField, "name_taken">;
+const fail = actionFail<CustomerField, CustomerError>;
 
 function revalidateCustomerScreens() {
   revalidatePath("/customers", "layout");
   revalidatePath("/products", "layout");
+  revalidatePath("/orders", "layout");
 }
 
 function mapWriteError(error: { code?: string; message?: string }): CustomerActionResult {
   if (violates(error, "customers_name_key")) return fail("name_taken", ["name"]);
+  if (violates(error, "customers_number_key")) return fail("number_taken", ["customerNumber"]);
   switch (dbErrorKind(error)) {
     case "denied":
       return fail("denied");
@@ -35,10 +38,15 @@ function mapWriteError(error: { code?: string; message?: string }): CustomerActi
   }
 }
 
-/** Creates (id null) or updates a customer. `input` comes from the client: re-validated. */
+/**
+ * Creates (id null) or updates a customer. `input` comes from the client:
+ * re-validated. Taking over the number of an archived customer needs
+ * `confirmReuse` (its orders stay with the archived customer).
+ */
 export async function saveCustomerAction(
   id: unknown,
   input: unknown,
+  confirmReuse: unknown = false,
 ): Promise<CustomerActionResult> {
   const member = await requireMember();
   const organizationId = member.organization.id;
@@ -50,6 +58,20 @@ export async function saveCustomerAction(
   if (!parsed.success) return fail("invalid", invalidFields(parsed.error, CUSTOMER_FIELDS));
 
   const supabase = await createClient();
+  const number = parsed.data.customerNumber;
+  if (number !== null && confirmReuse !== true) {
+    const holders = await supabase
+      .from("customers")
+      .select("id, archived_at")
+      .eq("organization_id", organizationId)
+      .eq("customer_number", number);
+    if (holders.error) return mapWriteError(holders.error);
+    const others = holders.data.filter((holder) => holder.id !== parsedId.data);
+    if (others.some((holder) => holder.archived_at === null)) {
+      return fail("number_taken", ["customerNumber"]);
+    }
+    if (others.length > 0) return fail("number_of_archived", ["customerNumber"]);
+  }
   const row = toCustomerRow(parsed.data);
   const { data, error } = parsedId.data
     ? await supabase

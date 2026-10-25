@@ -300,13 +300,24 @@ export const operationTypeSchema = z
       .pipe(z.string().regex(/^[A-Z0-9ČĆĐŠŽ-]{1,10}$/u)),
     isExternal: z.boolean(),
     isInspection: z.boolean(),
+    isCutting: z.boolean(),
   })
   .refine((value) => !(value.isExternal && value.isInspection), {
     path: ["isInspection"],
     message: "an inspection is done in-house",
+  })
+  .refine((value) => !(value.isCutting && (value.isExternal || value.isInspection)), {
+    path: ["isCutting"],
+    message: "cutting is an in-house production step",
   });
 export type OperationTypeFormValues = z.input<typeof operationTypeSchema>;
-export const OPERATION_TYPE_FIELDS = ["name", "code", "isExternal", "isInspection"] as const;
+export const OPERATION_TYPE_FIELDS = [
+  "name",
+  "code",
+  "isExternal",
+  "isInspection",
+  "isCutting",
+] as const;
 export type OperationTypeField = (typeof OPERATION_TYPE_FIELDS)[number];
 export type OperationTypeActionResult = ActionResult<
   OperationTypeField,

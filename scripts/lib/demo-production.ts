@@ -11,8 +11,8 @@ type Admin = SupabaseClient<Database>;
 const CATALOGS: Record<CatalogKind, string[]> = {
   machine_type: ["CNC glodalica", "CNC tokarilica", "Tračna pila"],
   location: ["Hala 1", "Hala 2"],
-  department: ["CNC obrada", "Bravarija"],
-  job_title: ["CNC operater", "Bravar"],
+  department: ["CNC obrada", "Bravarija", "Kontrola kvaliteta"],
+  job_title: ["CNC operater", "Bravar", "Kontrolor"],
   skill: ["CNC programiranje", "Čitanje tehničkog crteža", "Zavarivanje TIG"],
   product_type: ["Gotov proizvod"],
 };
@@ -67,6 +67,16 @@ const EMPLOYEES = [
     jobTitle: "Bravar",
     skills: [{ name: "Zavarivanje TIG", level: 3 }],
     machines: ["PILA-01"],
+  },
+  {
+    number: 3,
+    firstName: "Kenan",
+    lastName: "Kontrolor",
+    username: "kontrolor",
+    department: "Kontrola kvaliteta",
+    jobTitle: "Kontrolor",
+    skills: [{ name: "Čitanje tehničkog crteža", level: 3 }],
+    machines: [],
   },
 ] as const;
 
@@ -182,10 +192,11 @@ export async function seedDemoProduction(admin: Admin, org: ProvisionedOrganizat
         })),
       )
       .throwOnError();
+    if (employee.machines.length === 0) continue;
     await admin
       .from("employee_machines")
       .insert(
-        employee.machines.map((code) => {
+        employee.machines.map((code: string) => {
           const machineId = machineIds.get(code);
           if (!machineId) throw new Error(`Demo machine missing: ${code}`);
           return { organization_id: org.id, employee_id: created.data.id, machine_id: machineId };

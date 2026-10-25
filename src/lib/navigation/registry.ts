@@ -19,7 +19,9 @@ export type NavLabelKey =
   | "catalogs"
   | "operationTypes"
   | "productionSettings"
-  | "floorMachines";
+  | "floorMachines"
+  | "orders"
+  | "floorOperations";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -31,7 +33,8 @@ export type NavIconKey =
   | "material"
   | "catalog"
   | "operation"
-  | "settings";
+  | "settings"
+  | "order";
 
 export type NavItemDef = {
   id: string;
@@ -78,6 +81,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "employee",
     module: "production",
     permission: "employees.read",
+    surface: "app",
+    section: "production",
+  },
+  {
+    id: "orders",
+    href: "/orders",
+    label: "orders",
+    icon: "order",
+    module: "production",
+    permission: "orders.read",
     surface: "app",
     section: "production",
   },
@@ -157,6 +170,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "floorHome",
     icon: "home",
     module: "core",
+    surface: "floor",
+    section: "work",
+  },
+  {
+    id: "floor-operations",
+    href: "/floor/operations",
+    label: "floorOperations",
+    icon: "order",
+    module: "production",
+    permission: ["machines.status.update", "quality.inspect"],
     surface: "floor",
     section: "work",
   },

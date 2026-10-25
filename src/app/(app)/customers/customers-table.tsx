@@ -40,6 +40,11 @@ export function CustomersTable({
 
     const base: DataTableColumn<CustomerRow>[] = [
       {
+        accessorKey: "number",
+        header: t("columns.number"),
+        cell: ({ row }) => <span className="tabular-nums">{row.original.number}</span>,
+      },
+      {
         accessorKey: "name",
         header: t("columns.name"),
         cell: ({ row }) => (

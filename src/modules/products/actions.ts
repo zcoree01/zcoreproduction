@@ -602,7 +602,7 @@ function mapOperationTypeError(error: DbError): OperationTypeActionResult {
   if (violates(error, "operation_types_code_key")) return failOperationType("code_taken", ["code"]);
   switch (errorKind(error)) {
     case "check":
-      return failOperationType("invalid", ["code", "isInspection"]);
+      return failOperationType("invalid", ["code", "isInspection", "isCutting"]);
     case "denied":
       return failOperationType("denied");
     default:
@@ -630,6 +630,7 @@ export async function saveOperationTypeAction(
     code: parsed.data.code,
     is_external: parsed.data.isExternal,
     is_inspection: parsed.data.isInspection,
+    is_cutting: parsed.data.isCutting,
   };
   const supabase = await createClient();
   const { data, error } = parsedId.data

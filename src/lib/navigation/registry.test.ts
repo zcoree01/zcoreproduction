@@ -109,10 +109,20 @@ describe("buildNavigation", () => {
     ]);
   });
 
-  it("offers operators their machines on the floor", () => {
+  it("offers operators their operations and machines on the floor", () => {
     expect(
       ids(buildNavigation("floor", access(["core", "production"], ["machines.status.update"]))),
-    ).toEqual([["work", ["floor-home", "floor-machines"]]]);
+    ).toEqual([["work", ["floor-home", "floor-operations", "floor-machines"]]]);
+    expect(
+      ids(buildNavigation("floor", access(["core", "production"], ["quality.inspect"]))),
+    ).toEqual([["work", ["floor-home", "floor-operations"]]]);
+  });
+
+  it("shows production orders to readers", () => {
+    expect(ids(buildNavigation("app", access(["core", "production"], ["orders.read"])))).toEqual([
+      ["overview", ["dashboard"]],
+      ["production", ["orders"]],
+    ]);
   });
 
   it("only lists routes with unique ids and absolute hrefs", () => {

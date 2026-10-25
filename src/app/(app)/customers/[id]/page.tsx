@@ -1,10 +1,11 @@
-import { ArrowLeftIcon, BuildingIcon, PackageIcon } from "lucide-react";
+import { ArrowLeftIcon, BuildingIcon, ClipboardListIcon, PackageIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
+import { DueWarningBadge, OrderStatusBadge } from "@/components/shared/order-badges";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,9 @@ import {
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
+import { formatDecimal } from "@/lib/decimal";
 import { getCustomer } from "@/modules/customers/queries";
+import { listCustomerOrders } from "@/modules/production-orders/queries";
 import { listProductsPage } from "@/modules/products/queries";
 import { CustomerActions } from "./customer-actions";
 
@@ -45,7 +48,11 @@ export default function CustomerPage({ params }: PageProps<"/customers/[id]">) {
 async function CustomerContent({ params }: { params: Promise<{ id: string }> }) {
   const member = await requireMember();
   const organizationId = member.organization.id;
-  const [t, access] = await Promise.all([getTranslations("customers"), getMemberAccess(member)]);
+  const [t, tUnits, access] = await Promise.all([
+    getTranslations("customers"),
+    getTranslations("productUnits"),
+    getMemberAccess(member),
+  ]);
 
   if (!access.modules.has("production")) return <ModuleDisabled />;
   if (!access.permissions.has("customers.read")) {
@@ -81,6 +88,9 @@ async function CustomerContent({ params }: { params: Promise<{ id: string }> }) 
         view: undefined,
       })
     : null;
+  const orders = access.permissions.has("orders.read")
+    ? await listCustomerOrders(organizationId, customer.id)
+    : null;
 
   return (
     <>
@@ -95,6 +105,9 @@ async function CustomerContent({ params }: { params: Promise<{ id: string }> }) 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">{customer.name}</h1>
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {t("detail.number", { number: customer.number })}
+            </span>
             {customer.archived ? <Badge variant="secondary">{t("detail.archived")}</Badge> : null}
           </div>
           {access.permissions.has("customers.manage") ? (
@@ -133,6 +146,64 @@ async function CustomerContent({ params }: { params: Promise<{ id: string }> }) 
           </dl>
         </CardContent>
       </Card>
+
+      {orders ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("detail.orders", { count: orders.length })}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {orders.length === 0 ? (
+              <EmptyState
+                icon={<ClipboardListIcon />}
+                title={t("detail.noOrders")}
+                className="border-0"
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("detail.orderColumns.number")}</TableHead>
+                    <TableHead>{t("detail.orderColumns.product")}</TableHead>
+                    <TableHead>{t("detail.orderColumns.quantity")}</TableHead>
+                    <TableHead>{t("detail.orderColumns.due")}</TableHead>
+                    <TableHead>{t("detail.orderColumns.status")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>
+                        <Link
+                          href={`/orders/${order.id}`}
+                          className="font-mono font-medium underline-offset-4 hover:underline"
+                        >
+                          {order.orderNumber}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        {order.product?.partNumber ?? "—"}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {formatDecimal(order.quantity)} {tUnits(order.unit)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="flex flex-wrap items-center gap-2 tabular-nums">
+                          {order.dueDate}
+                          {order.dueWarning ? <DueWarningBadge warning={order.dueWarning} /> : null}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <OrderStatusBadge status={order.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {products ? (
         <Card>

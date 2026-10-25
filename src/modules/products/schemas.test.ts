@@ -189,6 +189,7 @@ describe("operation type schema", () => {
     code: " bu ",
     isExternal: false,
     isInspection: false,
+    isCutting: false,
   };
 
   it("upper-cases the abbreviation", () => {
@@ -205,6 +206,16 @@ describe("operation type schema", () => {
     expect(operationTypeSchema.safeParse({ ...TYPE, isInspection: true }).success).toBe(true);
     expect(
       operationTypeSchema.safeParse({ ...TYPE, isInspection: true, isExternal: true }).success,
+    ).toBe(false);
+  });
+
+  it("cutting is an in-house production step", () => {
+    expect(operationTypeSchema.safeParse({ ...TYPE, isCutting: true }).success).toBe(true);
+    expect(
+      operationTypeSchema.safeParse({ ...TYPE, isCutting: true, isExternal: true }).success,
+    ).toBe(false);
+    expect(
+      operationTypeSchema.safeParse({ ...TYPE, isCutting: true, isInspection: true }).success,
     ).toBe(false);
   });
 });

@@ -409,6 +409,8 @@ export type OperationType = {
   code: string;
   isExternal: boolean;
   isInspection: boolean;
+  /** Sawing / cutting raw pieces: its worker may set the material statuses of orders. */
+  isCutting: boolean;
   archived: boolean;
 };
 
@@ -420,7 +422,7 @@ export async function listOperationTypes(
   const supabase = await createClient();
   let query = supabase
     .from("operation_types")
-    .select("id, name, code, is_external, is_inspection, archived_at")
+    .select("id, name, code, is_external, is_inspection, is_cutting, archived_at")
     .eq("organization_id", organizationId);
   if (!options.includeArchived) query = query.is("archived_at", null);
   const { data, error } = await query
@@ -433,6 +435,7 @@ export async function listOperationTypes(
     code: row.code,
     isExternal: row.is_external,
     isInspection: row.is_inspection,
+    isCutting: row.is_cutting,
     archived: row.archived_at !== null,
   }));
 }

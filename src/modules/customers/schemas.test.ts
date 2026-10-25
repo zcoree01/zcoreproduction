@@ -3,6 +3,7 @@ import { parseCustomerListParams } from "./list-params";
 import { customerSchema, toCustomerRow } from "./schemas";
 
 const VALID = {
+  customerNumber: "",
   name: " Metal d.o.o. ",
   taxId: "4200000000000",
   address: "",
@@ -35,6 +36,17 @@ describe("customerSchema", () => {
     expect(issues({ name: " " })).toEqual(["name"]);
     expect(issues({ email: "nabava" })).toEqual(["email"]);
     expect(issues({ email: "" })).toEqual([]);
+  });
+
+  it("numbers customers automatically unless a number is given", () => {
+    expect(customerSchema.parse(VALID).customerNumber).toBeNull();
+    expect(toCustomerRow(customerSchema.parse(VALID))).not.toHaveProperty("customer_number");
+    const numbered = customerSchema.parse({ ...VALID, customerNumber: " 13 " });
+    expect(numbered.customerNumber).toBe(13);
+    expect(toCustomerRow(numbered)).toMatchObject({ customer_number: 13 });
+    for (const bad of ["0", "-1", "1.5", "1234567", "abc"]) {
+      expect(customerSchema.safeParse({ ...VALID, customerNumber: bad }).success).toBe(false);
+    }
   });
 });
 

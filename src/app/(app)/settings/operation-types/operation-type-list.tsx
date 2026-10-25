@@ -7,6 +7,7 @@ import {
   PencilIcon,
   PlusIcon,
   RotateCcwIcon,
+  ScissorsIcon,
   ShieldCheckIcon,
   WorkflowIcon,
 } from "lucide-react";
@@ -103,7 +104,12 @@ export function OperationTypeList({ items }: { items: OperationType[] }) {
                   </TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>
-                    {item.isInspection ? (
+                    {item.isCutting ? (
+                      <span className="flex items-center gap-1">
+                        <ScissorsIcon className="size-4 text-muted-foreground" aria-hidden />
+                        {t("cutting")}
+                      </span>
+                    ) : item.isInspection ? (
                       <span className="flex items-center gap-1">
                         <ShieldCheckIcon className="size-4 text-muted-foreground" aria-hidden />
                         {t("inspection")}
@@ -199,8 +205,9 @@ function OperationTypeForm({ item, onDone }: { item: OperationType | null; onDon
           code: item.code,
           isExternal: item.isExternal,
           isInspection: item.isInspection,
+          isCutting: item.isCutting,
         }
-      : { name: "", code: "", isExternal: false, isInspection: false },
+      : { name: "", code: "", isExternal: false, isInspection: false, isCutting: false },
   });
 
   const onSubmit = form.handleSubmit(() => {
@@ -306,6 +313,28 @@ function OperationTypeForm({ item, onDone }: { item: OperationType | null; onDon
                     {t("fields.isInspection")}
                   </FieldLabel>
                   <FieldDescription>{t("isInspectionHint")}</FieldDescription>
+                </div>
+              </Field>
+            )}
+          />
+          <Controller
+            name="isCutting"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field orientation="horizontal" data-invalid={fieldState.invalid || undefined}>
+                <Checkbox
+                  id="operation-type-isCutting"
+                  checked={field.value}
+                  onCheckedChange={(value) => field.onChange(value === true)}
+                />
+                <div className="flex flex-col gap-1">
+                  <FieldLabel htmlFor="operation-type-isCutting">
+                    {t("fields.isCutting")}
+                  </FieldLabel>
+                  <FieldDescription>{t("isCuttingHint")}</FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError>{t("fieldErrors.isCutting")}</FieldError>
+                  ) : null}
                 </div>
               </Field>
             )}

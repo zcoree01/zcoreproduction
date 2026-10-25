@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** in progress (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs, customers, materials and products/parts (revisions, routings with inspections, attachments, raw piece weight) are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. Next in Phase 2: production orders and operations.
+**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** nearly done (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs, customers, materials, products/parts and **production orders with operations, assignments and status tracking** are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. Next: **Phase 3 — production reporting** (start/stop, good/scrap per operation, final inspection), which also unlocks completing orders.
 
 ## Implemented
 
@@ -51,7 +51,15 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - Inspections: `operation_types.is_inspection`; organization setting `inspection_mode` automatic / manual / custom (`/settings/production`); `products.inspection_plan` between / final / none (custom: asked when creating a product; editable on the product). `private.normalize_routing` places generated inspections (`auto_inspection`, read-only, not draggable) after every operation and/or at the end and re-runs on every routing change.
   - Files can be added directly in the "new product" form (uploaded after saving, kind per file).
   - Cycle times shown with one decimal (2,5 min), stored exactly in seconds.
-- Tests: `npm run check` (169 unit tests), `npm run test:db` (91 RLS/integration tests), `npm run e2e` (33 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing, weight and totals and opens the customer, warehouse read-only, admin builds operation types → customer → product with material picked by typing, computed weight and a PDF → two operations reordered by drag & drop and arrows → revision A → history → archive).
+- **Module `production` — production orders (radni nalozi)** (`20261025100000_production_orders`, `20261025110000_order_file_path`, `20261025120000_customer_number_default`, D-016):
+  - Tables: `production_orders` (number, customer, product, revision, unit, quantity, due date, priority 1–5 or null = automatic, planned start/end, status, cancel reason, notes, piece length + kerf, bar length + remnant, copy source), `production_order_operations` (snapshot of the routing: type, description, planned machine type, assigned machine, setup/cycle, notes, own planned start/end, status), `production_order_operation_workers`, `production_order_attachments` (drawings frozen on the order; replaced ones archived), `production_order_status_history`; `private.counters`. All with `organization_id`, RLS, composite tenant FKs, row audit triggers.
+  - Numbering: format per organization (`{KUPAC}{SEDMICA}{GODINA}{GODINA4}{BROJ}`, minimum digits), sequence per calendar year, never reused, assigned in the database (tested with 8 parallel creations). `customers.customer_number`: automatic, editable, unique among active customers, archived customers' numbers only after confirmation.
+  - Statuses Nacrt → Planiran → Čeka materijal → Odsijecanje → Spreman → U radu ⇄ Pauziran → Kontrola kvaliteta → (Završen) ; Otkazan (reason required) ; Arhiviran. Transitions only via `set_production_order_status` (server rules, history row, audit). Warehouse (`orders.material.update`) and the worker of a cutting operation (`operation_types.is_cutting`) only set Čeka materijal / Odsijecanje / Spreman. **Završen is blocked** until production reporting (`private.order_completion_allowed`). Operation statuses Čeka / Spremna / U radu / Pauzirana / Završena via `set_order_operation_status` (managers, released orders).
+  - RPCs: `create_production_order` (snapshot of routing + drawings, current or chosen revision), `copy_production_order` (repeat order), `update` via guarded table writes (quantity/bar only in draft/planned), `add_order_operation` (drafts), `assign_order_operation` (machine, workers, planned times → warnings), `order_operation_warnings`, `replace_order_drawings`, `production_order_status_log`, `production_order_history`; floor: `floor_operation_queue`, `floor_operation`, `order_file_path` + storage policy for order drawings.
+  - Planned time per operation = setup + quantity × cycle, order = sum; slack, automatic priority (thresholds, work hours per day) and due-date warnings (10/7/3 days while not started, behind schedule, overdue) in `private.order_schedule` and `rules.ts`. Bar calculation: pieces per bar = ⌊(bar − remnant) / (piece + kerf)⌋, bars needed.
+  - Screens: `/orders` (search; filters status, priority, due warning, customer, machine; sorted by priority and due date; warnings in the list), `/orders/[id]` (Pregled / Operacije with assignment sheet, operation status, add/edit/remove in drafts / Prilozi / Historija with status log and change log; status menu, cancel with reason, edit, copy, drawing change with warning), `/orders/[id]/print` (A4, QR code per operation, Dobro/Škart/Potpis columns, Izdao/Odobrio/Kontrolisao; PDF via the browser), `/settings/production` (order number format with live preview, priority mode and thresholds, work hours, warning days), `/floor/operations` (operator: chips for qualified machines + "Dodijeljeno meni", cards by priority with previous operation state), `/floor/operations/[id]` (QR target: quantity, machine, drawing, bar, drawings to open, order flow; material buttons for the cutting worker; foreign operations show only "nije dodijeljena" + where the order is now). Customers show their number and orders; operation types get the "Rezanje / odsijecanje" flag.
+  - New system role **Kontrolor** (`quality_inspector`): reads orders, products, machines; only inspectors can be assigned to inspection operations.
+- Tests: `npm run check` (217 unit tests), `npm run test:db` (121 RLS/integration tests), `npm run e2e` (38 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing, weight and totals and opens the customer, warehouse read-only, admin builds operation types → customer → product with material picked by typing, computed weight and a PDF → two operations reordered by drag & drop and arrows → revision A → history → archive; orders: head of production creates an order (whole pieces, bar calculation), releases it, prints it with QR codes, cancels with a reason and archives; warehouse limited to material statuses; operator's machine queue and a foreign operation via QR (desktop + mobile)).
 - **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
 - CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`3a390ee`, products v2). DB and e2e tests need Supabase secrets, so they are not in CI yet.
 - **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
@@ -59,32 +67,36 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ### Permission matrix (system roles)
 
-| Permission               | admin | director | head_of_production | warehouse | operator |
-| ------------------------ | :---: | :------: | :----------------: | :-------: | :------: |
-| `org.settings.manage`    |   ✓   |          |                    |           |          |
-| `users.read`             |   ✓   |    ✓     |         ✓          |           |          |
-| `users.manage`           |   ✓   |          |                    |           |          |
-| `roles.manage`           |   ✓   |          |                    |           |          |
-| `audit.read`             |   ✓   |    ✓     |                    |           |          |
-| `machines.read`          |   ✓   |    ✓     |         ✓          |     ✓     |    ✓     |
-| `machines.manage`        |   ✓   |    ✓     |         ✓          |           |          |
-| `machines.status.update` |       |          |                    |           |    ✓     |
-| `employees.read`         |   ✓   |    ✓     |         ✓          |           |          |
-| `employees.manage`       |   ✓   |    ✓     |         ✓          |           |          |
-| `products.read`          |   ✓   |    ✓     |         ✓          |     ✓     |          |
-| `products.manage`        |   ✓   |    ✓     |         ✓          |           |          |
-| `customers.read`         |   ✓   |    ✓     |         ✓          |     ✓     |          |
-| `customers.manage`       |   ✓   |    ✓     |         ✓          |           |          |
+| Permission               | admin | director | head_of_production | warehouse | operator | quality_inspector |
+| ------------------------ | :---: | :------: | :----------------: | :-------: | :------: | :---------------: |
+| `org.settings.manage`    |   ✓   |          |                    |           |          |                   |
+| `users.read`             |   ✓   |    ✓     |         ✓          |           |          |                   |
+| `users.manage`           |   ✓   |          |                    |           |          |                   |
+| `roles.manage`           |   ✓   |          |                    |           |          |                   |
+| `audit.read`             |   ✓   |    ✓     |                    |           |          |                   |
+| `machines.read`          |   ✓   |    ✓     |         ✓          |     ✓     |    ✓     |         ✓         |
+| `machines.manage`        |   ✓   |    ✓     |         ✓          |           |          |                   |
+| `machines.status.update` |       |          |                    |           |    ✓     |                   |
+| `employees.read`         |   ✓   |    ✓     |         ✓          |           |          |                   |
+| `employees.manage`       |   ✓   |    ✓     |         ✓          |           |          |                   |
+| `products.read`          |   ✓   |    ✓     |         ✓          |     ✓     |          |         ✓         |
+| `products.manage`        |   ✓   |    ✓     |         ✓          |           |          |                   |
+| `customers.read`         |   ✓   |    ✓     |         ✓          |     ✓     |          |                   |
+| `customers.manage`       |   ✓   |    ✓     |         ✓          |           |          |                   |
+| `orders.read`            |   ✓   |    ✓     |         ✓          |     ✓     |          |         ✓         |
+| `orders.manage`          |   ✓   |    ✓     |         ✓          |           |          |                   |
+| `orders.material.update` |       |          |                    |     ✓     |          |                   |
+| `quality.inspect`        |       |          |                    |           |          |         ✓         |
 
-`machines.manage` also manages machine types and locations; `employees.manage` departments, job titles and skills; `products.manage` operation types, product types and materials. Operators get product access later through their production orders. Every member reads catalog names and their own employee row.
+`machines.manage` also manages machine types and locations; `employees.manage` departments, job titles and skills; `products.manage` operation types, product types and materials. Operators see orders only through the floor functions (their machines or operations assigned to them by name) and open the drawings of those orders; the worker of a cutting operation may set the material statuses of that order. Every member reads catalog names and their own employee row.
 
 System roles' permissions are fixed (changed only via migration); tenants can manage permissions of custom roles.
 
-**Roles are per organization by design** (D-006): every organization gets its own 5 system roles, so `roles` holds 5 rows × number of organizations (currently 15 for `demo`, `test-tenant-a`, `test-tenant-b`); there are no duplicates within one organization (unique `organization_id, key`). `memberships` is the join table user ↔ role ↔ organization. Reviewed with the product owner on 2026-10-24 and kept, because per-org permissions, custom roles and DB-enforced tenant isolation depend on it.
+**Roles are per organization by design** (D-006): every organization gets its own 6 system roles (Kontrolor added 2026-10-25), so `roles` holds 6 rows × number of organizations (currently 18 for `demo`, `test-tenant-a`, `test-tenant-b`); there are no duplicates within one organization (unique `organization_id, key`). `memberships` is the join table user ↔ role ↔ organization. Reviewed with the product owner on 2026-10-24 and kept, because per-org permissions, custom roles and DB-enforced tenant isolation depend on it.
 
 ## Demo data
 
-Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent). Users: `scripts/lib/demo-users.ts`. The seed also enables module `production` and adds demo catalogs, machines `CNC-01`, `CNC-02`, `PILA-01` and employees 1 (Omer Operater, linked to `operater`, qualified for CNC-01/02) and 2 (Benjamin Bravar, no account) — `scripts/lib/demo-production.ts`. Products: operation types RZ, TO, GL, BS, BU, KT (inspection), CI (external), customer „Demo Kupac d.o.o." and product `DM-4711-02` (rev. A, C45 Ø45 × 125, 5 operations) — `scripts/lib/demo-products.ts`. Materials come from the migration's starter list.
+Organization `demo` („Demo Metal d.o.o."), created by `npm run seed:demo` (idempotent). Users: `scripts/lib/demo-users.ts`. The seed also enables module `production` and adds demo catalogs, machines `CNC-01`, `CNC-02`, `PILA-01` and employees 1 (Omer Operater, linked to `operater`, qualified for CNC-01/02) and 2 (Benjamin Bravar, no account) — `scripts/lib/demo-production.ts`. Products: operation types RZ, TO, GL, BS, BU, KT (inspection), CI (external), customer „Demo Kupac d.o.o." and product `DM-4711-02` (rev. A, C45 Ø45 × 125, 5 operations) — `scripts/lib/demo-products.ts`. Materials come from the migration's starter list. RZ is marked as cutting. Employee 3 Kenan Kontrolor (user `kontrolor`, role Kontrolor). Production orders (`scripts/lib/demo-orders.ts`, created through the RPCs as `sef.proizvodnje`): RN1-4326-001 (120 kom, Čeka materijal), RN1-4326-002 (40 kom, hitnost 1, Spreman, due in 4 days), RN1-4326-003 (Nacrt). E2E runs add cancelled/archived `E2E nalog` orders.
 
 **Passwords are not in the repository** (it is public). All demo users share `DEMO_PASSWORD` from `.env.local`; `npm run seed:demo` applies it. Passwords committed before 2026-10-24 were rotated and no longer work.
 
@@ -97,6 +109,7 @@ Local login: `http://localhost:3000/login?org=demo` or `http://demo.localhost:30
 | head_of_production | `sef.proizvodnje` | `/dashboard` |
 | warehouse          | `skladiste`       | `/dashboard` |
 | operator           | `operater`        | `/floor`     |
+| quality_inspector  | `kontrolor`       | `/dashboard` |
 
 Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-tenant-b` (users `admin`, `operater`, password `TEST_TENANT_PASSWORD` from `.env.local`). Created by `npm run test:db`; e2e needs them. Every e2e run adds one `e2e.*` operator user with a random password to `test-tenant-a`, and one machine type, skill, machine and employee (archived at the end) to `test-tenant-b`. `test-tenant-b` also holds a permanent floor fixture (`e2e/production-fixture.ts`: user `e2e.floor`, employee 800001, machine `E2E-FLOOR`). DB tests create and remove rows prefixed `DBT`/`DBTest` and enable `production` for both test tenants.
 
@@ -115,10 +128,12 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - Machines/employees: no detail page, history view, attachments, serial number or shift data yet; machine status is manual (production reports in Phase 3 will drive running/stopped). Module activation (`org_modules`) is checked in pages for UX only; data access is governed by permissions/RLS.
 - New organizations do not get module `production` automatically (commercial activation via service role, `ensureModuleEnabled()`).
 - Supabase Auth: enable leaked-password protection in the dashboard (advisor warning). Advisor warnings for `write_audit`, `get_login_organization`, `set_machine_status` and `product_history` (SECURITY DEFINER, enforce their own rules) are intentional.
-- Products: operators cannot see products yet (comes with production orders); materials are not linked to the material warehouse yet; no BOM/assemblies; no weight for profiles (shape "other"); product types are a catalog, units a fixed list. "Current operation" and production status per product/customer come with production orders. Attachments: only PDF/images (no DXF/STEP/NC programs); files are never deleted from Storage. History shows changed field names, not old/new values. Starter densities are typical data-sheet values (each organization can correct them). The old catalog kind `material_shape` is no longer offered (rows stay in the database).
+- Production orders: no production reporting yet (start/stop on the floor, quantities from the previous operation, scrap, final inspection by the inspector, actual times) — so orders cannot be completed and operation statuses are set by hand by the head of production. Floor screens are read-only except the material buttons. No order-specific uploads (drawings come from the product revision). Priority/slack uses `work_hours_per_day` until shifts exist; no calendar (weekends count). ISO week + calendar year in numbers: on 1–3 January the week can be 53 of the previous year. Warnings are shown in lists and screens, there are no notifications yet. No reorder of operations on an order; no partial quantities/splitting. Machine overlap only considers released orders.
+- Products: operators see product data only through their orders on the floor; materials are not linked to the material warehouse yet; no BOM/assemblies; no weight for profiles (shape "other"); product types are a catalog, units a fixed list. "Current operation" and production status per product/customer come with production orders. Attachments: only PDF/images (no DXF/STEP/NC programs); files are never deleted from Storage. History shows changed field names, not old/new values. Starter densities are typical data-sheet values (each organization can correct them). The old catalog kind `material_shape` is no longer offered (rows stay in the database).
 
 ## Next step
 
+0. **Production reporting (Phase 3)** — directly builds on orders: operator starts/stops an operation from the QR screen (actual start, machine running), reports good/scrap per operation with an idempotency key, sees what arrived from the previous operation; inspector records good/scrap at final inspection; `private.order_completion_allowed` checks reported good pieces; downtime reasons as a catalog.
 1. **Complete user management** (`/admin/users`): edit full name and role, deactivate / reactivate (archive membership, with `ConfirmDialog`), admin password reset, optionally "change password on first login". Audit entries for every action, server-side `users.manage`, RLS already allows it; unit + e2e tests.
 2. **Org settings** (`org.settings.manage`): organization name, timezone; foundation for configurable shifts later.
 3. **Deploy:** connect the GitHub repo to Vercel (production from `main`, preview per PR), set env vars there, wildcard subdomain `*.zcore.ba`.
@@ -126,6 +141,15 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 5. **Phase 2/3 continued:** production orders (product revision + quantity + due date) with order operations generated from the routing; on the floor a worker starts an operation on a machine → machine status "running", estimated (setup + cycle × qty) vs. actual time; stopping / maintenance asks for a downtime reason and minutes; product list and customer page then show the current operation and production status.
 
 ## Log
+
+### 2026-10-25 — Production orders and operations
+
+- Product answers (asked before implementation): number format configurable per company (e.g. `RN13-0526-358` = customer 13, week 05, year 26, sequence 358 restarting each year); customer number automatic but editable, never reused automatically; quantities with decimals except pieces; drawings frozen per order, explicit "change of drawing on the order" with a warning; machine assignment required, workers optional (then only they see it); warehouse and the cutting worker set Čeka materijal / Odsijecanje / Spremno za dalju obradu; inspector as its own role; priority 1–5 by hand or automatically from the due date (warning on manual override); warnings 10/7/3 days and when behind schedule; bar length + remnant → pieces per bar; operator picks one of their machines, sees only their operations, a foreign QR shows "not assigned" and where the order is.
+- Production reporting (start, quantities from previous operation, scrap, inspector's good/scrap) agreed as the next module; this step prepares it (QR target, completion rule, inspector role).
+- Migrations `20261025100000_production_orders`, `20261025110000_order_file_path` (drawing path for floor users), `20261025120000_customer_number_default` (0 = automatic, so inserts may omit it). Types regenerated; demo re-seeded. Advisors: new SECURITY DEFINER warnings for the status/floor/history functions (they check access themselves) and an INFO for `private.counters` (RLS without policies by design, definer-only).
+- Found & fixed: Base UI menu labels need a `Menu.Group` (status menu crashed); client-side `Intl` date formatting differs from the server (`bs` data missing in the browser build) → fixed `d.m.yyyy.` format in client components.
+- Added dependency `qrcode` (+ `@types/qrcode`) for server-rendered QR codes.
+- Verified: `npm run check` (217), `npm run test:db` (121), `npm run e2e` (38), `npm run build`, `npm run format:check`; screens checked by screenshot (list, detail, operations, assignment, print, create, settings, floor queue and operation on a phone).
 
 ### 2026-10-25 — Form tweak, push
 
