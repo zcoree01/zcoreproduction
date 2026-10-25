@@ -2,8 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { CutQuantitySheet } from "@/components/shared/cut-quantity-sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { setOrderStatusAction } from "@/modules/production-orders/actions";
@@ -15,21 +16,29 @@ import {
 
 /**
  * Large buttons for the cutting worker / warehouse: waiting for material,
- * cutting, ready for further processing. The server decides who may.
+ * cutting, ready for further processing (with the number of cut pieces
+ * while the cutting operation is open). The server decides who may.
  */
 export function MaterialStatusButtons({
   orderId,
   orderNumber,
   status,
+  cuttingOpen,
+  quantity,
+  wholePieces,
 }: {
   orderId: string;
   orderNumber: string;
   status: OrderStatus;
+  cuttingOpen: boolean;
+  quantity: string;
+  wholePieces: boolean;
 }) {
   const t = useTranslations("floorOrders.material");
   const tStatus = useTranslations("orderStatus");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [cutting, setCutting] = useState(false);
   const allowed = allowedOrderTargets(status, { manage: false, material: true });
 
   const change = (to: OrderStatus) =>
@@ -57,7 +66,7 @@ export function MaterialStatusButtons({
               variant={current ? "default" : "outline"}
               aria-pressed={current}
               disabled={pending || current || !allowed.includes(to)}
-              onClick={() => change(to)}
+              onClick={() => (to === "ready" && cuttingOpen ? setCutting(true) : change(to))}
               className={cn("h-12 text-base", current && "disabled:opacity-100")}
             >
               {t(`labels.${to}`)}
@@ -65,6 +74,15 @@ export function MaterialStatusButtons({
           );
         })}
       </div>
+      <CutQuantitySheet
+        open={cutting}
+        onOpenChange={setCutting}
+        orderId={orderId}
+        orderNumber={orderNumber}
+        suggested={quantity}
+        wholePieces={wholePieces}
+        side="bottom"
+      />
     </div>
   );
 }

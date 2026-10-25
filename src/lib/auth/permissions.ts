@@ -19,6 +19,7 @@ export const PERMISSION_KEYS = [
   "orders.read",
   "orders.manage",
   "orders.material.update",
+  "orders.close.approve",
   "quality.inspect",
 ] as const;
 

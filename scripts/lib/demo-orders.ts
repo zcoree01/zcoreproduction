@@ -92,7 +92,13 @@ export async function seedDemoOrders(admin: Admin, org: ProvisionedOrganization,
     notes: "Demo: hitna dopuna.",
   });
   await status(second, "planned");
-  await status(second, "ready");
+  // Cut on the saw: 40 pieces reach the CNC, the order is ready.
+  const { error: cutError } = await planner.rpc("finish_cutting", {
+    p_order_id: second,
+    p_quantity: "40" as unknown as number,
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  if (cutError) throw cutError;
 
   // A draft the head of production is still preparing.
   await create({ quantity: "250", due_date: day(30), notes: "Demo: nacrt za sljedeći mjesec." });

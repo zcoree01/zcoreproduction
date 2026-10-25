@@ -147,6 +147,7 @@ export function OperationsPanel({
                 <TableHead>{t("columns.workers")}</TableHead>
                 <TableHead>{t("columns.times")}</TableHead>
                 <TableHead className="text-right">{t("columns.planned")}</TableHead>
+                <TableHead>{t("columns.production")}</TableHead>
                 <TableHead>{t("columns.status")}</TableHead>
                 {canManage && !closed ? (
                   <TableHead>
@@ -253,6 +254,9 @@ export function OperationsPanel({
                     </TableCell>
                     <TableCell className="text-right">
                       <Duration seconds={op.plannedSeconds} />
+                    </TableCell>
+                    <TableCell>
+                      <OperationProduction op={op} />
                     </TableCell>
                     <TableCell>
                       {statusChanges && targets.length > 0 ? (
@@ -369,6 +373,41 @@ export function OperationsPanel({
             }}
           />
         </>
+      ) : null}
+    </div>
+  );
+}
+
+/** Reported pieces and actual times of an operation (machine time ≠ worker time). */
+function OperationProduction({ op }: { op: OrderOperation }) {
+  const t = useTranslations("orders.operations.production");
+  const reported = addDecimals([op.goodQuantity, op.scrapQuantity], 3) !== "0";
+  const worked = op.runSeconds !== "0" || op.workerSeconds !== "0";
+  if (!reported && !worked) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+  return (
+    <div className="flex flex-col gap-0.5 text-sm tabular-nums">
+      {reported ? (
+        <span data-testid={`operation-pieces-${op.type.code}`}>
+          {t("pieces", {
+            good: formatDecimal(op.goodQuantity),
+            scrap: formatDecimal(op.scrapQuantity),
+            input: formatDecimal(op.inputQuantity),
+          })}
+        </span>
+      ) : null}
+      {worked ? (
+        <span className="text-xs text-muted-foreground">
+          {t("machine")} <Duration seconds={op.runSeconds} /> · {t("workers")}{" "}
+          <Duration seconds={op.workerSeconds} />
+          {op.downtimeSeconds !== "0" ? (
+            <>
+              {" "}
+              · {t("downtime")} <Duration seconds={op.downtimeSeconds} />
+            </>
+          ) : null}
+        </span>
       ) : null}
     </div>
   );

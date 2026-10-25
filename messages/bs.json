@@ -66,7 +66,8 @@
     "customers": "Kupci",
     "materials": "Materijali",
     "orders": "Radni nalozi",
-    "floorOperations": "Nalozi"
+    "floorOperations": "Nalozi",
+    "inspections": "Kontrola (pogon)"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -83,9 +84,9 @@
     "operationsDescription": "Operacije na vašim mašinama, poredane po hitnosti.",
     "operationsOpen": "Svi nalozi za moje mašine",
     "arrivedTitle": "Došlo do vaše mašine",
-    "arrivedDescription": "Nalozi kod kojih su prethodne operacije završene, najhitniji prvi.",
+    "arrivedDescription": "Nalozi kod kojih su komadi stigli s prethodne operacije, najhitniji prvi.",
     "arrivedEmptyTitle": "Trenutno ništa nije stiglo",
-    "arrivedEmptyDescription": "Kad prethodna operacija bude završena, nalog se pojavljuje ovdje."
+    "arrivedEmptyDescription": "Kad prethodna operacija prijavi dobre komade, nalog se pojavljuje ovdje."
   },
   "users": {
     "title": "Korisnici",
@@ -373,7 +374,9 @@
       "department": "Odjeli",
       "job_title": "Radna mjesta",
       "skill": "Vještine",
-      "product_type": "Vrste artikala"
+      "product_type": "Vrste artikala",
+      "downtime_reason": "Razlozi zastoja",
+      "scrap_reason": "Razlozi škarta"
     },
     "kindsLabel": "Vrsta šifarnika",
     "newLabel": "Novi naziv",
@@ -1354,7 +1357,8 @@
         "invalid_status_transition": "Ovaj prelaz statusa nije dozvoljen.",
         "cancel_reason_required": "Za otkazivanje je potreban razlog.",
         "completion_requires_production_report": "Nalog se završava tek kada se prijave dobri komadi (prijava proizvodnje).",
-        "machine_assignment_missing": "Prvo dodijelite mašinu svim operacijama."
+        "machine_assignment_missing": "Prvo dodijelite mašinu svim operacijama.",
+        "cut_quantity_required": "Unesite broj odsječenih komada (operacija odsijecanja je otvorena)."
       }
     },
     "detail": {
@@ -1367,7 +1371,8 @@
       "copy": "Ponovljena narudžba (kopija)",
       "replaceDrawings": "Izmjena crteža na nalogu",
       "statusSince": "Status od {time}",
-      "missingMachines": "Operacija bez mašine: {count}. Dodijelite mašine prije nego nalog postane „Spreman“."
+      "missingMachines": "Operacija bez mašine: {count}. Dodijelite mašine prije nego nalog postane „Spreman“.",
+      "goodProgress": "Gotovo (dobro): {good} / {quantity} {unit}"
     },
     "drawings": {
       "title": "Izmjena crteža na nalogu {number}",
@@ -1396,6 +1401,7 @@
     "tabs": {
       "overview": "Pregled",
       "operations": "Operacije",
+      "production": "Proizvodnja",
       "attachments": "Prilozi",
       "history": "Historija"
     },
@@ -1465,7 +1471,7 @@
     },
     "operations": {
       "draftHint": "Nacrt: operacije se mogu dodavati, uređivati i uklanjati.",
-      "releasedHint": "Dodijelite mašine i radnike; status operacija mijenja šef proizvodnje.",
+      "releasedHint": "Dodijelite mašine i radnike. Radnici pokreću i završavaju operacije prijavom; šef proizvodnje može status promijeniti i ručno.",
       "closedHint": "Nalog je zatvoren.",
       "add": "Dodaj operaciju",
       "emptyTitle": "Nalog nema operacija",
@@ -1476,6 +1482,7 @@
         "workers": "Radnici",
         "times": "Priprema / ciklus",
         "planned": "Plan. vrijeme",
+        "production": "Proizvodnja",
         "status": "Status",
         "actions": "Akcije"
       },
@@ -1512,7 +1519,14 @@
         "external_rules": "Vanjska operacija nema mašinu ni vremena.",
         "order_closed": "Nalog je zatvoren.",
         "order_not_draft": "Operacije se uklanjaju samo u nacrtu.",
-        "order_in_production": "Nalog je u radu."
+        "order_in_production": "Nalog je u radu.",
+        "cut_quantity_required": "Potreban je broj odsječenih komada."
+      },
+      "production": {
+        "pieces": "Dobro {good} · škart {scrap} / stiglo {input}",
+        "machine": "Mašina",
+        "workers": "radnici",
+        "downtime": "zastoj"
       }
     },
     "attachments": {
@@ -1635,6 +1649,85 @@
       "signatureDate": "potpis i datum",
       "duration": "{hours} h {minutes} min",
       "setupCycle": "{setup} min / {cycle}"
+    },
+    "production": {
+      "pendingTitle": "Zahtjev za zatvaranje s manjkom",
+      "pendingDescription": "{name} traži zatvaranje naloga sa {good} od {quantity} {unit} dobrih. Razlog: {reason}",
+      "approve": "Odobri zatvaranje",
+      "reject": "Odbij",
+      "approvedToast": "Nalog {number} je zatvoren.",
+      "rejectedToast": "Zahtjev je odbijen.",
+      "requestHint": "Dobrih komada: {good} od {quantity} {unit}. Nalog se zatvara automatski kad je dovoljno dobrih; s manjkom samo uz odobrenje.",
+      "requestClose": "Zatraži zatvaranje s manjkom",
+      "requestTitle": "Zatvaranje naloga {number} s manjkom",
+      "requestDescription": "Šef proizvodnje odobrava zatvaranje. Navedite razlog (npr. škart, nedostaje materijal).",
+      "requestConfirm": "Pošalji zahtjev",
+      "requestedToast": "Zahtjev za zatvaranje naloga {number} je poslan.",
+      "rejectTitle": "Odbiti zatvaranje?",
+      "rejectDescription": "Nalog ostaje otvoren. Razlog vide kontrolor i šef proizvodnje.",
+      "voidTitle": "Stornirati prijavu?",
+      "voidDescription": "Prijava {code}: dobro {good}, škart {scrap}. Ostaje u evidenciji kao stornirana i ne ulazi u količine.",
+      "void": "Storniraj",
+      "voidedToast": "Prijava je stornirana.",
+      "voided": "Stornirano: {reason}",
+      "reason": "Razlog",
+      "reasonRequired": "Unesite razlog (do 500 znakova).",
+      "reasonHint": "Ostaje zapisano u historiji naloga.",
+      "reportsTitle": "Prijave količina",
+      "reportsEmptyTitle": "Još nema prijava",
+      "reportsEmptyDescription": "Radnici i kontrolor prijavljuju dobre i škart komade na mobilnom ekranu.",
+      "downtimeTitle": "Zastoji",
+      "downtimeEmpty": "Nema zastoja.",
+      "ongoing": "traje",
+      "closeLogTitle": "Zahtjevi za zatvaranje",
+      "closeStatus": {
+        "pending": "Čeka",
+        "approved": "Odobreno",
+        "rejected": "Odbijeno"
+      },
+      "closeLogLine": "Zatražio {requested} ({at}), odlučio {decided} ({decidedAt})",
+      "columns": {
+        "time": "Vrijeme",
+        "operation": "Operacija",
+        "worker": "Radnik",
+        "good": "Dobro",
+        "scrap": "Škart",
+        "note": "Razlog / napomena",
+        "actions": "Akcije",
+        "from": "Od",
+        "to": "Do",
+        "reason": "Razlog"
+      },
+      "errors": {
+        "invalid": "Neispravan unos.",
+        "denied": "Nemate dozvolu za ovu radnju.",
+        "not_found": "Nalog ili operacija ne postoji.",
+        "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+        "not_an_employee": "Vaš korisnički račun nije povezan sa zaposlenim.",
+        "operation_external": "Vanjsku operaciju ne prijavljuju radnici.",
+        "cutting_uses_material_status": "Odsijecanje se prijavljuje dugmadima za materijal.",
+        "order_closed": "Nalog je zatvoren.",
+        "operation_done": "Operacija je već završena.",
+        "order_paused": "Nalog je pauziran (šef proizvodnje).",
+        "order_not_ready": "Nalog još nije spreman za obradu (materijal).",
+        "not_arrived": "Komadi još nisu stigli s prethodne operacije.",
+        "downtime_reason_required": "Izaberite razlog pauze.",
+        "no_open_session": "Trenutno ne radite na ovoj operaciji.",
+        "operation_not_started": "Operacija još nije započeta.",
+        "whole_pieces_required": "Komadi se unose kao cijeli brojevi.",
+        "quantity_required": "Unesite broj dobrih ili škart komada.",
+        "quantity_exceeds_input": "Ukupno prijavljeno bi bilo više nego što je stiglo na operaciju.",
+        "nothing_reported": "Na operaciji još ništa nije prijavljeno.",
+        "no_cutting_operation": "Nalog nema otvorenu operaciju odsijecanja.",
+        "invalid_status_transition": "Ovaj prelaz statusa nije dozvoljen.",
+        "machine_assignment_missing": "Šef proizvodnje mora prvo dodijeliti mašine svim operacijama.",
+        "order_not_in_production": "Nalog nije u proizvodnji.",
+        "close_reason_required": "Navedite razlog.",
+        "close_request_pending": "Zahtjev za zatvaranje već čeka odobrenje.",
+        "close_request_decided": "O zahtjevu je već odlučeno.",
+        "reject_note_required": "Za odbijanje je potreban razlog.",
+        "void_reason_required": "Za storniranje je potreban razlog."
+      }
     }
   },
   "floorOrders": {
@@ -1681,7 +1774,8 @@
         "invalid_status_transition": "Ovaj prelaz nije dozvoljen.",
         "cancel_reason_required": "Potreban je razlog.",
         "completion_requires_production_report": "Potrebna je prijava proizvodnje.",
-        "machine_assignment_missing": "Šef proizvodnje mora prvo dodijeliti mašine svim operacijama."
+        "machine_assignment_missing": "Šef proizvodnje mora prvo dodijeliti mašine svim operacijama.",
+        "cut_quantity_required": "Unesite broj odsječenih komada."
       }
     },
     "pieceLength": "Komad + rez",
@@ -1708,6 +1802,144 @@
     "orderNotYours": "Ovaj nalog trenutno nema vaših operacija. Nalog je sada na operaciji {code} ({machine}).",
     "orderPick": "Izaberite svoju operaciju.",
     "arrivedBadge": "stiglo",
-    "comingBadge": "dolazi"
+    "comingBadge": "dolazi",
+    "inspections": "Kontrole"
+  },
+  "cutting": {
+    "title": "Odsijecanje gotovo: {number}",
+    "description": "Upišite koliko je komada odsječeno. Operacija odsijecanja se završava i nalog ide dalje na obradu.",
+    "quantity": "Odsječeno komada",
+    "hint": "Predloženo je naručeno; ispravite na stvarni broj.",
+    "invalid": "Unesite količinu veću od 0.",
+    "invalidWhole": "Unesite cijeli broj komada veći od 0.",
+    "saving": "Spremam…",
+    "confirm": "Spremno za dalju obradu",
+    "doneToast": "Nalog {number}: spremno za dalju obradu.",
+    "errors": {
+      "invalid": "Neispravan unos.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "not_found": "Nalog ili operacija ne postoji.",
+      "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+      "not_an_employee": "Vaš korisnički račun nije povezan sa zaposlenim.",
+      "operation_external": "Vanjsku operaciju ne prijavljuju radnici.",
+      "cutting_uses_material_status": "Odsijecanje se prijavljuje dugmadima za materijal.",
+      "order_closed": "Nalog je zatvoren.",
+      "operation_done": "Operacija je već završena.",
+      "order_paused": "Nalog je pauziran (šef proizvodnje).",
+      "order_not_ready": "Nalog još nije spreman za obradu (materijal).",
+      "not_arrived": "Komadi još nisu stigli s prethodne operacije.",
+      "downtime_reason_required": "Izaberite razlog pauze.",
+      "no_open_session": "Trenutno ne radite na ovoj operaciji.",
+      "operation_not_started": "Operacija još nije započeta.",
+      "whole_pieces_required": "Komadi se unose kao cijeli brojevi.",
+      "quantity_required": "Unesite broj dobrih ili škart komada.",
+      "quantity_exceeds_input": "Ukupno prijavljeno bi bilo više nego što je stiglo na operaciju.",
+      "nothing_reported": "Na operaciji još ništa nije prijavljeno.",
+      "no_cutting_operation": "Nalog nema otvorenu operaciju odsijecanja.",
+      "invalid_status_transition": "Ovaj prelaz statusa nije dozvoljen.",
+      "machine_assignment_missing": "Šef proizvodnje mora prvo dodijeliti mašine svim operacijama.",
+      "order_not_in_production": "Nalog nije u proizvodnji.",
+      "close_reason_required": "Navedite razlog.",
+      "close_request_pending": "Zahtjev za zatvaranje već čeka odobrenje.",
+      "close_request_decided": "O zahtjevu je već odlučeno.",
+      "reject_note_required": "Za odbijanje je potreban razlog.",
+      "void_reason_required": "Za storniranje je potreban razlog."
+    }
+  },
+  "floorWork": {
+    "title": "Rad na operaciji",
+    "inspectionTitle": "Kontrola",
+    "arrived": "Stiglo",
+    "remaining": "Preostalo",
+    "good": "Dobro",
+    "goodInspected": "Dobro (kontrolisano)",
+    "scrap": "Škart",
+    "workingNow": "Trenutno radi: {names}",
+    "pausedTitle": "Pauza: {reason}",
+    "pausedSince": "Od {time}",
+    "blocked": {
+      "operation_external": "Vanjska operacija: status vodi šef proizvodnje.",
+      "cutting_uses_material_status": "Odsijecanje se vodi dugmadima za materijal.",
+      "not_an_employee": "Vaš korisnički račun nije povezan sa zaposlenim.",
+      "not_assigned": "Ova operacija nije dodijeljena vama.",
+      "order_closed": "Nalog je zatvoren.",
+      "operation_done": "Operacija je završena.",
+      "order_paused": "Nalog je pauziran (šef proizvodnje).",
+      "order_not_ready": "Nalog još nije spreman: materijal nije pripremljen.",
+      "not_arrived": "Komadi još nisu stigli s prethodne operacije."
+    },
+    "start": "Počni rad",
+    "startInspection": "Počni kontrolu",
+    "continue": "Nastavi rad",
+    "report": "Prijavi komade",
+    "pause": "Pauza",
+    "finish": "Završi operaciju",
+    "finishInspection": "Završi kontrolu",
+    "doneNote": "Operacija je završena.",
+    "closeRequest": {
+      "pending": "Zatvaranje s manjkom čeka odobrenje šefa proizvodnje.",
+      "approved": "Zatvaranje s manjkom je odobreno.",
+      "rejected": "Zatvaranje s manjkom je odbijeno."
+    },
+    "requestClose": "Zatraži zatvaranje naloga s manjkom",
+    "startedToast": "Rad na nalogu {number} je počeo.",
+    "pausedToast": "Pauza je zabilježena.",
+    "reportedToast": "Prijava je sačuvana.",
+    "finishedToast": "Operacija je završena.",
+    "closeRequestedToast": "Zahtjev za zatvaranje naloga {number} je poslan.",
+    "pauseTitle": "Pauza",
+    "pauseDescription": "Zašto mašina stoji? Vrijeme zastoja se računa dok neko ne nastavi rad.",
+    "pauseReason": "Razlog pauze",
+    "pauseReasonRequired": "Izaberite razlog.",
+    "noReasons": "Nema razloga zastoja: šef proizvodnje ih dodaje u šifarnicima.",
+    "pauseConfirm": "Potvrdi pauzu",
+    "note": "Napomena (nije obavezno)",
+    "reportTitle": "Prijava komada",
+    "finishTitle": "Završetak operacije",
+    "reportDescription": "Preostalo za prijavu: {remaining} {unit}.",
+    "goodInput": "Dobro",
+    "scrapInput": "Škart",
+    "scrapReason": "Razlog škarta",
+    "scrapReasonNone": "Bez razloga",
+    "scrapReasonHint": "Nije obavezno.",
+    "finishLeftover": "Neprijavljeno ostaje {count} {unit}: ti komadi ne idu dalje.",
+    "finishShortage": "Dobrih je manje od naručenog: nalog čeka zahtjev za zatvaranje i odobrenje šefa proizvodnje.",
+    "reportConfirm": "Sačuvaj prijavu",
+    "finishConfirm": "Završi",
+    "closeTitle": "Zatvaranje naloga s manjkom",
+    "closeDescription": "Dobrih komada: {good} od {quantity} {unit}. Šef proizvodnje mora odobriti zatvaranje.",
+    "closeReason": "Razlog",
+    "closeReasonRequired": "Unesite razlog.",
+    "closeConfirm": "Pošalji zahtjev",
+    "errors": {
+      "invalid": "Neispravan unos.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "not_found": "Nalog ili operacija ne postoji.",
+      "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+      "not_an_employee": "Vaš korisnički račun nije povezan sa zaposlenim.",
+      "operation_external": "Vanjsku operaciju ne prijavljuju radnici.",
+      "cutting_uses_material_status": "Odsijecanje se prijavljuje dugmadima za materijal.",
+      "order_closed": "Nalog je zatvoren.",
+      "operation_done": "Operacija je već završena.",
+      "order_paused": "Nalog je pauziran (šef proizvodnje).",
+      "order_not_ready": "Nalog još nije spreman za obradu (materijal).",
+      "not_arrived": "Komadi još nisu stigli s prethodne operacije.",
+      "downtime_reason_required": "Izaberite razlog pauze.",
+      "no_open_session": "Trenutno ne radite na ovoj operaciji.",
+      "operation_not_started": "Operacija još nije započeta.",
+      "whole_pieces_required": "Komadi se unose kao cijeli brojevi.",
+      "quantity_required": "Unesite broj dobrih ili škart komada.",
+      "quantity_exceeds_input": "Ukupno prijavljeno bi bilo više nego što je stiglo na operaciju.",
+      "nothing_reported": "Na operaciji još ništa nije prijavljeno.",
+      "no_cutting_operation": "Nalog nema otvorenu operaciju odsijecanja.",
+      "invalid_status_transition": "Ovaj prelaz statusa nije dozvoljen.",
+      "machine_assignment_missing": "Šef proizvodnje mora prvo dodijeliti mašine svim operacijama.",
+      "order_not_in_production": "Nalog nije u proizvodnji.",
+      "close_reason_required": "Navedite razlog.",
+      "close_request_pending": "Zahtjev za zatvaranje već čeka odobrenje.",
+      "close_request_decided": "O zahtjevu je već odlučeno.",
+      "reject_note_required": "Za odbijanje je potreban razlog.",
+      "void_reason_required": "Za storniranje je potreban razlog."
+    }
   }
 }

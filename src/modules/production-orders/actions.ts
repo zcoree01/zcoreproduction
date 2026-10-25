@@ -61,6 +61,7 @@ const RULE_ERRORS = [
   "cancel_reason_required",
   "completion_requires_production_report",
   "machine_assignment_missing",
+  "cut_quantity_required",
   "worker_external",
   "worker_inactive",
   "worker_not_inspector",
@@ -273,7 +274,8 @@ export async function setOrderStatusAction(
     if (
       rule === "invalid_status_transition" ||
       rule === "completion_requires_production_report" ||
-      rule === "machine_assignment_missing"
+      rule === "machine_assignment_missing" ||
+      rule === "cut_quantity_required"
     ) {
       return failStatus(rule);
     }

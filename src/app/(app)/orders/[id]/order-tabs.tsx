@@ -15,7 +15,7 @@ export function OrderTabs({
   panels,
 }: {
   initialTab: OrderTab;
-  counts: { operations: number; attachments: number };
+  counts: { operations: number; production: number; attachments: number };
   panels: Record<OrderTab, ReactNode>;
 }) {
   const t = useTranslations("orders.tabs");
@@ -37,7 +37,7 @@ export function OrderTabs({
         {ORDER_TABS.map((value) => (
           <TabsTrigger key={value} value={value} className="flex-none px-3">
             {t(value)}
-            {value === "operations" || value === "attachments" ? (
+            {value === "operations" || value === "production" || value === "attachments" ? (
               <span className="text-xs text-muted-foreground tabular-nums">{counts[value]}</span>
             ) : null}
           </TabsTrigger>

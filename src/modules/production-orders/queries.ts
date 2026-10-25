@@ -58,13 +58,18 @@ export type OrderRow = {
   dueWarning: DueWarning | null;
   operationCount: number;
   operationsDone: number;
+  /** Good pieces of the last operation. */
+  goodQuantity: string;
+  /** Every operation done with enough good pieces, or closing was approved. */
+  completionAllowed: boolean;
+  closeRequestPending: boolean;
   createdAt: string;
 };
 
 export type OrderPage = { rows: OrderRow[]; total: number };
 
 const LIST_COLUMNS =
-  "id, order_number, status, priority, effective_priority, computed_priority, due_date, planned_start, planned_end, quantity, unit, customer_id, customer_name, customer_number, product_id, part_number, product_name, revision_id, revision, planned_seconds, remaining_seconds, days_to_due, slack_days, started, due_warning, due_warning_days, operation_count, operations_done, created_at";
+  "id, order_number, status, priority, effective_priority, computed_priority, due_date, planned_start, planned_end, quantity, unit, customer_id, customer_name, customer_number, product_id, part_number, product_name, revision_id, revision, planned_seconds, remaining_seconds, days_to_due, slack_days, started, due_warning, due_warning_days, operation_count, operations_done, good_quantity, completion_allowed, close_request_pending, created_at";
 
 type DirectoryRow = {
   id: string | null;
@@ -95,6 +100,9 @@ type DirectoryRow = {
   due_warning_days: number | null;
   operation_count: number | null;
   operations_done: number | null;
+  good_quantity: number | null;
+  completion_allowed: boolean | null;
+  close_request_pending: boolean | null;
   created_at: string | null;
 };
 
@@ -132,6 +140,9 @@ function toOrderRow(row: DirectoryRow): OrderRow[] {
       dueWarning: asDueWarning(row.due_warning, row.due_warning_days),
       operationCount: row.operation_count ?? 0,
       operationsDone: row.operations_done ?? 0,
+      goodQuantity: decimalFromDb(row.good_quantity) ?? "0",
+      completionAllowed: row.completion_allowed ?? false,
+      closeRequestPending: row.close_request_pending ?? false,
       createdAt: row.created_at,
     },
   ];
@@ -316,6 +327,14 @@ export type OrderOperation = {
   status: OperationStatus;
   workers: OrderOperationWorker[];
   overlapCount: number;
+  /** Pieces that reached the operation, reported good and scrap. */
+  inputQuantity: string;
+  goodQuantity: string;
+  scrapQuantity: string;
+  /** Machine time (operation running), worker time (sum of sessions), downtime. */
+  runSeconds: string;
+  workerSeconds: string;
+  downtimeSeconds: string;
   archived: boolean;
 };
 
@@ -387,6 +406,12 @@ export async function listOrderOperations(
             }))
           : [],
         overlapCount: row.overlap_count ?? 0,
+        inputQuantity: decimalFromDb(row.input_quantity) ?? "0",
+        goodQuantity: decimalFromDb(row.good_quantity) ?? "0",
+        scrapQuantity: decimalFromDb(row.scrap_quantity) ?? "0",
+        runSeconds: decimalFromDb(row.run_seconds) ?? "0",
+        workerSeconds: decimalFromDb(row.worker_seconds) ?? "0",
+        downtimeSeconds: decimalFromDb(row.downtime_seconds) ?? "0",
         archived: row.archived_at !== null,
       },
     ];

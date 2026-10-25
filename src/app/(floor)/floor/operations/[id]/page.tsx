@@ -23,7 +23,9 @@ import { getFloorOperation } from "@/modules/production-orders/floor";
 import { barPlan } from "@/modules/production-orders/rules";
 import { isWholeUnit } from "@/modules/production-orders/schemas";
 import { MATERIAL_STATUSES, type OrderStatus } from "@/modules/production-orders/status-rules";
+import { getOperationWork, listReasons } from "@/modules/production-reporting/queries";
 import { MaterialStatusButtons } from "./material-status";
+import { WorkPanel } from "./work-panel";
 
 // One operation on the worker's phone (target of the QR code on the printed
 // order). Operations of other workers only show where the order is now.
@@ -118,6 +120,14 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
   }
 
   const { order, operation, operations, attachments } = result;
+  const reporting = !operation.is_cutting && !operation.is_external;
+  const [work, downtimeReasons, scrapReasons] = reporting
+    ? await Promise.all([
+        getOperationWork(operation.id),
+        listReasons(member.organization.id, "downtime_reason"),
+        listReasons(member.organization.id, "scrap_reason"),
+      ])
+    : [null, [], []];
   const plan = barPlan({
     barLength: order.bar_length_mm,
     remnant: order.bar_remnant_mm,
@@ -220,6 +230,23 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
         </CardContent>
       </Card>
 
+      {work ? (
+        <WorkPanel
+          operationId={operation.id}
+          orderId={order.id}
+          orderNumber={order.order_number}
+          orderQuantity={order.quantity ?? "0"}
+          operationStatus={operation.status}
+          isInspection={operation.is_inspection}
+          unitLabel={tUnits(order.unit)}
+          wholePieces={isWholeUnit(order.unit)}
+          timezone={member.organization.timezone}
+          work={work}
+          downtimeReasons={downtimeReasons}
+          scrapReasons={scrapReasons}
+        />
+      ) : null}
+
       {showMaterial ? (
         <Card>
           <CardHeader>
@@ -230,6 +257,9 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
               orderId={order.id}
               orderNumber={order.order_number}
               status={order.status}
+              cuttingOpen={operation.status !== "done"}
+              quantity={order.quantity ?? "0"}
+              wholePieces={isWholeUnit(order.unit)}
             />
           </CardContent>
         </Card>

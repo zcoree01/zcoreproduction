@@ -74,7 +74,7 @@ export type StatusActor = {
 
 /**
  * Targets the actor may choose from `from`. "completed" is listed for
- * managers but stays blocked until production reporting exists
+ * managers but stays blocked until production reporting allows it
  * (see completionBlocked).
  */
 export function allowedOrderTargets(from: OrderStatus, actor: StatusActor): OrderStatus[] {
@@ -84,12 +84,12 @@ export function allowedOrderTargets(from: OrderStatus, actor: StatusActor): Orde
 }
 
 /**
- * Completing an order needs reported good pieces (next module: production
- * reporting). Until then it is always blocked; the database agrees
- * (private.order_completion_allowed).
+ * Completing an order needs every operation done with at least the ordered
+ * good pieces, or an approved request to close with a shortage. The database
+ * computes it (private.order_completion_allowed → completion_allowed).
  */
-export function completionBlocked(): boolean {
-  return true;
+export function completionBlocked(order: { completionAllowed: boolean }): boolean {
+  return !order.completionAllowed;
 }
 
 export function requiresReason(to: OrderStatus): boolean {

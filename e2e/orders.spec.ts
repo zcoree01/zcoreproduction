@@ -130,14 +130,16 @@ test("@mobile operator sees the queue of a machine and only their operations", a
     .eq("status", "ready")
     .limit(1)
     .single();
+  // Base table: the directory view uses functions granted to app users only.
   const saw = await admin
-    .from("production_order_operation_directory")
-    .select("id")
+    .from("production_order_operations")
+    .select("id, operation_types!inner(code)")
     .eq("order_id", urgent.data!.id)
-    .eq("operation_code", "RZ")
+    .eq("operation_types.code", "RZ")
     .single();
   expect(saw.error).toBeNull();
-  // The order's QR code: Omer has two operations here, none arrived yet.
+  // The order's QR code: Omer has two operations here; the cut pieces wait
+  // for the inspection, so none has arrived yet.
   await page.goto(`/floor/orders/${urgent.data!.id}`);
   await expect(page.getByText("Izaberite svoju operaciju.")).toBeVisible();
   await page.goto(`/floor/operations/${saw.data!.id}`);

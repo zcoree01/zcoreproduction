@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { CutQuantitySheet } from "@/components/shared/cut-quantity-sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -56,11 +57,21 @@ export function OrderStatusControl({
   orderNumber,
   status,
   actor,
+  completionAllowed,
+  cuttingOpen,
+  wholePieces,
+  quantity,
 }: {
   orderId: string;
   orderNumber: string;
   status: OrderStatus;
   actor: StatusActor;
+  /** Every operation done with enough good pieces, or closing approved. */
+  completionAllowed: boolean;
+  /** A cutting operation is not done: "ready" asks for the cut pieces. */
+  cuttingOpen: boolean;
+  wholePieces: boolean;
+  quantity: string;
 }) {
   const t = useTranslations("orders.status");
   const tStatus = useTranslations("orderStatus");
@@ -68,6 +79,7 @@ export function OrderStatusControl({
   const [pending, startTransition] = useTransition();
   const [cancelling, setCancelling] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [cutting, setCutting] = useState(false);
   const targets = allowedOrderTargets(status, actor);
   if (targets.length === 0) return null;
 
@@ -93,7 +105,7 @@ export function OrderStatusControl({
           <DropdownMenuGroup>
             <DropdownMenuLabel>{t("moveTo")}</DropdownMenuLabel>
             {targets.map((to) => {
-              const blocked = to === "completed" && completionBlocked();
+              const blocked = to === "completed" && completionBlocked({ completionAllowed });
               return (
                 <DropdownMenuItem
                   key={to}
@@ -102,6 +114,7 @@ export function OrderStatusControl({
                   onClick={() => {
                     if (to === "cancelled") setCancelling(true);
                     else if (to === "archived") setArchiving(true);
+                    else if (to === "ready" && cuttingOpen) setCutting(true);
                     else change(to);
                   }}
                 >
@@ -127,6 +140,14 @@ export function OrderStatusControl({
           setCancelling(false);
           change("cancelled", reason);
         }}
+      />
+      <CutQuantitySheet
+        open={cutting}
+        onOpenChange={setCutting}
+        orderId={orderId}
+        orderNumber={orderNumber}
+        suggested={quantity}
+        wholePieces={wholePieces}
       />
       <ConfirmDialog
         open={archiving}

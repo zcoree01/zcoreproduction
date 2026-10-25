@@ -15,6 +15,9 @@ const CATALOGS: Record<CatalogKind, string[]> = {
   job_title: ["CNC operater", "Bravar", "Kontrolor"],
   skill: ["CNC programiranje", "Čitanje tehničkog crteža", "Zavarivanje TIG"],
   product_type: ["Gotov proizvod"],
+  // Starter reasons come from migration 20261026100000 for every organization.
+  downtime_reason: [],
+  scrap_reason: [],
 };
 
 const MACHINES = [

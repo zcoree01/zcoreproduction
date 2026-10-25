@@ -21,7 +21,8 @@ export type NavLabelKey =
   | "productionSettings"
   | "floorMachines"
   | "orders"
-  | "floorOperations";
+  | "floorOperations"
+  | "inspections";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -130,7 +131,7 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "catalogs",
     icon: "catalog",
     module: "production",
-    permission: ["machines.manage", "employees.manage", "products.manage"],
+    permission: ["machines.manage", "employees.manage", "products.manage", "orders.manage"],
     surface: "app",
     section: "administration",
   },
@@ -163,6 +164,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     permission: "org.settings.manage",
     surface: "app",
     section: "administration",
+  },
+  {
+    id: "inspections",
+    href: "/floor/operations?machine=mine",
+    label: "inspections",
+    icon: "operation",
+    module: "production",
+    permission: "quality.inspect",
+    surface: "app",
+    section: "production",
   },
   {
     id: "floor-home",

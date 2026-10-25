@@ -11,9 +11,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
+import { formatDecimal } from "@/lib/decimal";
 import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { cn } from "@/lib/utils";
 import { parseOrderTab } from "@/modules/production-orders/list-params";
+import { isWholeUnit } from "@/modules/production-orders/schemas";
 import {
   getOrder,
   getOrderHistory,
@@ -23,6 +25,7 @@ import {
   listOrderAttachments,
   listOrderOperations,
 } from "@/modules/production-orders/queries";
+import { getOrderProduction } from "@/modules/production-reporting/queries";
 import { getProductionSettings, listOperationTypes } from "@/modules/products/queries";
 import { OrderAttachmentsPanel } from "./attachments-panel";
 import { OrderHistoryPanel } from "./history-panel";
@@ -30,6 +33,7 @@ import { OperationsPanel } from "./operations-panel";
 import { OrderActions, OrderStatusControl } from "./order-actions";
 import { OrderTabs } from "./order-tabs";
 import { OverviewPanel } from "./overview-panel";
+import { ProductionPanel } from "./production-panel";
 
 export default function OrderPage({ params, searchParams }: PageProps<"/orders/[id]">) {
   return (
@@ -49,8 +53,9 @@ async function OrderContent({
   const member = await requireMember();
   const organizationId = member.organization.id;
   const timezone = member.organization.timezone;
-  const [t, format, access] = await Promise.all([
+  const [t, tUnits, format, access] = await Promise.all([
     getTranslations("orders"),
+    getTranslations("productUnits"),
     getFormatter(),
     getMemberAccess(member),
   ]);
@@ -86,6 +91,7 @@ async function OrderContent({
   };
   const [
     operations,
+    production,
     attachments,
     statusLog,
     history,
@@ -95,6 +101,7 @@ async function OrderContent({
     types,
   ] = await Promise.all([
     listOrderOperations(organizationId, order.id),
+    getOrderProduction(order.id),
     listOrderAttachments(organizationId, order.id),
     getOrderStatusLog(order.id),
     getOrderHistory(order.id),
@@ -108,6 +115,9 @@ async function OrderContent({
   const stamp = (iso: string) =>
     format.dateTime(new Date(iso), { dateStyle: "medium", timeStyle: "short", timeZone: timezone });
   const revisionLabel = order.revision ?? t("overview.unlabeled");
+  const cuttingOpen = operations.some(
+    (op) => !op.archived && op.type.isCutting && op.status !== "done",
+  );
   const missingMachines = operations.filter(
     (op) => !op.archived && !op.machine && !op.type.isExternal && !op.type.isInspection,
   ).length;
@@ -140,6 +150,13 @@ async function OrderContent({
             <p className="text-sm text-muted-foreground">
               {t("detail.statusSince", { time: stamp(order.statusChangedAt) })}
             </p>
+            <p className="text-sm font-medium tabular-nums" data-testid="order-good-quantity">
+              {t("detail.goodProgress", {
+                good: formatDecimal(order.goodQuantity),
+                quantity: formatDecimal(order.quantity),
+                unit: tUnits(order.unit),
+              })}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <OrderStatusControl
@@ -147,6 +164,10 @@ async function OrderContent({
               orderNumber={order.orderNumber}
               status={order.status}
               actor={actor}
+              completionAllowed={order.completionAllowed}
+              cuttingOpen={cuttingOpen}
+              wholePieces={isWholeUnit(order.unit)}
+              quantity={order.quantity}
             />
             {canManage ? <OrderActions order={order} priorityMode={settings.priorityMode} /> : null}
           </div>
@@ -167,6 +188,7 @@ async function OrderContent({
         initialTab={tab}
         counts={{
           operations: operations.filter((op) => !op.archived).length,
+          production: production.reports.filter((row) => row.voidedAt === null).length,
           attachments: attachments.filter((a) => a.replacedAt === null).length,
         }}
         panels={{
@@ -187,6 +209,37 @@ async function OrderContent({
               assignment={{ ...assignment, timezone }}
               defaultUnit={productionSettings.cycleTimeUnit}
               canManage={canManage}
+            />
+          ),
+          production: (
+            <ProductionPanel
+              orderId={order.id}
+              orderNumber={order.orderNumber}
+              orderStatus={order.status}
+              quantity={order.quantity}
+              goodQuantity={order.goodQuantity}
+              unit={order.unit}
+              production={{
+                reports: production.reports.map((row) => ({
+                  ...row,
+                  reportedLabel: stamp(row.reportedAt),
+                })),
+                downtime: production.downtime.map((row) => ({
+                  ...row,
+                  startedLabel: stamp(row.startedAt),
+                  endedLabel: row.endedAt ? stamp(row.endedAt) : null,
+                })),
+                closeRequests: production.closeRequests.map((row) => ({
+                  ...row,
+                  requestedLabel: stamp(row.requestedAt),
+                  decidedLabel: row.decidedAt ? stamp(row.decidedAt) : null,
+                })),
+              }}
+              can={{
+                void: canManage,
+                approve: access.permissions.has("orders.close.approve"),
+                request: canManage || access.permissions.has("quality.inspect"),
+              }}
             />
           ),
           attachments: (

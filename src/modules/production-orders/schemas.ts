@@ -156,7 +156,8 @@ export type OrderStatusError =
   | "invalid_status_transition"
   | "cancel_reason_required"
   | "completion_requires_production_report"
-  | "machine_assignment_missing";
+  | "machine_assignment_missing"
+  | "cut_quantity_required";
 export type OrderStatusActionResult = ActionResult<"reason", OrderStatusError>;
 
 export const operationStatusSchema = z.enum(OPERATION_STATUSES);

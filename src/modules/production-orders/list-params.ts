@@ -33,7 +33,13 @@ export function parseOrderListParams(searchParams: SearchParamsRecord): OrderLis
   };
 }
 
-export const ORDER_TABS = ["overview", "operations", "attachments", "history"] as const;
+export const ORDER_TABS = [
+  "overview",
+  "operations",
+  "production",
+  "attachments",
+  "history",
+] as const;
 export type OrderTab = (typeof ORDER_TABS)[number];
 
 export function parseOrderTab(searchParams: SearchParamsRecord): OrderTab {

@@ -35,6 +35,12 @@ export type FloorQueueItem = {
   assignedByName: boolean;
   /** Every earlier operation is done: the work is at this machine now. */
   arrived: boolean;
+  /** Pieces that reached the operation, good and scrap reported on it. */
+  inputQuantity: string;
+  goodQuantity: string;
+  scrapQuantity: string;
+  /** The caller has an open work session on it. */
+  working: boolean;
 };
 
 const unitSchema = z.enum(PRODUCT_UNITS).catch("pcs");
@@ -89,6 +95,10 @@ export async function getFloorQueue(
             : null,
         assignedByName: row.assigned_by_name,
         arrived: row.arrived,
+        inputQuantity: decimalFromDb(row.input_quantity) ?? "0",
+        goodQuantity: decimalFromDb(row.good_quantity) ?? "0",
+        scrapQuantity: decimalFromDb(row.scrap_quantity) ?? "0",
+        working: row.working,
       },
     ];
   });

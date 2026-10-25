@@ -57,6 +57,10 @@ async function cleanup(service: Client, orgIds: string[]) {
     if (opIds.length > 0) {
       await service.from("production_order_operation_workers").delete().in("operation_id", opIds);
     }
+    await service.from("production_reports").delete().in("order_id", orderIds);
+    await service.from("production_work_sessions").delete().in("order_id", orderIds);
+    await service.from("production_downtime_events").delete().in("order_id", orderIds);
+    await service.from("production_order_close_requests").delete().in("order_id", orderIds);
     await service.from("production_order_status_history").delete().in("order_id", orderIds);
     await service.from("production_order_attachments").delete().in("order_id", orderIds);
     await service.from("production_order_operations").delete().in("order_id", orderIds);
@@ -355,13 +359,28 @@ async function assign(
   });
 }
 
-/** Order with the turning operation on CNC1, released to "ready". */
-async function readyOrder(overrides: Record<string, unknown> = {}) {
+/** "Ready for further processing" with the number of cut pieces (finishes cutting). */
+async function cut(client: Client, orderId: string, quantity = "100") {
+  return client.rpc("finish_cutting", {
+    p_order_id: orderId,
+    p_quantity: quantity as unknown as number,
+    p_idempotency_key: crypto.randomUUID(),
+  });
+}
+
+/** Order with the turning operation on CNC1, released ("planned"); cutting still open. */
+async function plannedOrder(overrides: Record<string, unknown> = {}) {
   const id = await createOrder(fx.a.admin, overrides);
   const turning = await opOfType(id, ids.turnType);
   expect((await assign(turning.id, ids.cnc1)).error).toBeNull();
   expect((await setStatus(fx.a.admin, id, "planned")).error).toBeNull();
-  expect((await setStatus(fx.a.admin, id, "ready")).error).toBeNull();
+  return id;
+}
+
+/** Same, with the pieces cut: "ready". */
+async function readyOrder(overrides: Record<string, unknown> = {}) {
+  const id = await plannedOrder(overrides);
+  expect((await cut(fx.a.admin, id)).error).toBeNull();
   return id;
 }
 
@@ -608,10 +627,12 @@ describe("order status rules", () => {
     );
     const turning = await opOfType(id, ids.turnType);
     expect((await assign(turning.id, ids.cnc1)).error).toBeNull();
-    expect((await setStatus(fx.a.admin, id, "ready")).error).toBeNull();
+    // The cutting operation is open: "ready" needs the number of cut pieces.
+    expect((await setStatus(fx.a.admin, id, "ready")).error?.message).toBe("cut_quantity_required");
+    expect((await cut(fx.a.admin, id)).error).toBeNull();
     expect((await setStatus(fx.a.admin, id, "in_progress")).error).toBeNull();
     expect((await setStatus(fx.a.admin, id, "quality_check")).error).toBeNull();
-    // Completion waits for production reporting (next module).
+    // Completion needs every operation done with enough good pieces.
     expect((await setStatus(fx.a.admin, id, "completed")).error?.message).toBe(
       "completion_requires_production_report",
     );
@@ -686,7 +707,8 @@ describe("order status rules", () => {
     expect((await setStatus(warehouse, id, "cancelled", "nope")).error?.code).toBe("42501");
     const turning = await opOfType(id, ids.turnType);
     expect((await assign(turning.id, ids.cnc1)).error).toBeNull();
-    expect((await setStatus(warehouse, id, "ready")).error).toBeNull();
+    expect((await setStatus(warehouse, id, "ready")).error?.message).toBe("cut_quantity_required");
+    expect((await cut(warehouse, id, "98")).error).toBeNull();
     expect((await setStatus(warehouse, id, "in_progress")).error?.code).toBe("42501");
     // The warehouse reads orders but cannot edit them.
     const edit = await warehouse
@@ -782,7 +804,7 @@ describe("assignments", () => {
 describe("shop floor visibility", () => {
   it("shows the operator the open operations of their machines, not drafts", async () => {
     const draft = await createOrder();
-    const released = await readyOrder();
+    const released = await plannedOrder();
     const queue = await fx.a.operator.rpc("floor_operation_queue", {
       p_org_id: fx.a.org.id,
       p_machine_id: ids.saw,
@@ -801,9 +823,11 @@ describe("shop floor visibility", () => {
   });
 
   it("marks operations as arrived once every earlier one is done", async () => {
-    const id = await readyOrder();
+    const id = await createOrder();
     const cutting = await opOfType(id, ids.cutType);
     const turning = await opOfType(id, ids.turnType);
+    expect((await assign(turning.id, ids.cnc1)).error).toBeNull();
+    expect((await setStatus(fx.a.admin, id, "planned")).error).toBeNull();
     const queue = async (machine: string) =>
       (
         await fx.a.operator.rpc("floor_operation_queue", {
@@ -821,7 +845,9 @@ describe("shop floor visibility", () => {
       });
       expect(error).toBeNull();
     }
+    // Done by hand without a report: the pieces pass through.
     expect((await queue(ids.cnc1))?.arrived).toBe(true);
+    expect((await queue(ids.cnc1))?.input_quantity).toBe(100);
     expect((await queue(ids.cnc1))?.operation_id).toBe(turning.id);
   });
 
@@ -829,7 +855,7 @@ describe("shop floor visibility", () => {
     const draft = await createOrder();
     expect((await fx.a.operator.rpc("floor_order", { p_order_id: draft })).data).toBeNull();
 
-    const id = await readyOrder();
+    const id = await plannedOrder();
     const { data, error } = await fx.a.operator.rpc("floor_order", { p_order_id: id });
     expect(error).toBeNull();
     const operations = (data as { operations: { code: string; mine: boolean; arrived: boolean }[] })
@@ -844,7 +870,7 @@ describe("shop floor visibility", () => {
   });
 
   it("hides operations assigned to someone else by name", async () => {
-    const id = await readyOrder();
+    const id = await plannedOrder();
     const turning = await opOfType(id, ids.turnType);
     expect((await assign(turning.id, ids.cnc1, [ids.otherEmployee])).error).toBeNull();
 

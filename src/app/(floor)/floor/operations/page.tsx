@@ -118,7 +118,10 @@ async function FloorOperationsContent({
       </form>
       <nav aria-label={t("machinePicker")} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {machines.map((machine) => chip(machine.id, machine.code))}
-        {chip(MINE, t("assignedToMe"))}
+        {chip(
+          MINE,
+          access.permissions.has("quality.inspect") ? t("inspections") : t("assignedToMe"),
+        )}
       </nav>
       {query ? (
         <p className="text-sm text-muted-foreground">
