@@ -220,7 +220,10 @@ test("head of production filters a customer's orders and sees their progress", a
   const progress = page.locator("[data-testid^=customer-order-progress-]");
   await expect(progress).toHaveCount(1);
   await expect(progress.getByRole("progressbar")).toBeVisible();
-  await expect(progress).toContainText("Kod: KT · Kontrola");
+  // Under the bar: the operation reached (KT, the 2nd of 8) and no percent.
+  await expect(progress).toContainText("KT · Kontrola");
+  await expect(progress).toContainText("02/08");
+  await expect(progress).not.toContainText("%");
 
   await search.getByLabel("Hitnost").selectOption("5");
   await search.getByRole("button", { name: "Traži" }).click();

@@ -1966,10 +1966,9 @@
   },
   "orderProgress": {
     "label": "Napredak {percent} %",
-    "at": "Kod: {code} · {name}",
-    "atMachine": "Kod: {code} · {name} ({machine})",
     "done": "Sve operacije završene",
-    "notStarted": "Nije počelo"
+    "notStarted": "Nije počelo",
+    "nameMachine": "{name} ({machine})"
   },
   "notifications": {
     "label": "Obavještenja",
