@@ -61,7 +61,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - New system role **Kontrolor** (`quality_inspector`): reads orders, products, machines; only inspectors can be assigned to inspection operations.
 - Tests: `npm run check` (221 unit tests), `npm run test:db` (123 RLS/integration tests), `npm run e2e` (38 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing, weight and totals and opens the customer, warehouse read-only, admin builds operation types → customer → product with material picked by typing, computed weight and a PDF → two operations reordered by drag & drop and arrows → revision A → history → archive; orders: head of production creates an order (whole pieces, bar calculation), releases it, prints it with QR codes, cancels with a reason and archives; warehouse limited to material statuses; operator's machine queue and a foreign operation via QR (desktop + mobile)).
 - **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
-- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`3a390ee`, products v2). DB and e2e tests need Supabase secrets, so they are not in CI yet.
+- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`1d49340`, production orders + floor review). DB and e2e tests need Supabase secrets, so they are not in CI yet.
 - **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
 - Claude Code: Prettier hook after every Write/Edit; slash commands `/feature`, `/verify`, `/status`.
 
@@ -148,6 +148,7 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - Migration `20261025130000_floor_order_qr` (`private.operation_arrived`, `floor_operation_queue` + `arrived`, `floor_order`), D-017.
 - Raised by the review: workers have no buttons to start/finish work and nothing for inspections — that is production reporting (next module); questions asked before building it.
 - Verified: `npm run check` (221), `npm run test:db` (123), `npm run e2e` (38), `npm run build`, `npm run format:check`.
+- Pushed `feat/production-orders` (CI green), fast-forwarded `main` to `1d49340` and pushed (CI green).
 
 ### 2026-10-25 — Production orders and operations
 
