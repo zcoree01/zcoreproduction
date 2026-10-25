@@ -8,6 +8,7 @@ import {
   canTransition,
   isMaterialTransition,
   OPERATION_TRANSITIONS,
+  operationTargets,
   ORDER_STATUSES,
   ORDER_TRANSITIONS,
   requiresReason,
@@ -100,5 +101,21 @@ describe("operation status transitions", () => {
     expect(OPERATION_TRANSITIONS.paused).toContain("in_progress");
     expect(OPERATION_TRANSITIONS.done).toEqual(["in_progress"]);
     expect(OPERATION_TRANSITIONS.waiting).not.toContain("done");
+  });
+});
+
+describe("external operation steps", () => {
+  it("go waiting → preparing shipment → shipped → received, never paused", () => {
+    expect(operationTargets("waiting", true)).toEqual(["ready"]);
+    expect(operationTargets("ready", true)).toEqual(["waiting", "in_progress"]);
+    expect(operationTargets("in_progress", true)).toEqual(["ready", "done"]);
+    expect(operationTargets("done", true)).toEqual(["in_progress"]);
+    for (const status of ["waiting", "ready", "in_progress", "done"] as const) {
+      expect(operationTargets(status, true)).not.toContain("paused");
+    }
+  });
+
+  it("leave internal operations with their own matrix", () => {
+    expect(operationTargets("in_progress", false)).toEqual(OPERATION_TRANSITIONS.in_progress);
   });
 });

@@ -1078,7 +1078,18 @@
         "product": "Šifra",
         "quantity": "Količina",
         "due": "Rok",
-        "status": "Status"
+        "status": "Status",
+        "progress": "Napredak"
+      },
+      "filters": {
+        "search": "Nalog ili šifra",
+        "searchPlaceholder": "Broj naloga ili šifra dijela…",
+        "priority": "Hitnost",
+        "status": "Status",
+        "all": "Sve",
+        "apply": "Traži",
+        "reset": "Poništi",
+        "noResults": "Nema naloga za ove filtere."
       }
     },
     "form": {
@@ -1194,7 +1205,8 @@
     "quality_check": "Kontrola kvaliteta",
     "completed": "Završen",
     "cancelled": "Otkazan",
-    "archived": "Arhiviran"
+    "archived": "Arhiviran",
+    "close_requested": "Zahtjev za zatvaranje"
   },
   "operationStatus": {
     "waiting": "Čeka",
@@ -1241,7 +1253,8 @@
       "due": "Rok",
       "plannedTime": "Plan. vrijeme",
       "operations": "Operacije",
-      "status": "Status"
+      "status": "Status",
+      "progress": "Napredak"
     },
     "filters": {
       "allStatuses": "Svi aktivni",
@@ -1526,8 +1539,10 @@
         "pieces": "Dobro {good} · škart {scrap} / stiglo {input}",
         "machine": "Mašina",
         "workers": "radnici",
-        "downtime": "zastoj"
-      }
+        "downtime": "zastoj",
+        "atSupplier": "Kod kooperanta"
+      },
+      "externalHint": "Vanjsku operaciju vodi šef proizvodnje: priprema za isporuku, isporučeno, primljeno."
     },
     "attachments": {
       "openFailed": "Datoteku nije moguće otvoriti.",
@@ -1941,5 +1956,28 @@
       "reject_note_required": "Za odbijanje je potreban razlog.",
       "void_reason_required": "Za storniranje je potreban razlog."
     }
+  },
+  "externalOperationStatus": {
+    "waiting": "Čeka",
+    "ready": "Priprema za isporuku",
+    "in_progress": "Isporučeno",
+    "paused": "Pauzirana",
+    "done": "Primljeno (završeno)"
+  },
+  "orderProgress": {
+    "label": "Napredak {percent} %",
+    "at": "Kod: {code} · {name}",
+    "atMachine": "Kod: {code} · {name} ({machine})",
+    "done": "Sve operacije završene",
+    "notStarted": "Nije počelo"
+  },
+  "notifications": {
+    "label": "Obavještenja",
+    "empty": "Nema novih obavještenja.",
+    "closeTitle": "Zahtjevi za zatvaranje s manjkom",
+    "closeItem": "{number}: {good} od {quantity} {unit} dobrih",
+    "closeBy": "{name} · {reason}",
+    "newToast": "Novi zahtjev za zatvaranje: {number}",
+    "open": "Otvori"
   }
 }

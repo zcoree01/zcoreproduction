@@ -2158,6 +2158,11 @@ export type Database = {
           completion_allowed: boolean | null
           computed_priority: number | null
           created_at: string | null
+          current_machine_code: string | null
+          current_operation_code: string | null
+          current_operation_external: boolean | null
+          current_operation_name: string | null
+          current_operation_status: string | null
           customer_id: string | null
           customer_name: string | null
           customer_number: number | null
@@ -2183,6 +2188,7 @@ export type Database = {
           priority: number | null
           product_id: string | null
           product_name: string | null
+          progress_percent: number | null
           quantity: number | null
           remaining_seconds: number | null
           revision: string | null
@@ -2422,6 +2428,20 @@ export type Database = {
       pause_operation_work: {
         Args: { p_notes?: string; p_operation_id: string; p_reason_id: string }
         Returns: undefined
+      }
+      pending_close_requests: {
+        Args: { p_org_id: string }
+        Returns: {
+          good_quantity: number
+          order_id: string
+          order_number: string
+          quantity: number
+          reason: string
+          request_id: string
+          requested_at: string
+          requested_by_name: string
+          unit: string
+        }[]
       }
       product_history: {
         Args: { p_limit?: number; p_product_id: string }

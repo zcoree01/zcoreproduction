@@ -41,16 +41,23 @@ function isFieldKey(value: string): value is FieldKey {
 export function OrderHistoryPanel({
   statusLog,
   entries,
+  externalSequences,
 }: {
   statusLog: Labelled<StatusLogEntry>[];
   entries: Labelled<OrderHistoryEntry>[];
+  /** Positions of external operations: their statuses are shipping steps. */
+  externalSequences: number[];
 }) {
   const t = useTranslations("orders.history");
   const tOrder = useTranslations("orderStatus");
   const tOperation = useTranslations("operationStatus");
-  const statusLabel = (value: string | null, operation: boolean) => {
+  const tExternal = useTranslations("externalOperationStatus");
+  const statusLabel = (value: string | null, operation: StatusLogEntry["operation"]) => {
     if (value === null) return "—";
-    if (operation) return isOperationStatus(value) ? tOperation(value) : value;
+    if (operation) {
+      if (!isOperationStatus(value)) return value;
+      return externalSequences.includes(operation.sequence) ? tExternal(value) : tOperation(value);
+    }
     return isOrderStatus(value) ? tOrder(value) : value;
   };
 
@@ -87,10 +94,8 @@ export function OrderHistoryPanel({
                         : t("order")}
                     </TableCell>
                     <TableCell>
-                      {statusLabel(entry.from, entry.operation !== null)} →{" "}
-                      <span className="font-medium">
-                        {statusLabel(entry.to, entry.operation !== null)}
-                      </span>
+                      {statusLabel(entry.from, entry.operation)} →{" "}
+                      <span className="font-medium">{statusLabel(entry.to, entry.operation)}</span>
                     </TableCell>
                     <TableCell className="whitespace-pre-line">{entry.reason ?? "—"}</TableCell>
                   </TableRow>

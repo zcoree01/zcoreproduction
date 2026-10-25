@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { decimalFromDb } from "@/lib/decimal";
 import { createClient } from "@/lib/supabase/server";
+import { PRODUCT_UNITS, type ProductUnit } from "@/modules/products/schemas";
 import type { WorkBlock } from "./rules";
 
 const numeric = z
@@ -181,4 +182,38 @@ export async function getOrderProduction(orderId: string): Promise<OrderProducti
       ];
     }),
   };
+}
+
+export type PendingCloseRequest = {
+  requestId: string;
+  orderId: string;
+  orderNumber: string;
+  reason: string;
+  good: string;
+  quantity: string;
+  unit: ProductUnit;
+  requestedAt: string;
+  requestedBy: string | null;
+};
+
+/** Requests to close with a shortage waiting for the caller (orders.close.approve, else none). */
+export async function listPendingCloseRequests(
+  organizationId: string,
+): Promise<PendingCloseRequest[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("pending_close_requests", {
+    p_org_id: organizationId,
+  });
+  if (error) throw error;
+  return data.map((row) => ({
+    requestId: row.request_id,
+    orderId: row.order_id,
+    orderNumber: row.order_number,
+    reason: row.reason,
+    good: decimalFromDb(row.good_quantity) ?? "0",
+    quantity: decimalFromDb(row.quantity) ?? "0",
+    unit: z.enum(PRODUCT_UNITS).catch("pcs").parse(row.unit),
+    requestedAt: row.requested_at,
+    requestedBy: row.requested_by_name,
+  }));
 }

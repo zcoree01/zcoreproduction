@@ -7,14 +7,14 @@ import { useMemo } from "react";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table/data-table";
 import { Duration } from "@/components/shared/duration";
 import { EmptyState } from "@/components/shared/empty-state";
+import { OrderProgress } from "@/components/shared/order-progress";
 import { DueWarningBadge, OrderStatusBadge, PriorityBadge } from "@/components/shared/order-badges";
 import { formatDecimal } from "@/lib/decimal";
 import { formatDay } from "@/lib/format";
 import type { CustomerOption } from "@/modules/customers/queries";
-import { DUE_FILTERS } from "@/modules/production-orders/list-params";
+import { DUE_FILTERS, ORDER_STATUS_FILTERS } from "@/modules/production-orders/list-params";
 import type { MachineChoice, OrderRow } from "@/modules/production-orders/queries";
 import type { PriorityMode } from "@/modules/production-orders/rules";
-import { ORDER_STATUSES } from "@/modules/production-orders/status-rules";
 
 export type OrderTableParams = {
   page: number;
@@ -124,17 +124,18 @@ export function OrdersTable({
       },
       {
         id: "progress",
-        header: t("columns.operations"),
-        cell: ({ row }) => (
-          <span className="tabular-nums">
-            {row.original.operationsDone}/{row.original.operationCount}
-          </span>
-        ),
+        header: t("columns.progress"),
+        cell: ({ row }) => <OrderProgress order={row.original} compact />,
       },
       {
         id: "status",
         header: t("columns.status"),
-        cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
+        cell: ({ row }) => (
+          <OrderStatusBadge
+            status={row.original.status}
+            closeRequested={row.original.closeRequestPending}
+          />
+        ),
       },
     ],
     [t, tUnits, priorityMode],
@@ -155,7 +156,10 @@ export function OrdersTable({
           label: t("columns.status"),
           value: params.status,
           allLabel: t("filters.allStatuses"),
-          options: ORDER_STATUSES.map((status) => ({ value: status, label: tStatus(status) })),
+          options: ORDER_STATUS_FILTERS.map((status) => ({
+            value: status,
+            label: tStatus(status),
+          })),
         },
         {
           id: "priority",

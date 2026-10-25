@@ -5,6 +5,7 @@ import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
 import { OrderStatusBadge, PriorityBadge } from "@/components/shared/order-badges";
+import { OrderProgress } from "@/components/shared/order-progress";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -138,7 +139,7 @@ async function OrderContent({
               <h1 className="font-mono text-2xl font-semibold tracking-tight">
                 {order.orderNumber}
               </h1>
-              <OrderStatusBadge status={order.status} />
+              <OrderStatusBadge status={order.status} closeRequested={order.closeRequestPending} />
               <PriorityBadge
                 priority={order.effectivePriority}
                 automatic={settings.priorityMode === "automatic" && order.priority === null}
@@ -150,6 +151,7 @@ async function OrderContent({
             <p className="text-sm text-muted-foreground">
               {t("detail.statusSince", { time: stamp(order.statusChangedAt) })}
             </p>
+            <OrderProgress order={order} className="w-72" />
             <p className="text-sm font-medium tabular-nums" data-testid="order-good-quantity">
               {t("detail.goodProgress", {
                 good: formatDecimal(order.goodQuantity),
@@ -256,6 +258,9 @@ async function OrderContent({
                 createdLabel: stamp(entry.changedAt),
               }))}
               entries={history.map((entry) => ({ ...entry, createdLabel: stamp(entry.createdAt) }))}
+              externalSequences={operations
+                .filter((op) => op.type.isExternal)
+                .map((op) => op.sequence)}
             />
           ),
         }}

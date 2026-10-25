@@ -142,6 +142,7 @@ const currentSchema = z
     status: operationStatusSchema,
     machine_code: z.string().nullable(),
     machine_name: z.string().nullable(),
+    is_external: z.boolean().catch(false),
   })
   .nullable();
 
@@ -204,6 +205,7 @@ const visibleSchema = z.object({
       name: z.string(),
       status: operationStatusSchema,
       machine_code: z.string().nullable(),
+      is_external: z.boolean().catch(false),
     }),
   ),
   attachments: z.array(
@@ -252,6 +254,7 @@ const floorOrderSchema = z.object({
       name: z.string(),
       status: operationStatusSchema,
       machine_code: z.string().nullable(),
+      is_external: z.boolean().catch(false),
       mine: z.boolean(),
       arrived: z.boolean(),
     }),

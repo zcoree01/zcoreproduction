@@ -125,6 +125,27 @@ export const OPERATION_TRANSITIONS: Record<OperationStatus, readonly OperationSt
   done: ["in_progress"],
 };
 
+/**
+ * External operations (another company): the head of production moves them
+ * through waiting → ready ("priprema za isporuku") → in_progress
+ * ("isporučeno") → done ("primljeno"). No pause. Mirrors
+ * private.external_transition_allowed.
+ */
+export const EXTERNAL_OPERATION_TRANSITIONS: Record<OperationStatus, readonly OperationStatus[]> = {
+  waiting: ["ready"],
+  ready: ["waiting", "in_progress"],
+  in_progress: ["ready", "done"],
+  paused: [],
+  done: ["in_progress"],
+};
+
+export function operationTargets(
+  status: OperationStatus,
+  external: boolean,
+): readonly OperationStatus[] {
+  return (external ? EXTERNAL_OPERATION_TRANSITIONS : OPERATION_TRANSITIONS)[status];
+}
+
 export function isOperationStatus(value: unknown): value is OperationStatus {
   return (OPERATION_STATUSES as readonly unknown[]).includes(value);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { ModeToggle } from "@/components/shared/mode-toggle";
 import {
   Breadcrumb,
@@ -18,9 +19,12 @@ import type { NavGroup } from "@/lib/navigation/server";
 export function SiteHeader({
   organizationName,
   groups,
+  actions,
 }: {
   organizationName: string;
   groups: NavGroup[];
+  /** Extra buttons before the theme switch (e.g. notifications). */
+  actions?: ReactNode;
 }) {
   const pathname = usePathname();
   const active = activeNavItem(
@@ -46,7 +50,8 @@ export function SiteHeader({
             ) : null}
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          {actions}
           <ModeToggle />
         </div>
       </div>

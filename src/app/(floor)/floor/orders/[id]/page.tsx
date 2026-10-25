@@ -125,7 +125,7 @@ async function FloorOrderContent({ params }: { params: Promise<{ id: string }> }
                     ) : null}
                   </span>
                   <span className="flex items-center gap-1">
-                    <OperationStatusBadge status={op.status} />
+                    <OperationStatusBadge status={op.status} external={op.is_external} />
                     {op.mine ? <ChevronRightIcon className="size-4" aria-hidden /> : null}
                   </span>
                 </>

@@ -49,7 +49,7 @@ import {
   canChangeRouting,
   canEditPlanning,
   CLOSED_STATUSES,
-  OPERATION_TRANSITIONS,
+  operationTargets,
   type OperationStatus,
   type OrderStatus,
 } from "@/modules/production-orders/status-rules";
@@ -79,6 +79,7 @@ export function OperationsPanel({
 }) {
   const t = useTranslations("orders.operations");
   const tStatus = useTranslations("operationStatus");
+  const tExternal = useTranslations("externalOperationStatus");
   const router = useRouter();
   const [assigning, setAssigning] = useState<OrderOperation | null>(null);
   const [editing, setEditing] = useState<OrderOperation | "new" | null>(null);
@@ -109,7 +110,12 @@ export function OperationsPanel({
     startTransition(async () => {
       const result = await setOperationStatusAction(op.id, status);
       if (result.ok) {
-        toast.success(t("statusToast", { code: op.type.code, status: tStatus(status) }));
+        toast.success(
+          t("statusToast", {
+            code: op.type.code,
+            status: op.type.isExternal ? tExternal(status) : tStatus(status),
+          }),
+        );
         router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
@@ -121,6 +127,7 @@ export function OperationsPanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {routing ? t("draftHint") : closed ? t("closedHint") : t("releasedHint")}
+          {!closed && active.some((op) => op.type.isExternal) ? ` ${t("externalHint")}` : null}
         </p>
         {routing ? (
           <Button variant="outline" size="sm" onClick={() => setEditing("new")}>
@@ -158,7 +165,7 @@ export function OperationsPanel({
             </TableHeader>
             <TableBody>
               {active.map((op, index) => {
-                const targets = OPERATION_TRANSITIONS[op.status];
+                const targets = operationTargets(op.status, op.type.isExternal);
                 const assignable =
                   canManage && !closed && op.status !== "done" && !op.type.isExternal;
                 return (
@@ -270,19 +277,22 @@ export function OperationsPanel({
                               />
                             }
                           >
-                            <OperationStatusBadge status={op.status} />
+                            <OperationStatusBadge
+                              status={op.status}
+                              external={op.type.isExternal}
+                            />
                             <ChevronDownIcon className="size-3.5 text-muted-foreground" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
                             {targets.map((to) => (
                               <DropdownMenuItem key={to} onClick={() => changeStatus(op, to)}>
-                                {tStatus(to)}
+                                {op.type.isExternal ? tExternal(to) : tStatus(to)}
                               </DropdownMenuItem>
                             ))}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : (
-                        <OperationStatusBadge status={op.status} />
+                        <OperationStatusBadge status={op.status} external={op.type.isExternal} />
                       )}
                     </TableCell>
                     {canManage && !closed ? (
@@ -383,6 +393,16 @@ function OperationProduction({ op }: { op: OrderOperation }) {
   const t = useTranslations("orders.operations.production");
   const reported = addDecimals([op.goodQuantity, op.scrapQuantity], 3) !== "0";
   const worked = op.runSeconds !== "0" || op.workerSeconds !== "0";
+  if (op.type.isExternal) {
+    // Shipped ("in progress") until received: time at the other company.
+    return op.runSeconds === "0" ? (
+      <span className="text-sm text-muted-foreground">—</span>
+    ) : (
+      <span className="text-xs text-muted-foreground tabular-nums">
+        {t("atSupplier")} <Duration seconds={op.runSeconds} />
+      </span>
+    );
+  }
   if (!reported && !worked) {
     return <span className="text-sm text-muted-foreground">—</span>;
   }

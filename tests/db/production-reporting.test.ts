@@ -21,6 +21,8 @@ const ids = {
   cutType: "",
   turnType: "",
   inspectionType: "",
+  externalType: "",
+  externalProduct: "",
   saw: "",
   cnc: "",
   customer: "",
@@ -107,13 +109,14 @@ async function seed() {
         { code: "RZ", name: "Rezanje", cutting: true },
         { code: "TO", name: "Tokarenje" },
         { code: "KT", name: "Kontrola", inspection: true },
+        { code: "CI", name: "Cinčanje", external: true },
       ].map((t) => ({
         organization_id: org,
         code: `${MARK}${t.code}`,
         name: `${MARK} ${t.name}`,
         is_cutting: t.cutting ?? false,
         is_inspection: t.inspection ?? false,
-        is_external: false,
+        is_external: t.external ?? false,
       })),
     )
     .select("id, code")
@@ -122,6 +125,7 @@ async function seed() {
   ids.cutType = typeId("RZ");
   ids.turnType = typeId("TO");
   ids.inspectionType = typeId("KT");
+  ids.externalType = typeId("CI");
 
   const machines = await s
     .from("machines")
@@ -172,6 +176,33 @@ async function seed() {
   ]) {
     const saved = await fx.a.admin.rpc("save_product_operation", {
       p_revision_id: revision.data.id,
+      p_operation_id: null as unknown as string,
+      p_operation: op as Json,
+    });
+    expect(saved.error).toBeNull();
+  }
+
+  // Second product: turning → external zinc plating → final inspection.
+  const external = await fx.a.admin.rpc("create_product", {
+    p_org_id: org,
+    p_product: { part_number: `${MARK}-2`, name: "Čep", customer_id: ids.customer, unit: "pcs" },
+    p_revision: { revision: "A" },
+  });
+  expect(external.error).toBeNull();
+  ids.externalProduct = external.data!;
+  const externalRevision = await s
+    .from("product_revisions")
+    .select("id")
+    .eq("product_id", ids.externalProduct)
+    .single()
+    .throwOnError();
+  for (const op of [
+    { operation_type_id: ids.turnType, machine_id: ids.cnc, cycle_time_s: "60" },
+    { operation_type_id: ids.externalType, external_company: "Cinkara" },
+    { operation_type_id: ids.inspectionType, cycle_time_s: "20" },
+  ]) {
+    const saved = await fx.a.admin.rpc("save_product_operation", {
+      p_revision_id: externalRevision.data.id,
       p_operation_id: null as unknown as string,
       p_operation: op as Json,
     });
@@ -244,12 +275,12 @@ async function seed() {
   ids.scrapReason = reasons.data.find((r) => r.kind === "scrap_reason")!.id;
 }
 
-async function releasedOrder(quantity: string): Promise<string> {
+async function releasedOrder(quantity: string, productId = ids.product): Promise<string> {
   const { data, error } = await fx.a.admin.rpc("create_production_order", {
     p_org_id: fx.a.org.id,
     p_order: {
       customer_id: ids.customer,
-      product_id: ids.product,
+      product_id: productId,
       quantity,
       due_date: "2030-06-30",
       notes: `${MARK} order`,
@@ -724,5 +755,124 @@ describe("automatic completion, voiding and access", () => {
     expect(
       (await fx.b.admin.rpc("production_order_reports", { p_order_id: orderId })).data,
     ).toEqual([]);
+  });
+});
+
+describe("external operations, progress and close notifications", () => {
+  let orderId = "";
+  let turning = "";
+  let external = "";
+  let inspection = "";
+
+  const directory = async () =>
+    (
+      await fx.a.admin
+        .from("production_order_directory")
+        .select(
+          "status, progress_percent, current_operation_code, current_operation_external, close_request_pending",
+        )
+        .eq("id", orderId)
+        .single()
+        .throwOnError()
+    ).data;
+  const setOperation = (operationId: string, status: string) =>
+    fx.a.admin.rpc("set_order_operation_status", {
+      p_operation_id: operationId,
+      p_status: status,
+    });
+
+  beforeAll(async () => {
+    orderId = await releasedOrder("2", ids.externalProduct);
+    turning = (await op(orderId, ids.turnType)).id;
+    external = (await op(orderId, ids.externalType)).id;
+    inspection = (await op(orderId, ids.inspectionType)).id;
+    expect(
+      (
+        await fx.a.admin.rpc("set_production_order_status", {
+          p_order_id: orderId,
+          p_status: "ready",
+        })
+      ).error,
+    ).toBeNull();
+  });
+
+  it("shows progress and the operation the order has reached", async () => {
+    expect(await directory()).toMatchObject({
+      progress_percent: 0,
+      current_operation_code: `${MARK}TO`,
+      current_operation_external: false,
+    });
+    expect(
+      (await fx.a.operator.rpc("start_operation_work", { p_operation_id: turning })).error,
+    ).toBeNull();
+    expect((await report(fx.a.operator, turning, "1")).error).toBeNull();
+    // Turning half done: (0.5 + 0 + 0) / 3.
+    expect((await directory()).progress_percent).toBe(16);
+    expect((await report(fx.a.operator, turning, "1", "0", { finish: true })).error).toBeNull();
+    expect(await directory()).toMatchObject({
+      progress_percent: 33,
+      current_operation_code: `${MARK}CI`,
+      current_operation_external: true,
+    });
+    // The pieces reached the external step: preparing the shipment.
+    expect((await op(orderId, ids.externalType)).status).toBe("ready");
+  });
+
+  it("moves external work only through shipped and received, by the head of production", async () => {
+    expect((await setOperation(external, "paused")).error?.message).toBe(
+      "invalid_status_transition",
+    );
+    expect((await setOperation(external, "done")).error?.message).toBe("invalid_status_transition");
+    const byOperator = await fx.a.operator.rpc("set_order_operation_status", {
+      p_operation_id: external,
+      p_status: "in_progress",
+    });
+    expect(byOperator.error?.code).toBe("42501");
+
+    expect((await setOperation(external, "in_progress")).error).toBeNull();
+    expect((await directory()).progress_percent).toBe(50);
+    expect((await setOperation(external, "done")).error).toBeNull();
+    // Received: the inspection is next and only inspections are left.
+    expect((await op(orderId, ids.inspectionType)).status).toBe("ready");
+    expect(await directory()).toMatchObject({
+      status: "quality_check",
+      current_operation_code: `${MARK}KT`,
+    });
+  });
+
+  it("notifies approvers of a request to close with a shortage", async () => {
+    expect(
+      (await inspector.rpc("start_operation_work", { p_operation_id: inspection })).error,
+    ).toBeNull();
+    expect((await report(inspector, inspection, "1", "1", { finish: true })).error).toBeNull();
+    const asked = await inspector.rpc("request_order_close", {
+      p_order_id: orderId,
+      p_reason: "Jedan komad oštećen u cinčaoni",
+    });
+    expect(asked.error).toBeNull();
+    expect((await directory()).close_request_pending).toBe(true);
+
+    const forApprover = await fx.a.admin.rpc("pending_close_requests", {
+      p_org_id: fx.a.org.id,
+    });
+    expect(forApprover.data?.map((row) => row.order_id)).toContain(orderId);
+    const forInspector = await inspector.rpc("pending_close_requests", {
+      p_org_id: fx.a.org.id,
+    });
+    expect(forInspector.data).toEqual([]);
+    const otherTenant = await fx.b.admin.rpc("pending_close_requests", {
+      p_org_id: fx.a.org.id,
+    });
+    expect(otherTenant.data ?? []).toEqual([]);
+
+    expect(
+      (await fx.a.admin.rpc("decide_order_close", { p_request_id: asked.data!, p_approve: true }))
+        .error,
+    ).toBeNull();
+    expect(await directory()).toMatchObject({
+      status: "completed",
+      progress_percent: 100,
+      close_request_pending: false,
+    });
   });
 });

@@ -196,3 +196,35 @@ test("@mobile operator starts, reports in parts, pauses and finishes an operatio
     });
   }
 });
+
+test("head of production filters a customer's orders and sees their progress", async ({ page }) => {
+  const admin = createAdminClient();
+  const org = await admin.from("organizations").select("id").eq("slug", DEMO_ORG.slug).single();
+  const customer = await admin
+    .from("customers")
+    .select("id")
+    .eq("organization_id", org.data!.id)
+    .eq("name", "Demo Kupac d.o.o.")
+    .single();
+
+  await login(page, demoUser("head_of_production"), DEMO_ORG.slug);
+  await expectPath(page, "/dashboard");
+  // Approvers have the notification bell for requests to close with a shortage.
+  await expect(page.getByTestId("notification-bell")).toBeVisible();
+
+  await page.goto(`/customers/${customer.data!.id}`);
+  const search = page.getByRole("search");
+  await search.getByLabel("Nalog ili šifra").fill("-002");
+  await search.getByRole("button", { name: "Traži" }).click();
+  await expect(page).toHaveURL(/q=-002/);
+  const progress = page.locator("[data-testid^=customer-order-progress-]");
+  await expect(progress).toHaveCount(1);
+  await expect(progress.getByRole("progressbar")).toBeVisible();
+  await expect(progress).toContainText("Kod: KT · Kontrola");
+
+  await search.getByLabel("Hitnost").selectOption("5");
+  await search.getByRole("button", { name: "Traži" }).click();
+  await expect(page.getByText("Nema naloga za ove filtere.")).toBeVisible();
+  await page.getByRole("link", { name: "Poništi" }).click();
+  await expect(page).toHaveURL((url) => url.search === "");
+});

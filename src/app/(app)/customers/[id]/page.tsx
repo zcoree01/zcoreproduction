@@ -1,16 +1,25 @@
-import { ArrowLeftIcon, BuildingIcon, ClipboardListIcon, PackageIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  BuildingIcon,
+  ClipboardListIcon,
+  PackageIcon,
+  SearchIcon,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
-import { DueWarningBadge, OrderStatusBadge } from "@/components/shared/order-badges";
+import { DueWarningBadge, OrderStatusBadge, PriorityBadge } from "@/components/shared/order-badges";
+import { OrderProgress } from "@/components/shared/order-progress";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Table,
   TableBody,
@@ -21,9 +30,15 @@ import {
 } from "@/components/ui/table";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
+import type { SearchParamsRecord } from "@/lib/data-table/params";
+import { formatDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { formatDecimal } from "@/lib/decimal";
 import { getCustomer } from "@/modules/customers/queries";
+import {
+  ORDER_STATUS_FILTERS,
+  parseCustomerOrderFilters,
+} from "@/modules/production-orders/list-params";
 import { listCustomerOrders } from "@/modules/production-orders/queries";
 import { listProductsPage } from "@/modules/products/queries";
 import { CustomerActions } from "./customer-actions";
@@ -37,20 +52,28 @@ function Item({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export default function CustomerPage({ params }: PageProps<"/customers/[id]">) {
+export default function CustomerPage({ params, searchParams }: PageProps<"/customers/[id]">) {
   return (
     <PageSuspense>
-      <CustomerContent params={params} />
+      <CustomerContent params={params} searchParams={searchParams} />
     </PageSuspense>
   );
 }
 
-async function CustomerContent({ params }: { params: Promise<{ id: string }> }) {
+async function CustomerContent({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParamsRecord>;
+}) {
   const member = await requireMember();
   const organizationId = member.organization.id;
-  const [t, tUnits, access] = await Promise.all([
+  const [t, tUnits, tStatus, tPriority, access] = await Promise.all([
     getTranslations("customers"),
     getTranslations("productUnits"),
+    getTranslations("orderStatus"),
+    getTranslations("priority"),
     getMemberAccess(member),
   ]);
 
@@ -88,8 +111,11 @@ async function CustomerContent({ params }: { params: Promise<{ id: string }> }) 
         view: undefined,
       })
     : null;
+  const filters = parseCustomerOrderFilters(await searchParams);
+  const filtered =
+    filters.q !== "" || filters.priority !== undefined || filters.status !== undefined;
   const orders = access.permissions.has("orders.read")
-    ? await listCustomerOrders(organizationId, customer.id)
+    ? await listCustomerOrders(organizationId, customer.id, filters)
     : null;
 
   return (
@@ -152,11 +178,60 @@ async function CustomerContent({ params }: { params: Promise<{ id: string }> }) 
           <CardHeader>
             <CardTitle>{t("detail.orders", { count: orders.length })}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
+            <form
+              action={`/customers/${customer.id}`}
+              role="search"
+              className="flex flex-wrap items-end gap-2"
+            >
+              <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                {t("detail.filters.search")}
+                <Input
+                  name="q"
+                  type="search"
+                  defaultValue={filters.q}
+                  placeholder={t("detail.filters.searchPlaceholder")}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                {t("detail.filters.priority")}
+                <NativeSelect name="priority" defaultValue={filters.priority ?? ""}>
+                  <NativeSelectOption value="">{t("detail.filters.all")}</NativeSelectOption>
+                  {(["1", "2", "3", "4", "5"] as const).map((level) => (
+                    <NativeSelectOption key={level} value={level}>
+                      {`${level} – ${tPriority(`levels.${level}`)}`}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                {t("detail.filters.status")}
+                <NativeSelect name="status" defaultValue={filters.status ?? ""}>
+                  <NativeSelectOption value="">{t("detail.filters.all")}</NativeSelectOption>
+                  {ORDER_STATUS_FILTERS.map((status) => (
+                    <NativeSelectOption key={status} value={status}>
+                      {tStatus(status)}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </label>
+              <Button type="submit">
+                <SearchIcon />
+                {t("detail.filters.apply")}
+              </Button>
+              {filtered ? (
+                <Link
+                  href={`/customers/${customer.id}`}
+                  className={cn(buttonVariants({ variant: "ghost" }))}
+                >
+                  {t("detail.filters.reset")}
+                </Link>
+              ) : null}
+            </form>
             {orders.length === 0 ? (
               <EmptyState
                 icon={<ClipboardListIcon />}
-                title={t("detail.noOrders")}
+                title={filtered ? t("detail.filters.noResults") : t("detail.noOrders")}
                 className="border-0"
               />
             ) : (
@@ -168,6 +243,7 @@ async function CustomerContent({ params }: { params: Promise<{ id: string }> }) 
                     <TableHead>{t("detail.orderColumns.quantity")}</TableHead>
                     <TableHead>{t("detail.orderColumns.due")}</TableHead>
                     <TableHead>{t("detail.orderColumns.status")}</TableHead>
+                    <TableHead>{t("detail.orderColumns.progress")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -189,12 +265,19 @@ async function CustomerContent({ params }: { params: Promise<{ id: string }> }) 
                       </TableCell>
                       <TableCell>
                         <span className="flex flex-wrap items-center gap-2 tabular-nums">
-                          {order.dueDate}
+                          {formatDay(order.dueDate)}
+                          <PriorityBadge priority={order.effectivePriority} />
                           {order.dueWarning ? <DueWarningBadge warning={order.dueWarning} /> : null}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <OrderStatusBadge status={order.status} />
+                        <OrderStatusBadge
+                          status={order.status}
+                          closeRequested={order.closeRequestPending}
+                        />
+                      </TableCell>
+                      <TableCell data-testid={`customer-order-progress-${order.orderNumber}`}>
+                        <OrderProgress order={order} />
                       </TableCell>
                     </TableRow>
                   ))}

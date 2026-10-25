@@ -159,3 +159,14 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Machine status** is driven by the work (running / stopped / available); machines in maintenance or inactive are left alone.
 - Downtime and scrap reasons are catalog kinds `downtime_reason` / `scrap_reason` (managed with `orders.manage`), seeded per organization with starter lists.
   **Consequences:** Productivity reports, OEE and estimated completion can use sessions, downtime and operation run time. Finished-goods inventory (next phases) takes the good pieces of the last operation; scrap never enters it. Directory views now call private functions granted to `authenticated` only: service-role scripts read the base tables.
+
+## D-019 — External steps, close-request notifications, order progress (2026-10-26)
+
+**Context:** Product owner review of production reporting: external work (another company) is only tracked by the head of production; a request to close with a shortage must reach the head of production immediately and be visible as such; customers' orders need progress at a glance and filters.
+**Decision:**
+
+- **External operations** keep the operation status column but use their own matrix (`private.external_transition_allowed`, mirrored by `EXTERNAL_OPERATION_TRANSITIONS`): waiting → ready ("Priprema za isporuku") → in_progress ("Isporučeno") → done ("Primljeno (završeno)"), with steps back; no pause. Only `orders.manage` sets them; the floor never reports them. Labels come from `externalOperationStatus`; time "in progress" is shown as time at the other company.
+- **Close requests** are not an order status: the order keeps its status (quality check), and every screen shows "Zahtjev za zatvaranje" while a request is pending (`close_request_pending` in the directory, status filter value `close_requested`). Approvers (`orders.close.approve`) get a bell in the app header (`pending_close_requests`), refreshed every 30 s, on navigation and on focus, with a toast for new requests linking to the order's "Proizvodnja" tab. No push/e-mail notifications yet.
+- **Progress** per order (`private.order_progress`, SQL only): every active operation counts equally — done = 1, otherwise (good + scrap) / ordered quantity (max 1), shipped external work = ½; completed = 100 %. The current operation is the first one not done. Shown on the customer page, the order list (compact) and the order header.
+- Customer page filters: order number / part number (one search box), urgency (effective priority) and status, as URL parameters.
+  **Consequences:** The migration comment of `20261026120000` mentions a TypeScript mirror of the progress formula; there is none, the formula lives in SQL only.

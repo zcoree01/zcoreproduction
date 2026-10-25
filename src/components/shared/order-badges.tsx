@@ -18,14 +18,27 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, StatusTone> = {
   archived: "neutral",
 };
 
+/**
+ * Order status; while a request to close with a shortage waits for approval
+ * the badge says so instead of the status (in production / quality control).
+ */
 export function OrderStatusBadge({
   status,
+  closeRequested = false,
   className,
 }: {
   status: OrderStatus;
+  closeRequested?: boolean;
   className?: string;
 }) {
   const t = useTranslations("orderStatus");
+  if (closeRequested) {
+    return (
+      <StatusBadge tone="warning" className={className}>
+        {t("close_requested")}
+      </StatusBadge>
+    );
+  }
   return (
     <StatusBadge tone={ORDER_STATUS_TONE[status]} className={className}>
       {t(status)}
@@ -41,17 +54,21 @@ const OPERATION_STATUS_TONE: Record<OperationStatus, StatusTone> = {
   done: "success",
 };
 
+/** Operation status; external operations use the shipping steps as labels. */
 export function OperationStatusBadge({
   status,
+  external = false,
   className,
 }: {
   status: OperationStatus;
+  external?: boolean;
   className?: string;
 }) {
   const t = useTranslations("operationStatus");
+  const tExternal = useTranslations("externalOperationStatus");
   return (
     <StatusBadge tone={OPERATION_STATUS_TONE[status]} className={className}>
-      {t(status)}
+      {external ? tExternal(status) : t(status)}
     </StatusBadge>
   );
 }

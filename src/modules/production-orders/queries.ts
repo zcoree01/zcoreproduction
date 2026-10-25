@@ -7,7 +7,7 @@ import { PRODUCT_UNITS, type AttachmentKind, type ProductUnit } from "@/modules/
 import { ATTACHMENT_KINDS } from "@/modules/products/schemas";
 import type { TimeUnit } from "@/modules/products/rules";
 import { describeOrderHistoryEntry, type OrderHistoryDescription } from "./history";
-import type { OrderListParams } from "./list-params";
+import { CLOSE_REQUESTED, type CustomerOrderFilters, type OrderListParams } from "./list-params";
 import { orderSettingsFromSettings, type DueWarning, type OrderSettings } from "./rules";
 import {
   isOperationStatus,
@@ -63,13 +63,23 @@ export type OrderRow = {
   /** Every operation done with enough good pieces, or closing was approved. */
   completionAllowed: boolean;
   closeRequestPending: boolean;
+  /** 0–100: every operation counts equally (see private.order_progress). */
+  progressPercent: number;
+  /** First operation that is not done (where the order is now). */
+  currentOperation: {
+    code: string;
+    name: string;
+    machineCode: string | null;
+    external: boolean;
+    status: OperationStatus;
+  } | null;
   createdAt: string;
 };
 
 export type OrderPage = { rows: OrderRow[]; total: number };
 
 const LIST_COLUMNS =
-  "id, order_number, status, priority, effective_priority, computed_priority, due_date, planned_start, planned_end, quantity, unit, customer_id, customer_name, customer_number, product_id, part_number, product_name, revision_id, revision, planned_seconds, remaining_seconds, days_to_due, slack_days, started, due_warning, due_warning_days, operation_count, operations_done, good_quantity, completion_allowed, close_request_pending, created_at";
+  "id, order_number, status, priority, effective_priority, computed_priority, due_date, planned_start, planned_end, quantity, unit, customer_id, customer_name, customer_number, product_id, part_number, product_name, revision_id, revision, planned_seconds, remaining_seconds, days_to_due, slack_days, started, due_warning, due_warning_days, operation_count, operations_done, good_quantity, completion_allowed, close_request_pending, progress_percent, current_operation_code, current_operation_name, current_machine_code, current_operation_external, current_operation_status, created_at";
 
 type DirectoryRow = {
   id: string | null;
@@ -103,6 +113,12 @@ type DirectoryRow = {
   good_quantity: number | null;
   completion_allowed: boolean | null;
   close_request_pending: boolean | null;
+  progress_percent: number | null;
+  current_operation_code: string | null;
+  current_operation_name: string | null;
+  current_machine_code: string | null;
+  current_operation_external: boolean | null;
+  current_operation_status: string | null;
   created_at: string | null;
 };
 
@@ -143,6 +159,17 @@ function toOrderRow(row: DirectoryRow): OrderRow[] {
       goodQuantity: decimalFromDb(row.good_quantity) ?? "0",
       completionAllowed: row.completion_allowed ?? false,
       closeRequestPending: row.close_request_pending ?? false,
+      progressPercent: row.progress_percent ?? 0,
+      currentOperation:
+        row.current_operation_code && isOperationStatus(row.current_operation_status)
+          ? {
+              code: row.current_operation_code,
+              name: row.current_operation_name ?? "",
+              machineCode: row.current_machine_code,
+              external: row.current_operation_external ?? false,
+              status: row.current_operation_status,
+            }
+          : null,
       createdAt: row.created_at,
     },
   ];
@@ -159,7 +186,9 @@ export async function listOrdersPage(
       .from("production_order_directory")
       .select(LIST_COLUMNS, { count: "exact" })
       .eq("organization_id", organizationId);
-    query = params.status ? query.eq("status", params.status) : query.neq("status", "archived");
+    if (params.status === CLOSE_REQUESTED) query = query.eq("close_request_pending", true);
+    else if (params.status) query = query.eq("status", params.status);
+    else query = query.neq("status", "archived");
     if (params.priority) query = query.eq("effective_priority", Number(params.priority));
     if (params.customer) query = query.eq("customer_id", params.customer);
     if (params.machine) query = query.contains("machine_ids", [params.machine]);
@@ -190,20 +219,28 @@ export async function listOrdersPage(
   return { total: count ?? 0, rows: data.flatMap(toOrderRow) };
 }
 
-/** Orders of one customer (customer page), newest first. */
+/**
+ * Orders of one customer (customer page), newest first, filtered by order
+ * number / part number, urgency and status (incl. "close requested").
+ */
 export async function listCustomerOrders(
   organizationId: string,
   customerId: string,
+  filters: CustomerOrderFilters = { q: "", priority: undefined, status: undefined },
 ): Promise<OrderRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("production_order_directory")
     .select(LIST_COLUMNS)
     .eq("organization_id", organizationId)
-    .eq("customer_id", customerId)
-    .neq("status", "archived")
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .eq("customer_id", customerId);
+  if (filters.status === CLOSE_REQUESTED) query = query.eq("close_request_pending", true);
+  else if (filters.status) query = query.eq("status", filters.status);
+  else query = query.neq("status", "archived");
+  if (filters.priority) query = query.eq("effective_priority", Number(filters.priority));
+  const pattern = toSearchPattern(filters.q);
+  if (pattern) query = query.or(`order_number.ilike.${pattern},part_number.ilike.${pattern}`);
+  const { data, error } = await query.order("created_at", { ascending: false }).limit(100);
   if (error) throw error;
   return data.flatMap(toOrderRow);
 }

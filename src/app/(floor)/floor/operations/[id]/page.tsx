@@ -163,7 +163,7 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
               {operation.code}
             </Badge>
             {operation.name}
-            <OperationStatusBadge status={operation.status} />
+            <OperationStatusBadge status={operation.status} external={operation.is_external} />
           </CardTitle>
           {operation.description ? (
             <p className="text-sm text-muted-foreground">{operation.description}</p>
@@ -312,7 +312,7 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
                     <span className="text-xs text-muted-foreground">{op.machine_code}</span>
                   ) : null}
                 </span>
-                <OperationStatusBadge status={op.status} />
+                <OperationStatusBadge status={op.status} external={op.is_external} />
               </li>
             ))}
           </ol>
