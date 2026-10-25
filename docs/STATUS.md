@@ -53,7 +53,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - Cycle times shown with one decimal (2,5 min), stored exactly in seconds.
 - Tests: `npm run check` (169 unit tests), `npm run test:db` (91 RLS/integration tests), `npm run e2e` (33 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing, weight and totals and opens the customer, warehouse read-only, admin builds operation types → customer → product with material picked by typing, computed weight and a PDF → two operations reordered by drag & drop and arrows → revision A → history → archive).
 - **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
-- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`5e1116c`). DB and e2e tests need Supabase secrets, so they are not in CI yet.
+- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`3a390ee`, products v2). DB and e2e tests need Supabase secrets, so they are not in CI yet.
 - **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
 - Claude Code: Prettier hook after every Write/Edit; slash commands `/feature`, `/verify`, `/status`.
 
@@ -126,6 +126,12 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 5. **Phase 2/3 continued:** production orders (product revision + quantity + due date) with order operations generated from the routing; on the floor a worker starts an operation on a machine → machine status "running", estimated (setup + cycle × qty) vs. actual time; stopping / maintenance asks for a downtime reason and minutes; product list and customer page then show the current operation and production status.
 
 ## Log
+
+### 2026-10-25 — Form tweak, push
+
+- Product form: net mass on its own row below length and kerf.
+- Explained to the product owner: generated inspections need an inspection plan on the product (or mode "automatic"/"custom" for new products); assigning workers, current operation and status per product come with production orders (open questions 1–7 asked: who creates orders, routing copy, assignment per operation, quantity reporting, statuses, downtime reasons, who inspects).
+- Pushed `feat/products` (CI green), fast-forwarded `main` to `3a390ee` and pushed (CI green).
 
 ### 2026-10-24 — Products v2: customers, materials, raw piece weight, inspections
 
