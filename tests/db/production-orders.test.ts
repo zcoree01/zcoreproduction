@@ -800,6 +800,49 @@ describe("shop floor visibility", () => {
     expect(other.data).toEqual([]);
   });
 
+  it("marks operations as arrived once every earlier one is done", async () => {
+    const id = await readyOrder();
+    const cutting = await opOfType(id, ids.cutType);
+    const turning = await opOfType(id, ids.turnType);
+    const queue = async (machine: string) =>
+      (
+        await fx.a.operator.rpc("floor_operation_queue", {
+          p_org_id: fx.a.org.id,
+          p_machine_id: machine,
+        })
+      ).data!.find((row) => row.order_id === id);
+    expect((await queue(ids.saw))?.arrived).toBe(true);
+    expect((await queue(ids.cnc1))?.arrived).toBe(false);
+
+    for (const status of ["ready", "in_progress", "done"]) {
+      const { error } = await fx.a.admin.rpc("set_order_operation_status", {
+        p_operation_id: cutting.id,
+        p_status: status,
+      });
+      expect(error).toBeNull();
+    }
+    expect((await queue(ids.cnc1))?.arrived).toBe(true);
+    expect((await queue(ids.cnc1))?.operation_id).toBe(turning.id);
+  });
+
+  it("shows the operator an order (QR) with their operations marked", async () => {
+    const draft = await createOrder();
+    expect((await fx.a.operator.rpc("floor_order", { p_order_id: draft })).data).toBeNull();
+
+    const id = await readyOrder();
+    const { data, error } = await fx.a.operator.rpc("floor_order", { p_order_id: id });
+    expect(error).toBeNull();
+    const operations = (data as { operations: { code: string; mine: boolean; arrived: boolean }[] })
+      .operations;
+    expect(operations.map((op) => [op.code.replace(MARK, ""), op.mine, op.arrived])).toEqual([
+      ["RZ", true, true],
+      ["TO", true, false],
+      ["KT", false, false],
+      ["CI", false, false],
+    ]);
+    expect((await fx.b.admin.rpc("floor_order", { p_order_id: id })).data).toBeNull();
+  });
+
   it("hides operations assigned to someone else by name", async () => {
     const id = await readyOrder();
     const turning = await opOfType(id, ids.turnType);

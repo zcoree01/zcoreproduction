@@ -81,7 +81,11 @@
     "signOutDescription": "Nakon odjave uređaj je spreman za prijavu drugog radnika.",
     "operationsTitle": "Radni nalozi",
     "operationsDescription": "Operacije na vašim mašinama, poredane po hitnosti.",
-    "operationsOpen": "Otvori naloge"
+    "operationsOpen": "Svi nalozi za moje mašine",
+    "arrivedTitle": "Došlo do vaše mašine",
+    "arrivedDescription": "Nalozi kod kojih su prethodne operacije završene, najhitniji prvi.",
+    "arrivedEmptyTitle": "Trenutno ništa nije stiglo",
+    "arrivedEmptyDescription": "Kad prethodna operacija bude završena, nalog se pojavljuje ovdje."
   },
   "users": {
     "title": "Korisnici",
@@ -1622,8 +1626,8 @@
       "good": "Dobro",
       "scrap": "Škart",
       "signature": "Potpis, datum",
-      "qrLabel": "QR kod operacije {code}",
-      "qrHint": "QR kod otvara operaciju na mobitelu radnika.",
+      "qrLabel": "QR kod naloga {number}",
+      "qrHint": "Skenirajte QR kod mobitelom: otvara se vaša operacija ovog naloga.",
       "priorityAutomatic": "Hitnost je izračunata automatski na dan ispisa.",
       "issuedBy": "Izdao",
       "approvedBy": "Odobrio",
@@ -1635,7 +1639,7 @@
   },
   "floorOrders": {
     "title": "Radni nalozi",
-    "description": "Operacije na vašoj mašini, najhitnije prve.",
+    "description": "Svi nalozi koji su na vašoj mašini ili tek dolaze, najhitniji prvi.",
     "noEmployeeTitle": "Niste povezani sa zaposlenim",
     "noEmployeeDescription": "Šef proizvodnje treba vaš korisnički račun povezati sa zaposlenim i mašinama.",
     "machinePicker": "Izbor mašine",
@@ -1647,9 +1651,6 @@
     "assignedBadge": "Vama dodijeljeno",
     "quantity": "{quantity} {unit}",
     "due": "Rok {date}",
-    "previousDone": "Prethodna operacija {code} je završena.",
-    "previousOpen": "Čeka prethodnu operaciju {code}.",
-    "firstOperation": "Prva operacija naloga.",
     "back": "Nazad na naloge",
     "notFoundTitle": "Operacija nije pronađena",
     "notFoundDescription": "QR kod ili poveznica nisu ispravni.",
@@ -1694,6 +1695,19 @@
     "forThisOperation": "za ovu operaciju",
     "machineDrawing": "mašinski",
     "open": "Otvori",
-    "routingTitle": "Tok naloga"
+    "routingTitle": "Tok naloga",
+    "searchPlaceholder": "Broj naloga, šifra ili naziv…",
+    "searchLabel": "Pretraži naloge",
+    "searchResults": "Rezultati za „{query}“: {count}",
+    "emptySearch": "Nijedan vaš nalog ne odgovara pretrazi.",
+    "arrivedFrom": "Stiglo na vašu mašinu (završeno: {code}).",
+    "arrivedFirst": "Prva operacija naloga – može se raditi.",
+    "coming": "Dolazi: čeka se završetak operacije {code}.",
+    "orderNotFoundTitle": "Nalog nije pronađen",
+    "orderNotFoundDescription": "Nalog ne postoji, još je u pripremi ili je zatvoren.",
+    "orderNotYours": "Ovaj nalog trenutno nema vaših operacija. Nalog je sada na operaciji {code} ({machine}).",
+    "orderPick": "Izaberite svoju operaciju.",
+    "arrivedBadge": "stiglo",
+    "comingBadge": "dolazi"
   }
 }

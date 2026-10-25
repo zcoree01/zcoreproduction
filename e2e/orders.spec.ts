@@ -61,12 +61,11 @@ test("head of production creates, prints and cancels an order", async ({ page })
   await page.getByRole("menuitem", { name: "Planiran" }).click();
   await expect(page.getByText(/: Planiran\./)).toBeVisible();
 
-  // Print: one QR code per operation.
+  // Print: one QR code for the whole order.
   const orderUrl = new URL(page.url()).pathname;
   await page.goto(`${orderUrl}/print`);
   await expect(page.getByRole("heading", { name: "Radni nalog" })).toBeVisible();
-  const qrCodes = page.getByRole("img", { name: /QR kod operacije/ });
-  expect(await qrCodes.count()).toBeGreaterThan(2);
+  await expect(page.getByRole("img", { name: /QR kod naloga/ })).toHaveCount(1);
 
   // Cancel (reason required), then archive.
   await page.goto(orderUrl);
@@ -108,7 +107,7 @@ test("warehouse moves an order through the material statuses only", async ({ pag
 test("@mobile operator sees the queue of a machine and only their operations", async ({ page }) => {
   await login(page, demoUser("operator"), DEMO_ORG.slug);
   await expectPath(page, "/floor");
-  await page.getByRole("link", { name: "Otvori naloge" }).click();
+  await page.getByRole("link", { name: "Svi nalozi za moje mašine" }).click();
   await expectPath(page, "/floor/operations");
 
   // Omer is qualified for CNC-01 and CNC-02; the released demo order is there.
@@ -138,6 +137,9 @@ test("@mobile operator sees the queue of a machine and only their operations", a
     .eq("operation_code", "RZ")
     .single();
   expect(saw.error).toBeNull();
+  // The order's QR code: Omer has two operations here, none arrived yet.
+  await page.goto(`/floor/orders/${urgent.data!.id}`);
+  await expect(page.getByText("Izaberite svoju operaciju.")).toBeVisible();
   await page.goto(`/floor/operations/${saw.data!.id}`);
   await expect(page.getByText("Operacija vam nije dodijeljena")).toBeVisible();
   await expect(page.getByText("Sljedeća operacija naloga")).toBeVisible();

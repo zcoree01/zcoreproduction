@@ -33,6 +33,8 @@ export type FloorQueueItem = {
   plannedSeconds: string;
   previous: { code: string; status: (typeof OPERATION_STATUSES)[number] } | null;
   assignedByName: boolean;
+  /** Every earlier operation is done: the work is at this machine now. */
+  arrived: boolean;
 };
 
 const unitSchema = z.enum(PRODUCT_UNITS).catch("pcs");
@@ -86,9 +88,35 @@ export async function getFloorQueue(
             ? { code: row.previous_code, status: previousStatus.data }
             : null,
         assignedByName: row.assigned_by_name,
+        arrived: row.arrived,
       },
     ];
   });
+}
+
+/**
+ * Open operations on all of the caller's machines plus those assigned to them
+ * by name, without duplicates, most urgent first.
+ */
+export async function getAllMyFloorOperations(
+  organizationId: string,
+  machineIds: readonly string[],
+): Promise<FloorQueueItem[]> {
+  const queues = await Promise.all([
+    ...machineIds.map((id) => getFloorQueue(organizationId, id)),
+    getFloorQueue(organizationId, null),
+  ]);
+  const seen = new Set<string>();
+  return queues
+    .flat()
+    .filter((item) => (seen.has(item.operationId) ? false : (seen.add(item.operationId), true)))
+    .sort(
+      (a, b) =>
+        a.priority - b.priority ||
+        a.dueDate.localeCompare(b.dueDate) ||
+        a.orderNumber.localeCompare(b.orderNumber) ||
+        a.sequence - b.sequence,
+    );
 }
 
 const numeric = z
@@ -191,4 +219,41 @@ export async function getFloorOperation(operationId: string): Promise<FloorOpera
   if (error) throw error;
   if (data === null) return null;
   return z.union([visibleSchema, hiddenSchema]).parse(data);
+}
+
+const floorOrderSchema = z.object({
+  order: z.object({
+    id: z.uuid(),
+    order_number: z.string(),
+    status: z.enum(ORDER_STATUSES),
+    quantity: numeric,
+    unit: unitSchema,
+    due_date: z.string(),
+    effective_priority: z.number(),
+    part_number: z.string(),
+    product_name: z.string(),
+    revision: z.string().nullable(),
+  }),
+  operations: z.array(
+    z.object({
+      id: z.uuid(),
+      sequence: z.number(),
+      code: z.string(),
+      name: z.string(),
+      status: operationStatusSchema,
+      machine_code: z.string().nullable(),
+      mine: z.boolean(),
+      arrived: z.boolean(),
+    }),
+  ),
+});
+
+export type FloorOrder = z.infer<typeof floorOrderSchema>;
+
+/** An order for the floor (target of the order's QR code); null when not available. */
+export async function getFloorOrder(orderId: string): Promise<FloorOrder | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("floor_order", { p_order_id: orderId });
+  if (error) throw error;
+  return data === null ? null : floorOrderSchema.parse(data);
 }

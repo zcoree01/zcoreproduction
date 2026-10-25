@@ -23,9 +23,9 @@ import { getProductionSettings } from "@/modules/products/queries";
 import { resolveCycleUnit, secondsToUnit, splitDuration } from "@/modules/products/rules";
 import { PrintButton } from "./print-button";
 
-// A4 production order with one QR code per operation. The QR opens the
-// operation on the worker's phone (/floor/operations/<id>); production
-// reporting will start from there.
+// A4 production order with one QR code for the order. The QR opens the order
+// on the worker's phone (/floor/orders/<id>), which leads to the operation of
+// that worker's machine; production reporting will start from there.
 
 export default function PrintOrderPage({ params }: PageProps<"/orders/[id]/print">) {
   return (
@@ -74,18 +74,14 @@ async function PrintContent({ params }: { params: Promise<{ id: string }> }) {
   const active = operations.filter((op) => !op.archived);
   const host = requestHost(requestHeaders) ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? null;
-  const qrCodes = await Promise.all(
-    active.map((op) =>
-      QRCode.toString(
-        tenantUrl({
-          host,
-          protocol,
-          slug: member.organization.slug,
-          path: `/floor/operations/${op.id}`,
-        }),
-        { type: "svg", margin: 0, errorCorrectionLevel: "M" },
-      ),
-    ),
+  const qrCode = await QRCode.toString(
+    tenantUrl({
+      host,
+      protocol,
+      slug: member.organization.slug,
+      path: `/floor/orders/${order.id}`,
+    }),
+    { type: "svg", margin: 0, errorCorrectionLevel: "M" },
   );
 
   const day = (value: string | null) =>
@@ -126,11 +122,20 @@ async function PrintContent({ params }: { params: Promise<{ id: string }> }) {
             <p className="text-[11px] text-black/70">{member.organization.name}</p>
             <h1 className="text-xl font-bold tracking-wide uppercase">{t("title")}</h1>
           </div>
-          <div className="text-right">
-            <p className="font-mono text-2xl font-bold">{order.orderNumber}</p>
-            <p className="text-[11px] text-black/70">
-              {tStatus(order.status)} · {t("printedAt", { time: printedAt })}
-            </p>
+          <div className="flex items-start gap-3">
+            <div className="text-right">
+              <p className="font-mono text-2xl font-bold">{order.orderNumber}</p>
+              <p className="text-[11px] text-black/70">
+                {tStatus(order.status)} · {t("printedAt", { time: printedAt })}
+              </p>
+              <p className="mt-1 max-w-[60mm] text-[10px] text-black/60">{t("qrHint")}</p>
+            </div>
+            <div
+              className="size-[24mm] shrink-0 [&>svg]:size-full"
+              role="img"
+              aria-label={t("qrLabel", { number: order.orderNumber })}
+              dangerouslySetInnerHTML={{ __html: qrCode }}
+            />
           </div>
         </header>
 
@@ -197,7 +202,6 @@ async function PrintContent({ params }: { params: Promise<{ id: string }> }) {
               <th className="border border-black/50 px-1 py-1 text-center">{t("good")}</th>
               <th className="border border-black/50 px-1 py-1 text-center">{t("scrap")}</th>
               <th className="border border-black/50 px-1 py-1 text-left">{t("signature")}</th>
-              <th className="border border-black/50 px-1 py-1 text-center">QR</th>
             </tr>
           </thead>
           <tbody>
@@ -250,21 +254,12 @@ async function PrintContent({ params }: { params: Promise<{ id: string }> }) {
                   <td className="w-[14mm] border border-black/50" />
                   <td className="w-[14mm] border border-black/50" />
                   <td className="w-[30mm] border border-black/50" />
-                  <td className="w-[22mm] border border-black/50 p-1">
-                    <div
-                      className="mx-auto size-[19mm] [&>svg]:size-full"
-                      role="img"
-                      aria-label={t("qrLabel", { code: op.type.code })}
-                      dangerouslySetInnerHTML={{ __html: qrCodes[index] ?? "" }}
-                    />
-                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
         <p className="mt-1 text-[10px] text-black/60">
-          {t("qrHint")}
           {settings.priorityMode === "automatic" && order.priority === null
             ? ` ${t("priorityAutomatic")}`
             : ""}

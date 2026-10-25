@@ -1969,6 +1969,7 @@ export type Database = {
       floor_operation_queue: {
         Args: { p_machine_id?: string; p_org_id: string }
         Returns: {
+          arrived: boolean
           assigned_by_name: boolean
           description: string
           due_date: string
@@ -1995,6 +1996,7 @@ export type Database = {
           unit: string
         }[]
       }
+      floor_order: { Args: { p_order_id: string }; Returns: Json }
       get_login_organization: {
         Args: { p_slug: string }
         Returns: {

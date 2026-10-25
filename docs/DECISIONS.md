@@ -138,3 +138,9 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Print:** `/orders/[id]/print` (route group `(print)`, no app chrome) renders A4 HTML; PDF via the browser's print dialog. QR codes (library `qrcode`, server-side SVG) link to `/floor/operations/<id>` on the tenant host (`?org=` on localhost/previews).
 - Dates in client components use a fixed `d.m.yyyy.` format (`formatDay`), because browser and server ICU data differ (hydration mismatch with `bs` locale data).
   **Consequences:** Production reporting must replace `private.order_completion_allowed`, drive operation statuses and actual times, and can rely on `production_order_operations.id` (QR) as the reporting entry point. Shifts (Phase 3) should replace `work_hours_per_day`.
+
+## D-017 — One QR code per order; "arrived" work on the floor (2026-10-25)
+
+**Context:** Product owner review: a QR code per operation clutters the paper; workers want to see what is at their machine now.
+**Decision:** The printed order carries one QR code to `/floor/orders/<id>`. `floor_order` returns the order's operations with `mine` (the caller may see it, same rule as D-016) and `arrived` (`private.operation_arrived`: every earlier active operation is done). The page redirects to the caller's arrived operation, or their only open one; otherwise it lists the operations. The floor home lists arrived operations of all the worker's machines; "Nalozi" lists all open ones (arrived or coming) with search across them.
+**Consequences:** "Arrived" depends on operation statuses; until production reporting sets them, only first operations arrive (managers can set statuses by hand). Reporting may refine it to partial quantities (pieces passed on from the previous operation).
