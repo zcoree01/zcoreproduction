@@ -565,11 +565,11 @@ function ProductForm({
                   {used.map((name) => numberField(name, "mm", dimensionLabel(name)))}
                 </div>
               ) : null}
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {numberField("cutLength", "mm")}
                 {numberField("kerf", "mm")}
-                {numberField("netMass", "kg")}
               </div>
+              <div className="grid gap-4 sm:grid-cols-2">{numberField("netMass", "kg")}</div>
               <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
                 <ScaleIcon className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
                 <div className="flex flex-col gap-1">
