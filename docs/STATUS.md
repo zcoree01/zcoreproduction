@@ -67,7 +67,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - Review follow-up (`20261026120000_external_steps_progress`, D-019): external operations only Priprema za isporuku → Isporučeno → Primljeno (head of production, no pause); "Zahtjev za zatvaranje" shown instead of the status while a close request is pending (also a status filter); notification bell for approvers with a toast for new requests; progress bar + current operation on the customer page, order list and order header; customer page filters (order / part number, urgency, status).
 - Tests: `npm run check` (221 unit tests), `npm run test:db` (123 RLS/integration tests), `npm run e2e` (38 Playwright tests, serial: login of all 5 demo roles, field validation, wrong password, protected routes, operator kept out of the app, bottom-nav sign-out with confirmation (mobile), subdomain tenant, sidebar filtered by permission, users table search/filters, dark theme, admin creates user who then logs in; machines/employees list filters, warehouse read-only, admin catalog → machine → employee → archive flow, operator machine status on mobile, operator without employee profile, second-device sign-in signs the first device out; products: head of production reads routing, weight and totals and opens the customer, warehouse read-only, admin builds operation types → customer → product with material picked by typing, computed weight and a PDF → two operations reordered by drag & drop and arrows → revision A → history → archive; orders: head of production creates an order (whole pieces, bar calculation), releases it, prints it with QR codes, cancels with a reason and archives; warehouse limited to material statuses; operator's machine queue and a foreign operation via QR (desktop + mobile)).
 - **Repository:** https://github.com/zcoree01/zcoreproduction (**public**), branch `main`. Git in this workspace must push as `zcoree01` (account `zcoreltd` has no write access).
-- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`1d49340`, production orders + floor review). DB and e2e tests need Supabase secrets, so they are not in CI yet.
+- CI (GitHub Actions): `check` + `build` on every push/PR; green on `main` (`3c207b1`, production reporting + review). DB and e2e tests need Supabase secrets, so they are not in CI yet.
 - **No credentials in the repository:** demo/test passwords come from `.env.local` (`DEMO_PASSWORD`, `TEST_TENANT_PASSWORD`, see `.env.example`).
 - Claude Code: Prettier hook after every Write/Edit; slash commands `/feature`, `/verify`, `/status`.
 
@@ -155,6 +155,7 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 - Migration `20261026120000_external_steps_progress`, types regenerated, D-019.
 - Demo data: e2e orders left by interrupted test runs ("E2E nalog" 004/005/008/009, "E2E prijava" 013/014/019–023) cancelled and archived through the normal status functions (nothing deleted).
 - Verified: `npm run check` (244), `npm run test:db` (138), `npm run e2e` (41), `npm run build`, `npm run format:check`; screens checked by screenshot (order list, customer page, bell).
+- Pushed `feat/production-reporting` (CI green), fast-forwarded `main` to `3c207b1` and pushed (CI green).
 
 ### 2026-10-26 — Production reporting
 
