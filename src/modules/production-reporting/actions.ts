@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { DbError } from "@/lib/actions/result";
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
+import { zonedLocalToUtc } from "@/lib/timezone";
 import { nullableParam, numericParam } from "@/lib/supabase/numeric";
 import { createClient } from "@/lib/supabase/server";
 import { listPendingCloseRequests, type PendingCloseRequest } from "./queries";
@@ -12,8 +13,10 @@ import {
   closeDecisionSchema,
   closeRequestSchema,
   cutSchema,
+  downtimeEntrySchema,
   pauseSchema,
   reportSchema,
+  toolChangeSchema,
   voidReportSchema,
   WORK_ERRORS,
   type WorkActionResult,
@@ -209,4 +212,55 @@ export async function pendingCloseRequestsAction(): Promise<PendingCloseRequest[
   const member = await requireMember();
   if (!(await permitAction(member.organization.id, "orders.close.approve"))) return [];
   return listPendingCloseRequests(member.organization.id);
+}
+
+/** Downtime entered with a duration (floor: ended now; managers may give the start). */
+export async function recordDowntimeAction(
+  operationId: unknown,
+  input: unknown,
+): Promise<WorkActionResult> {
+  const member = await requireMember();
+  const parsedId = id.safeParse(operationId);
+  const parsed = downtimeEntrySchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) return fail("invalid");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_downtime", {
+    p_operation_id: parsedId.data,
+    p_reason_id: parsed.data.reasonId,
+    p_minutes: numericParam(parsed.data.minutes),
+    p_idempotency_key: parsed.data.idempotencyKey,
+    ...(parsed.data.startedAt
+      ? { p_started_at: zonedLocalToUtc(parsed.data.startedAt, member.organization.timezone) }
+      : {}),
+    ...(parsed.data.notes ? { p_notes: parsed.data.notes } : {}),
+  });
+  if (error) return mapError(error, "record downtime");
+  revalidateWorkScreens();
+  return { ok: true };
+}
+
+/** Tool / insert change on an operation (tool as text). */
+export async function recordToolChangeAction(
+  operationId: unknown,
+  input: unknown,
+): Promise<WorkActionResult> {
+  await requireMember();
+  const parsedId = id.safeParse(operationId);
+  const parsed = toolChangeSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) return fail("invalid");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_tool_change", {
+    p_operation_id: parsedId.data,
+    p_tool: parsed.data.tool,
+    p_insert: nullableParam(parsed.data.insert),
+    p_reason_id: parsed.data.reasonId,
+    p_minutes: nullableParam(parsed.data.minutes ? numericParam(parsed.data.minutes) : null),
+    p_notes: nullableParam(parsed.data.notes),
+    p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (error) return mapError(error, "record tool change");
+  revalidateWorkScreens();
+  return { ok: true };
 }

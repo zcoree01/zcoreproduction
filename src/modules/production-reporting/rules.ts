@@ -1,4 +1,4 @@
-import { addDecimals, compareDecimals, fromScaled, toScaled } from "@/lib/decimal";
+import { addDecimals, compareDecimals, divideDecimal, fromScaled, toScaled } from "@/lib/decimal";
 
 // Quantity rules of production reporting. The database enforces the same
 // (report_operation_quantity in migration 20261026100000); this copy gives
@@ -94,4 +94,80 @@ export function workButtons(state: {
     report: !hardBlock && started,
     finish: !hardBlock && started,
   };
+}
+
+/**
+ * Actual cycle time per piece in seconds: machine running time minus the
+ * planned setup, divided by the reported pieces (good + scrap). Null without
+ * pieces. Shown next to the planned cycle from the routing.
+ */
+export function actualCycleSeconds(op: {
+  runSeconds: string;
+  setupTimeMin: string | null;
+  goodQuantity: string;
+  scrapQuantity: string;
+}): string | null {
+  const pieces = addDecimals([op.goodQuantity, op.scrapQuantity], 3);
+  if (compareDecimals(pieces, "0") <= 0) return null;
+  const setup = toScaled(op.setupTimeMin ?? "0", 3) * 60n;
+  const working = toScaled(op.runSeconds, 3) - setup;
+  if (working <= 0n) return "0";
+  return divideDecimal(fromScaled(working, 3), pieces, 1);
+}
+
+/** Actual vs planned cycle in percent (+12 = 12 % slower), one decimal; null when unknown. */
+export function cycleDeviationPercent(
+  actual: string | null,
+  planned: string | null,
+): string | null {
+  if (actual === null || planned === null || compareDecimals(planned, "0") <= 0) return null;
+  const ratio = divideDecimal(actual, planned, 6);
+  return divideDecimal(addDecimals([ratio, "-1"], 6), "0.01", 1);
+}
+
+/** Scrap rate in percent of reported pieces, one decimal; null without pieces. */
+export function scrapRatePercent(good: string, scrap: string): string | null {
+  const pieces = addDecimals([good, scrap], 3);
+  if (compareDecimals(pieces, "0") <= 0) return null;
+  return divideDecimal(addDecimals([scrap], 3), divideDecimal(pieces, "100", 6), 1);
+}
+
+/** Downtime summed per reason, longest first. */
+export function downtimeByReason(
+  events: readonly { reason: string; seconds: string }[],
+): { reason: string; seconds: string; count: number }[] {
+  const totals = new Map<string, { seconds: string; count: number }>();
+  for (const event of events) {
+    const current = totals.get(event.reason) ?? { seconds: "0", count: 0 };
+    totals.set(event.reason, {
+      seconds: addDecimals([current.seconds, event.seconds], 3),
+      count: current.count + 1,
+    });
+  }
+  return [...totals.entries()]
+    .map(([reason, total]) => ({ reason, ...total }))
+    .sort((a, b) => compareDecimals(b.seconds, a.seconds) || a.reason.localeCompare(b.reason));
+}
+
+/**
+ * Scrap rate of an order: all scrap divided by the pieces that entered
+ * production (good + scrap reported on the first operation with reports,
+ * usually the cut pieces). Voided reports are left out by the caller.
+ */
+export function orderScrapRatePercent(
+  reports: readonly { operationSequence: number; good: string; scrap: string }[],
+): string | null {
+  if (reports.length === 0) return null;
+  const first = Math.min(...reports.map((row) => row.operationSequence));
+  const started = reports.filter((row) => row.operationSequence === first);
+  const entered = addDecimals(
+    started.flatMap((row) => [row.good, row.scrap]),
+    3,
+  );
+  if (compareDecimals(entered, "0") <= 0) return null;
+  const scrap = addDecimals(
+    reports.map((row) => row.scrap),
+    3,
+  );
+  return divideDecimal(scrap, divideDecimal(entered, "100", 6), 1);
 }

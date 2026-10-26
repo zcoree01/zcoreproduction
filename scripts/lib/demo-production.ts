@@ -18,6 +18,7 @@ const CATALOGS: Record<CatalogKind, string[]> = {
   // Starter reasons come from migration 20261026100000 for every organization.
   downtime_reason: [],
   scrap_reason: [],
+  tool_change_reason: [],
 };
 
 const MACHINES = [

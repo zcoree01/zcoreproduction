@@ -26,7 +26,7 @@ import {
   listOrderAttachments,
   listOrderOperations,
 } from "@/modules/production-orders/queries";
-import { getOrderProduction } from "@/modules/production-reporting/queries";
+import { getOrderProduction, listReasons } from "@/modules/production-reporting/queries";
 import { getProductionSettings, listOperationTypes } from "@/modules/products/queries";
 import { OrderAttachmentsPanel } from "./attachments-panel";
 import { OrderHistoryPanel } from "./history-panel";
@@ -100,6 +100,7 @@ async function OrderContent({
     productionSettings,
     assignment,
     types,
+    downtimeReasons,
   ] = await Promise.all([
     listOrderOperations(organizationId, order.id),
     getOrderProduction(order.id),
@@ -112,6 +113,7 @@ async function OrderContent({
       ? listAssignmentOptions(organizationId)
       : Promise.resolve({ machines: [], employees: [] }),
     canManage ? listOperationTypes(organizationId) : Promise.resolve([]),
+    canManage ? listReasons(organizationId, "downtime_reason") : Promise.resolve([]),
   ]);
   const stamp = (iso: string) =>
     format.dateTime(new Date(iso), { dateStyle: "medium", timeStyle: "short", timeZone: timezone });
@@ -231,6 +233,10 @@ async function OrderContent({
                   startedLabel: stamp(row.startedAt),
                   endedLabel: row.endedAt ? stamp(row.endedAt) : null,
                 })),
+                toolChanges: production.toolChanges.map((row) => ({
+                  ...row,
+                  changedLabel: stamp(row.changedAt),
+                })),
                 closeRequests: production.closeRequests.map((row) => ({
                   ...row,
                   requestedLabel: stamp(row.requestedAt),
@@ -241,7 +247,12 @@ async function OrderContent({
                 void: canManage,
                 approve: access.permissions.has("orders.close.approve"),
                 request: canManage || access.permissions.has("quality.inspect"),
+                recordDowntime: canManage,
               }}
+              operations={operations
+                .filter((op) => !op.archived && !op.type.isExternal)
+                .map((op) => ({ id: op.id, code: op.type.code, name: op.type.name }))}
+              downtimeReasons={downtimeReasons}
             />
           ),
           attachments: (

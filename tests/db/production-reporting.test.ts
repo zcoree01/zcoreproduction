@@ -17,6 +17,7 @@ type Client = SupabaseClient<Database>;
 let fx: Fixture;
 let inspector: Client;
 let operator2: Client;
+let operator3: Client;
 const ids = {
   cutType: "",
   turnType: "",
@@ -29,6 +30,8 @@ const ids = {
   product: "",
   operatorEmployee: "",
   operator2Employee: "",
+  operator3Employee: "",
+  toolReason: "",
   inspectorEmployee: "",
   downtimeReason: "",
   scrapReason: "",
@@ -54,6 +57,7 @@ async function cleanup(service: Client, orgIds: string[]) {
     await service.from("production_work_sessions").delete().in("order_id", orderIds);
     await service.from("production_downtime_events").delete().in("order_id", orderIds);
     await service.from("production_order_close_requests").delete().in("order_id", orderIds);
+    await service.from("production_tool_changes").delete().in("order_id", orderIds);
     await service.from("production_order_status_history").delete().in("order_id", orderIds);
     await service.from("production_order_attachments").delete().in("order_id", orderIds);
     await service.from("production_order_operations").delete().in("order_id", orderIds);
@@ -221,8 +225,15 @@ async function seed() {
     fullName: "Test Operater 2",
     role: "operator",
   });
+  const operator3Id = await ensureUser(s, fx.a.org, {
+    username: "operater3",
+    password: testTenantPassword(),
+    fullName: "Test Operater 3",
+    role: "operator",
+  });
   inspector = await signIn("kontrolor", fx.a.org.slug);
   operator2 = await signIn("operater2", fx.a.org.slug);
+  operator3 = await signIn("operater3", fx.a.org.slug);
 
   const employees = await s
     .from("employees")
@@ -243,6 +254,13 @@ async function seed() {
       },
       {
         organization_id: org,
+        employee_number: 900204,
+        first_name: `${MARK} Treći`,
+        last_name: "Radnik",
+        user_id: operator3Id,
+      },
+      {
+        organization_id: org,
         employee_number: 900203,
         first_name: `${MARK} Kontrolor`,
         last_name: "Test",
@@ -255,12 +273,14 @@ async function seed() {
   ids.operatorEmployee = employeeId(900201);
   ids.operator2Employee = employeeId(900202);
   ids.inspectorEmployee = employeeId(900203);
+  ids.operator3Employee = employeeId(900204);
   await s
     .from("employee_machines")
     .insert([
       { organization_id: org, employee_id: ids.operatorEmployee, machine_id: ids.saw },
       { organization_id: org, employee_id: ids.operatorEmployee, machine_id: ids.cnc },
       { organization_id: org, employee_id: ids.operator2Employee, machine_id: ids.cnc },
+      { organization_id: org, employee_id: ids.operator3Employee, machine_id: ids.cnc },
     ])
     .throwOnError();
 
@@ -268,11 +288,12 @@ async function seed() {
     .from("catalog_items")
     .select("id, kind, name")
     .eq("organization_id", org)
-    .in("kind", ["downtime_reason", "scrap_reason"])
+    .in("kind", ["downtime_reason", "scrap_reason", "tool_change_reason"])
     .is("archived_at", null)
     .throwOnError();
   ids.downtimeReason = reasons.data.find((r) => r.kind === "downtime_reason")!.id;
   ids.scrapReason = reasons.data.find((r) => r.kind === "scrap_reason")!.id;
+  ids.toolReason = reasons.data.find((r) => r.kind === "tool_change_reason")!.id;
 }
 
 async function releasedOrder(quantity: string, productId = ids.product): Promise<string> {
@@ -874,5 +895,200 @@ describe("external operations, progress and close notifications", () => {
       progress_percent: 100,
       close_request_pending: false,
     });
+  });
+});
+
+describe("teams, foreign operations, downtime entries, tool changes and the day", () => {
+  let orderId = "";
+  let turning = "";
+  let inspection = "";
+
+  beforeAll(async () => {
+    orderId = await releasedOrder("6");
+    turning = (await op(orderId, ids.turnType)).id;
+    inspection = (await op(orderId, ids.inspectionType)).id;
+    expect((await cut(fx.a.admin, orderId, "6")).error).toBeNull();
+  });
+
+  it("counts a team's pieces once per report, not once per worker", async () => {
+    for (const client of [fx.a.operator, operator2, operator3]) {
+      expect(
+        (await client.rpc("start_operation_work", { p_operation_id: turning })).error,
+      ).toBeNull();
+    }
+    expect((await work(fx.a.operator, turning))?.workers_now).toHaveLength(3);
+    for (const client of [fx.a.operator, operator2, operator3]) {
+      expect((await report(client, turning, "2")).error).toBeNull();
+    }
+    const figures = await fx.a.admin
+      .from("production_order_operation_directory")
+      .select("good_quantity, scrap_quantity")
+      .eq("id", turning)
+      .single()
+      .throwOnError();
+    expect(figures.data).toEqual({ good_quantity: 6, scrap_quantity: 0 });
+    // All 6 pieces are reported: nothing more fits, whoever reports.
+    expect((await report(operator3, turning, "1")).error?.message).toBe("quantity_exceeds_input");
+  });
+
+  it("refuses reports, downtime and tool changes on someone else's operation", async () => {
+    const other = await releasedOrder("2");
+    const otherTurning = (await op(other, ids.turnType)).id;
+    expect((await cut(fx.a.admin, other, "2")).error).toBeNull();
+    const assigned = await fx.a.admin.rpc("assign_order_operation", {
+      p_operation_id: otherTurning,
+      p_machine_id: ids.cnc,
+      p_employee_ids: [ids.operator2Employee],
+      p_planned_start: null as unknown as string,
+      p_planned_end: null as unknown as string,
+    });
+    expect(assigned.error).toBeNull();
+    expect(
+      (await operator2.rpc("start_operation_work", { p_operation_id: otherTurning })).error,
+    ).toBeNull();
+
+    expect((await report(fx.a.operator, otherTurning, "1")).error?.code).toBe("42501");
+    const downtime = await fx.a.operator.rpc("record_downtime", {
+      p_operation_id: otherTurning,
+      p_reason_id: ids.downtimeReason,
+      p_minutes: 5,
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    expect(downtime.error?.code).toBe("42501");
+    const tool = await fx.a.operator.rpc("record_tool_change", {
+      p_operation_id: otherTurning,
+      p_tool: "Nož",
+      p_insert: null as unknown as string,
+      p_reason_id: ids.toolReason,
+      p_minutes: null as unknown as number,
+      p_notes: null as unknown as string,
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    expect(tool.error?.code).toBe("42501");
+  });
+
+  it("enters past downtime with a duration, once per key; only managers give a start", async () => {
+    const key = crypto.randomUUID();
+    const entry = () =>
+      fx.a.operator.rpc("record_downtime", {
+        p_operation_id: turning,
+        p_reason_id: ids.downtimeReason,
+        p_minutes: "12.5" as unknown as number,
+        p_idempotency_key: key,
+        p_notes: "Čekao viljuškar",
+      });
+    const first = await entry();
+    expect(first.error).toBeNull();
+    const again = await entry();
+    expect(again.data).toBe(first.data);
+
+    const rows = await fx.service
+      .from("production_downtime_events")
+      .select("source, started_at, ended_at")
+      .eq("idempotency_key", key)
+      .throwOnError();
+    expect(rows.data).toHaveLength(1);
+    const row = rows.data[0]!;
+    expect(row.source).toBe("entry");
+    expect(Date.parse(row.ended_at!) - Date.parse(row.started_at)).toBe(750_000);
+    // A closed entry does not stop the machine others work on.
+    expect(await machineStatus(ids.cnc)).toBe("running");
+
+    const withStart = await fx.a.operator.rpc("record_downtime", {
+      p_operation_id: turning,
+      p_reason_id: ids.downtimeReason,
+      p_minutes: 10,
+      p_idempotency_key: crypto.randomUUID(),
+      p_started_at: new Date(Date.now() - 3_600_000).toISOString(),
+    });
+    expect(withStart.error?.code).toBe("42501");
+    const byManager = await fx.a.admin.rpc("record_downtime", {
+      p_operation_id: turning,
+      p_reason_id: ids.downtimeReason,
+      p_minutes: 10,
+      p_idempotency_key: crypto.randomUUID(),
+      p_started_at: new Date(Date.now() - 3_600_000).toISOString(),
+    });
+    expect(byManager.error).toBeNull();
+    const future = await fx.a.admin.rpc("record_downtime", {
+      p_operation_id: turning,
+      p_reason_id: ids.downtimeReason,
+      p_minutes: 120,
+      p_idempotency_key: crypto.randomUUID(),
+      p_started_at: new Date(Date.now() - 60_000).toISOString(),
+    });
+    expect(future.error?.message).toBe("downtime_in_future");
+    const zero = await fx.a.operator.rpc("record_downtime", {
+      p_operation_id: turning,
+      p_reason_id: ids.downtimeReason,
+      p_minutes: 0,
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    expect(zero.error?.message).toBe("invalid_duration");
+  });
+
+  it("records tool changes on machine operations, once per key", async () => {
+    const key = crypto.randomUUID();
+    const change = (operationId: string, tool: string, k = key) =>
+      fx.a.operator.rpc("record_tool_change", {
+        p_operation_id: operationId,
+        p_tool: tool,
+        p_insert: "VBMT 160404",
+        p_reason_id: ids.toolReason,
+        p_minutes: 4 as unknown as number,
+        p_notes: null as unknown as string,
+        p_idempotency_key: k,
+      });
+    const first = await change(turning, "Nož za konturu");
+    expect(first.error).toBeNull();
+    expect((await change(turning, "Nož za konturu")).data).toBe(first.data);
+    expect((await change(turning, " ", crypto.randomUUID())).error?.message).toBe("tool_required");
+    const onInspection = await inspector.rpc("record_tool_change", {
+      p_operation_id: inspection,
+      p_tool: "Mjerilo",
+      p_insert: null as unknown as string,
+      p_reason_id: ids.toolReason,
+      p_minutes: null as unknown as number,
+      p_notes: null as unknown as string,
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    expect(onInspection.error?.message).toBe("inspection_has_no_tools");
+
+    const listed = await fx.a.admin.rpc("production_order_tool_changes", { p_order_id: orderId });
+    expect(listed.data).toHaveLength(1);
+    expect(listed.data?.[0]).toMatchObject({ tool: "Nož za konturu", insert_name: "VBMT 160404" });
+    const direct = await fx.a.operator.from("production_tool_changes").select("id");
+    expect(direct.data ?? []).toEqual([]);
+  });
+
+  it("gives the foreman the day: reports, downtime, who works and tool changes", async () => {
+    const from = new Date(Date.now() - 86_400_000).toISOString();
+    const to = new Date(Date.now() + 60_000).toISOString();
+    const day = await fx.a.admin.rpc("production_day", {
+      p_org_id: fx.a.org.id,
+      p_from: from,
+      p_to: to,
+    });
+    expect(day.error).toBeNull();
+    const data = day.data as {
+      reports: { order_id: string; good: number }[];
+      downtime: { order_id: string; source: string }[];
+      working: { order_id: string; employee_name: string }[];
+      tool_changes: { order_id: string; tool: string }[];
+    };
+    // The cut pieces (cutting) and the team's three reports.
+    expect(data.reports.filter((r) => r.order_id === orderId)).toHaveLength(4);
+    expect(data.downtime.some((d) => d.order_id === orderId && d.source === "entry")).toBe(true);
+    expect(data.working.filter((w) => w.order_id === orderId)).toHaveLength(3);
+    expect(data.tool_changes.filter((t) => t.order_id === orderId)).toHaveLength(1);
+
+    for (const client of [fx.a.operator, fx.b.admin]) {
+      const denied = await client.rpc("production_day", {
+        p_org_id: fx.a.org.id,
+        p_from: from,
+        p_to: to,
+      });
+      expect(denied.data).toBeNull();
+    }
   });
 });

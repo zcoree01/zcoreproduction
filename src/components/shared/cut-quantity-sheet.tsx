@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { parseDecimal } from "@/lib/decimal";
 import { finishCuttingAction } from "@/modules/production-reporting/actions";
+import type { WorkActionResult } from "@/modules/production-reporting/schemas";
 
 /**
  * "Ready for further processing" while a cutting operation is open: the number
@@ -60,10 +61,14 @@ export function CutQuantitySheet({
       return;
     }
     startTransition(async () => {
-      const result = await finishCuttingAction(orderId, {
-        quantity: parsed,
-        idempotencyKey: key,
-      });
+      let result: WorkActionResult;
+      try {
+        result = await finishCuttingAction(orderId, { quantity: parsed, idempotencyKey: key });
+      } catch {
+        // No connection: keep the number and the key, so sending again is safe.
+        toast.error(t("errors.network"));
+        return;
+      }
       if (result.ok) {
         toast.success(t("doneToast", { number: orderNumber }));
         onOpenChange(false);

@@ -67,7 +67,8 @@
     "materials": "Materijali",
     "orders": "Radni nalozi",
     "floorOperations": "Nalozi",
-    "inspections": "Kontrola (pogon)"
+    "inspections": "Kontrola (pogon)",
+    "productionDay": "Pregled proizvodnje"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -376,7 +377,8 @@
       "skill": "Vještine",
       "product_type": "Vrste artikala",
       "downtime_reason": "Razlozi zastoja",
-      "scrap_reason": "Razlozi škarta"
+      "scrap_reason": "Razlozi škarta",
+      "tool_change_reason": "Razlozi promjene alata"
     },
     "kindsLabel": "Vrsta šifarnika",
     "newLabel": "Novi naziv",
@@ -1540,7 +1542,9 @@
         "machine": "Mašina",
         "workers": "radnici",
         "downtime": "zastoj",
-        "atSupplier": "Kod kooperanta"
+        "atSupplier": "Kod kooperanta",
+        "scrapRate": "škart {rate} %",
+        "cycle": "Ciklus {actual} s / plan {planned} s"
       },
       "externalHint": "Vanjsku operaciju vodi šef proizvodnje: priprema za isporuku, isporučeno, primljeno."
     },
@@ -1711,7 +1715,9 @@
         "actions": "Akcije",
         "from": "Od",
         "to": "Do",
-        "reason": "Razlog"
+        "reason": "Razlog",
+        "duration": "Trajanje",
+        "tool": "Alat / pločica"
       },
       "errors": {
         "invalid": "Neispravan unos.",
@@ -1741,8 +1747,36 @@
         "close_request_pending": "Zahtjev za zatvaranje već čeka odobrenje.",
         "close_request_decided": "O zahtjevu je već odlučeno.",
         "reject_note_required": "Za odbijanje je potreban razlog.",
-        "void_reason_required": "Za storniranje je potreban razlog."
-      }
+        "void_reason_required": "Za storniranje je potreban razlog.",
+        "network": "Nema veze sa serverom. Uneseni podaci su ostali u formi – pošaljite ponovo.",
+        "invalid_duration": "Unesite trajanje u minutama (veće od 0).",
+        "downtime_in_future": "Zastoj ne može završiti u budućnosti.",
+        "tool_required": "Unesite alat.",
+        "tool_change_reason_required": "Izaberite razlog promjene alata.",
+        "inspection_has_no_tools": "Kontrola nema alate."
+      },
+      "summary": {
+        "good": "Gotovo (dobro)",
+        "scrap": "Škart ukupno",
+        "scrapRate": "Stopa škarta",
+        "downtime": "Zastoj ukupno"
+      },
+      "times": "{count, plural, one {# put} few {# puta} other {# puta}}",
+      "sourceEntry": "unos",
+      "addDowntime": "Dodaj zastoj",
+      "addDowntimeTitle": "Dodaj zastoj",
+      "addDowntimeDescription": "Zastoj koji je već prošao. Bez početka se računa da je upravo završio.",
+      "chooseReason": "Izaberite razlog…",
+      "downtimeReasonRequired": "Izaberite razlog.",
+      "start": "Početak (nije obavezno)",
+      "startHint": "Vrijeme u vremenskoj zoni firme.",
+      "minutes": "Trajanje (min)",
+      "minutesInvalid": "Unesite trajanje u minutama (veće od 0).",
+      "note": "Napomena (nije obavezno)",
+      "saveDowntime": "Sačuvaj zastoj",
+      "downtimeSaved": "Zastoj je zabilježen.",
+      "toolChangesTitle": "Promjene alata",
+      "toolChangesEmpty": "Nema promjena alata."
     }
   },
   "floorOrders": {
@@ -1858,7 +1892,13 @@
       "close_request_pending": "Zahtjev za zatvaranje već čeka odobrenje.",
       "close_request_decided": "O zahtjevu je već odlučeno.",
       "reject_note_required": "Za odbijanje je potreban razlog.",
-      "void_reason_required": "Za storniranje je potreban razlog."
+      "void_reason_required": "Za storniranje je potreban razlog.",
+      "network": "Nema veze sa serverom. Uneseni podaci su ostali u formi – pošaljite ponovo.",
+      "invalid_duration": "Unesite trajanje u minutama (veće od 0).",
+      "downtime_in_future": "Zastoj ne može završiti u budućnosti.",
+      "tool_required": "Unesite alat.",
+      "tool_change_reason_required": "Izaberite razlog promjene alata.",
+      "inspection_has_no_tools": "Kontrola nema alate."
     }
   },
   "floorWork": {
@@ -1954,8 +1994,33 @@
       "close_request_pending": "Zahtjev za zatvaranje već čeka odobrenje.",
       "close_request_decided": "O zahtjevu je već odlučeno.",
       "reject_note_required": "Za odbijanje je potreban razlog.",
-      "void_reason_required": "Za storniranje je potreban razlog."
-    }
+      "void_reason_required": "Za storniranje je potreban razlog.",
+      "network": "Nema veze sa serverom. Uneseni podaci su ostali u formi – pošaljite ponovo.",
+      "invalid_duration": "Unesite trajanje u minutama (veće od 0).",
+      "downtime_in_future": "Zastoj ne može završiti u budućnosti.",
+      "tool_required": "Unesite alat.",
+      "tool_change_reason_required": "Izaberite razlog promjene alata.",
+      "inspection_has_no_tools": "Kontrola nema alate."
+    },
+    "downtime": "Zastoj",
+    "downtimeTitle": "Unos zastoja",
+    "downtimeDescription": "Zastoj koji je već prošao: razlog i koliko je trajao (završio je sada).",
+    "minutes": "Trajanje (min)",
+    "minutesInvalid": "Unesite trajanje u minutama (veće od 0).",
+    "downtimeConfirm": "Sačuvaj zastoj",
+    "downtimeToast": "Zastoj je zabilježen.",
+    "toolChange": "Promjena alata",
+    "toolTitle": "Promjena alata",
+    "toolDescription": "Koji alat ili pločica je promijenjen i zašto.",
+    "tool": "Alat",
+    "toolPlaceholder": "npr. Nož VBMT 160404",
+    "insert": "Pločica / oznaka (nije obavezno)",
+    "toolReason": "Razlog promjene",
+    "toolReasonRequired": "Izaberite razlog.",
+    "toolRequired": "Unesite alat.",
+    "toolMinutes": "Trajanje (min, nije obavezno)",
+    "toolConfirm": "Sačuvaj promjenu alata",
+    "toolToast": "Promjena alata je zabilježena."
   },
   "externalOperationStatus": {
     "waiting": "Čeka",
@@ -1978,5 +2043,53 @@
     "closeBy": "{name} · {reason}",
     "newToast": "Novi zahtjev za zatvaranje: {number}",
     "open": "Otvori"
+  },
+  "productionDay": {
+    "title": "Pregled proizvodnje",
+    "description": "Šta se danas radi: mašine, zastoji, prijave i promjene alata.",
+    "deniedDescription": "Za pregled proizvodnje potrebna je dozvola za radne naloge.",
+    "live": "Uživo · osvježava se svakih 30 s",
+    "filters": {
+      "date": "Dan",
+      "machine": "Mašina",
+      "worker": "Radnik",
+      "order": "Nalog",
+      "orderPlaceholder": "Broj naloga…",
+      "all": "Sve",
+      "apply": "Prikaži",
+      "reset": "Danas, bez filtera"
+    },
+    "stats": {
+      "good": "Dobri komadi",
+      "scrap": "Škart",
+      "scrapRate": "Stopa škarta",
+      "downtime": "Zastoj",
+      "openDowntime": "Otvoreni zastoji",
+      "toolChanges": "Promjene alata"
+    },
+    "machinesTitle": "Mašine",
+    "machineIdle": "Niko trenutno ne radi.",
+    "since": "od {time}",
+    "stoppedFor": "Stoji: {reason} (od {time})",
+    "openDowntimeTitle": "Otvoreni zastoji",
+    "reportsTitle": "Prijave",
+    "reportsEmptyTitle": "Nema prijava",
+    "reportsEmptyDescription": "Za ovaj dan i filtere još nema prijavljenih komada.",
+    "byReasonTitle": "Zastoji po razlogu",
+    "noDowntime": "Nema zastoja.",
+    "times": "{count, plural, one {# put} few {# puta} other {# puta}}",
+    "toolChangesTitle": "Promjene alata",
+    "noToolChanges": "Nema promjena alata.",
+    "columns": {
+      "since": "Od",
+      "time": "Vrijeme",
+      "machine": "Mašina",
+      "order": "Nalog · operacija",
+      "worker": "Radnik",
+      "reason": "Razlog",
+      "good": "Dobro",
+      "scrap": "Škart",
+      "scrapReason": "Razlog škarta"
+    }
   }
 }

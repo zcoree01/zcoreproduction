@@ -170,3 +170,15 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Progress** per order (`private.order_progress`, SQL only): every active operation counts equally — done = 1, otherwise (good + scrap) / ordered quantity (max 1), shipped external work = ½; completed = 100 %. The current operation is the first one not done. Shown on the customer page, the order list (compact) and the order header.
 - Customer page filters: order number / part number (one search box), urgency (effective priority) and status, as URL parameters.
   **Consequences:** The migration comment of `20261026120000` mentions a TypeScript mirror of the progress formula; there is none, the formula lives in SQL only.
+
+## D-020 — Tool changes, downtime entries, figures and the foreman's day overview (2026-10-26)
+
+**Context:** Review of the production-reporting spec against the implementation. The product owner asked for tool changes, downtime entered with a duration, actual cycle time vs plan, scrap rate and downtime by reason, and a live overview for the foreman; +/- buttons dropped; shifts move to the next module (shifts and working time).
+**Decision:**
+
+- **Tool changes** (`production_tool_changes`, migration `20261026130000`): tool as text (plus optional insert), reason from the new catalog kind `tool_change_reason` (starter list: Istrošen, Lom, Promjena programa, Ostalo), optional duration, idempotency key. Recorded by the worker who sees the (machine) operation or by `orders.manage`; not on inspections or external work. The tool store link comes later.
+- **Downtime entries:** `record_downtime` adds a closed downtime event with a duration (source `entry`; pauses stay `pause`), idempotent. On the floor it ends now; managers may give the start on the order's "Proizvodnja" tab. A closed entry never changes the machine status.
+- **Figures** (computed, not stored; `rules.ts`): actual cycle per piece = (machine running time − planned setup) / reported pieces, next to the planned cycle with the deviation in percent; scrap rate per operation = scrap / reported pieces; scrap rate of an order = all scrap / pieces that entered production (first operation with reports); downtime summed by reason.
+- **Foreman's overview** `/production` ("Pregled proizvodnje", `orders.read`): one day in the organization's time zone (`production_day`), machines with status and who works on what, open downtime, reports, downtime by reason, tool changes, totals; filters machine / worker / order number and date; refreshed every 30 s while today is shown. Shift filter comes with the shifts module.
+- **Floor forms and weak signal:** a form keeps its values and its idempotency key until the server confirms; a network failure shows a message and the same form can be sent again (no double quantity). A new key is created only after a confirmed save.
+  **Consequences:** Shifts (next module) should attach sessions, reports and downtime to shifts and add the shift filter. Tool changes can later reference the tool store.

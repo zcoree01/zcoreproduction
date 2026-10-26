@@ -65,7 +65,7 @@ export type Reason = { id: string; name: string };
 /** Active downtime or scrap reasons of the organization (every member reads catalogs). */
 export async function listReasons(
   organizationId: string,
-  kind: "downtime_reason" | "scrap_reason",
+  kind: "downtime_reason" | "scrap_reason" | "tool_change_reason",
 ): Promise<Reason[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -104,6 +104,23 @@ export type DowntimeRow = {
   machineCode: string | null;
   employeeName: string | null;
   reason: string;
+  /** Running time; open downtime counts until now. */
+  seconds: string;
+  /** "pause" (from the pause button) or "entry" (entered with a duration). */
+  source: "pause" | "entry";
+  notes: string | null;
+};
+
+export type ToolChangeRow = {
+  id: string;
+  changedAt: string;
+  operationCode: string;
+  machineCode: string | null;
+  employeeName: string | null;
+  tool: string;
+  insert: string | null;
+  reason: string;
+  minutes: string | null;
   notes: string | null;
 };
 
@@ -122,19 +139,22 @@ export type CloseRequestRow = {
 export type OrderProduction = {
   reports: ProductionReportRow[];
   downtime: DowntimeRow[];
+  toolChanges: ToolChangeRow[];
   closeRequests: CloseRequestRow[];
 };
 
 /** Reports, downtime and close requests of an order (orders.read, checked in the functions). */
 export async function getOrderProduction(orderId: string): Promise<OrderProduction> {
   const supabase = await createClient();
-  const [reports, downtime, closeLog] = await Promise.all([
+  const [reports, downtime, toolChanges, closeLog] = await Promise.all([
     supabase.rpc("production_order_reports", { p_order_id: orderId }),
     supabase.rpc("production_order_downtime", { p_order_id: orderId }),
+    supabase.rpc("production_order_tool_changes", { p_order_id: orderId }),
     supabase.rpc("production_order_close_log", { p_order_id: orderId }),
   ]);
   if (reports.error) throw reports.error;
   if (downtime.error) throw downtime.error;
+  if (toolChanges.error) throw toolChanges.error;
   if (closeLog.error) throw closeLog.error;
 
   return {
@@ -162,6 +182,20 @@ export async function getOrderProduction(orderId: string): Promise<OrderProducti
       machineCode: row.machine_code,
       employeeName: row.employee_name,
       reason: row.reason,
+      seconds: decimalFromDb(row.duration_seconds) ?? "0",
+      source: row.source === "entry" ? "entry" : "pause",
+      notes: row.notes,
+    })),
+    toolChanges: toolChanges.data.map((row) => ({
+      id: row.id,
+      changedAt: row.changed_at,
+      operationCode: row.operation_code,
+      machineCode: row.machine_code,
+      employeeName: row.employee_name,
+      tool: row.tool,
+      insert: row.insert_name,
+      reason: row.reason,
+      minutes: decimalFromDb(row.duration_min),
       notes: row.notes,
     })),
     closeRequests: closeLog.data.flatMap((row) => {

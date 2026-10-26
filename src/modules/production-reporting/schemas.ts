@@ -77,9 +77,45 @@ export const WORK_ERRORS = [
   "close_request_decided",
   "reject_note_required",
   "void_reason_required",
+  "invalid_duration",
+  "downtime_in_future",
+  "tool_required",
+  "tool_change_reason_required",
+  "inspection_has_no_tools",
 ] as const;
 export type WorkError = (typeof WORK_ERRORS)[number];
 
 export type WorkActionResult =
   | { ok: true }
-  | { ok: false; error: WorkError | "invalid" | "denied" | "not_found" | "unexpected" };
+  | {
+      ok: false;
+      error: WorkError | "invalid" | "denied" | "not_found" | "unexpected" | "network";
+    };
+
+/** Minutes (decimal comma allowed), > 0. */
+const minutes = (max: string) => optionalDecimal({ maxScale: 2, max, exclusiveMin: true });
+
+/** datetime-local value ("2026-10-26T08:00"), "" = none. */
+const optionalLocalDateTime = z
+  .union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)])
+  .transform((value) => value || null);
+
+/** Downtime entered with a duration; the start only from managers (desktop). */
+export const downtimeEntrySchema = z.object({
+  reasonId: z.uuid(),
+  minutes: minutes("10080").pipe(z.string()),
+  startedAt: optionalLocalDateTime,
+  notes: optionalText(500),
+  idempotencyKey: z.uuid(),
+});
+export type DowntimeEntryInput = z.infer<typeof downtimeEntrySchema>;
+
+export const toolChangeSchema = z.object({
+  tool: requiredText(200),
+  insert: optionalText(200),
+  reasonId: z.uuid(),
+  minutes: minutes("1440"),
+  notes: optionalText(500),
+  idempotencyKey: z.uuid(),
+});
+export type ToolChangeInput = z.infer<typeof toolChangeSchema>;

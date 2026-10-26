@@ -13,6 +13,7 @@ export const CATALOG_KINDS = [
   "product_type",
   "downtime_reason",
   "scrap_reason",
+  "tool_change_reason",
 ] as const;
 
 export type CatalogKind = (typeof CATALOG_KINDS)[number];
@@ -29,6 +30,7 @@ export const CATALOG_MANAGE_PERMISSION: Record<CatalogKind, PermissionKey> = {
   product_type: "products.manage",
   downtime_reason: "orders.manage",
   scrap_reason: "orders.manage",
+  tool_change_reason: "orders.manage",
 };
 
 /** Catalog kinds the holder of `permissions` may manage, in display order. */

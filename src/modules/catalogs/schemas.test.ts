@@ -17,6 +17,7 @@ describe("catalog permissions", () => {
       product_type: "products.manage",
       downtime_reason: "orders.manage",
       scrap_reason: "orders.manage",
+      tool_change_reason: "orders.manage",
     });
   });
 
@@ -31,6 +32,7 @@ describe("catalog permissions", () => {
     expect(manageableCatalogKinds(new Set(["orders.manage"]))).toEqual([
       "downtime_reason",
       "scrap_reason",
+      "tool_change_reason",
     ]);
     expect(
       manageableCatalogKinds(

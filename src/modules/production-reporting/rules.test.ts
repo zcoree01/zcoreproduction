@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  actualCycleSeconds,
+  cycleDeviationPercent,
+  downtimeByReason,
   hasShortage,
+  orderScrapRatePercent,
   remainingQuantity,
   reportProblem,
+  scrapRatePercent,
   unreportedOnFinish,
   workButtons,
   type ReportCheck,
@@ -120,5 +125,69 @@ describe("workButtons", () => {
         finish: false,
       });
     }
+  });
+});
+
+describe("actualCycleSeconds", () => {
+  it("is machine time without the planned setup per reported piece", () => {
+    // 30 min run, 10 min setup, 10 pieces → 120 s per piece.
+    expect(
+      actualCycleSeconds({
+        runSeconds: "1800",
+        setupTimeMin: "10",
+        goodQuantity: "9",
+        scrapQuantity: "1",
+      }),
+    ).toBe("120");
+  });
+
+  it("is null without pieces and never negative", () => {
+    const base = { runSeconds: "300", setupTimeMin: "10", goodQuantity: "0", scrapQuantity: "0" };
+    expect(actualCycleSeconds(base)).toBeNull();
+    expect(actualCycleSeconds({ ...base, goodQuantity: "2" })).toBe("0");
+  });
+});
+
+describe("cycleDeviationPercent", () => {
+  it("compares actual with planned", () => {
+    expect(cycleDeviationPercent("120", "100")).toBe("20");
+    expect(cycleDeviationPercent("90", "100")).toBe("-10");
+    expect(cycleDeviationPercent(null, "100")).toBeNull();
+    expect(cycleDeviationPercent("90", null)).toBeNull();
+  });
+});
+
+describe("scrapRatePercent", () => {
+  it("is scrap of all reported pieces", () => {
+    expect(scrapRatePercent("9", "1")).toBe("10");
+    expect(scrapRatePercent("2", "1")).toBe("33.3");
+    expect(scrapRatePercent("0", "0")).toBeNull();
+  });
+});
+
+describe("downtimeByReason", () => {
+  it("sums per reason, longest first", () => {
+    expect(
+      downtimeByReason([
+        { reason: "Kvar", seconds: "600" },
+        { reason: "Alat", seconds: "300" },
+        { reason: "Kvar", seconds: "60.5" },
+      ]),
+    ).toEqual([
+      { reason: "Kvar", seconds: "660.5", count: 2 },
+      { reason: "Alat", seconds: "300", count: 1 },
+    ]);
+  });
+});
+
+describe("orderScrapRatePercent", () => {
+  it("relates all scrap to the pieces that entered production", () => {
+    expect(
+      orderScrapRatePercent([
+        { operationSequence: 1, good: "5", scrap: "0" },
+        { operationSequence: 3, good: "4", scrap: "1" },
+      ]),
+    ).toBe("20");
+    expect(orderScrapRatePercent([])).toBeNull();
   });
 });

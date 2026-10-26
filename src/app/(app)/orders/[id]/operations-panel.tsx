@@ -45,6 +45,11 @@ import {
 } from "@/modules/production-orders/actions";
 import type { OrderOperation } from "@/modules/production-orders/queries";
 import {
+  actualCycleSeconds,
+  cycleDeviationPercent,
+  scrapRatePercent,
+} from "@/modules/production-reporting/rules";
+import {
   canChangeOperationStatus,
   canChangeRouting,
   canEditPlanning,
@@ -393,6 +398,9 @@ function OperationProduction({ op }: { op: OrderOperation }) {
   const t = useTranslations("orders.operations.production");
   const reported = addDecimals([op.goodQuantity, op.scrapQuantity], 3) !== "0";
   const worked = op.runSeconds !== "0" || op.workerSeconds !== "0";
+  const scrapRate = scrapRatePercent(op.goodQuantity, op.scrapQuantity);
+  const actualCycle = op.type.isExternal ? null : actualCycleSeconds(op);
+  const deviation = cycleDeviationPercent(actualCycle, op.cycleTimeS);
   if (op.type.isExternal) {
     // Shipped ("in progress") until received: time at the other company.
     return op.runSeconds === "0" ? (
@@ -415,6 +423,35 @@ function OperationProduction({ op }: { op: OrderOperation }) {
             scrap: formatDecimal(op.scrapQuantity),
             input: formatDecimal(op.inputQuantity),
           })}
+          {scrapRate !== null && scrapRate !== "0" ? (
+            <span className="text-xs text-muted-foreground">
+              {" "}
+              · {t("scrapRate", { rate: formatDecimal(scrapRate) })}
+            </span>
+          ) : null}
+        </span>
+      ) : null}
+      {actualCycle !== null ? (
+        <span className="text-xs tabular-nums" data-testid={`operation-cycle-${op.type.code}`}>
+          {t("cycle", {
+            actual: formatDecimal(actualCycle),
+            planned: op.cycleTimeS ? formatDecimal(op.cycleTimeS) : "—",
+          })}
+          {deviation !== null ? (
+            <span
+              className={
+                deviation.startsWith("-")
+                  ? "text-emerald-700 dark:text-emerald-300"
+                  : deviation === "0"
+                    ? "text-muted-foreground"
+                    : "text-amber-700 dark:text-amber-300"
+              }
+            >
+              {" "}
+              ({deviation.startsWith("-") ? "" : "+"}
+              {formatDecimal(deviation)} %)
+            </span>
+          ) : null}
         </span>
       ) : null}
       {worked ? (

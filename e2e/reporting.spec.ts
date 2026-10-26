@@ -153,6 +153,22 @@ test("@mobile operator starts, reports in parts, pauses and finishes an operatio
     await panel.getByRole("button", { name: "Nastavi rad" }).click();
     await expect(panel.getByText("Pauza: Izmjena alata / pločice")).toHaveCount(0);
 
+    // A tool change and a downtime that already happened.
+    await panel.getByRole("button", { name: "Promjena alata" }).click();
+    sheet = page.getByRole("dialog");
+    await sheet.getByRole("button", { name: "Sačuvaj promjenu alata" }).click();
+    await expect(sheet.getByText("Unesite alat.")).toBeVisible();
+    await sheet.getByLabel("Alat", { exact: true }).fill("Glodalo Ø10");
+    await sheet.getByRole("radio", { name: "Lom" }).click();
+    await sheet.getByRole("button", { name: "Sačuvaj promjenu alata" }).click();
+    await expect(page.getByText("Promjena alata je zabilježena.")).toBeVisible();
+    await panel.getByRole("button", { name: "Zastoj", exact: true }).click();
+    sheet = page.getByRole("dialog");
+    await sheet.getByRole("radio", { name: "Kvar mašine" }).click();
+    await sheet.getByLabel("Trajanje (min)").fill("15");
+    await sheet.getByRole("button", { name: "Sačuvaj zastoj" }).click();
+    await expect(page.getByText("Zastoj je zabilježen.")).toBeVisible();
+
     // Finish: the remaining 2 pieces are suggested as good.
     await panel.getByRole("button", { name: "Završi operaciju" }).click();
     sheet = page.getByRole("dialog");
@@ -183,6 +199,15 @@ test("@mobile operator starts, reports in parts, pauses and finishes an operatio
     await expect(page.getByTestId("order-good-quantity")).toContainText("0 / 5");
     await expect(page.getByRole("cell", { name: "Greška u mjeri" })).toBeVisible();
     await expect(page.getByRole("cell", { name: "Izmjena alata / pločice" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "Glodalo Ø10" })).toBeVisible();
+    await expect(page.getByTestId("downtime-by-reason")).toContainText("Kvar mašine");
+    await expect(page.getByTestId("production-summary")).toContainText("20 %");
+
+    // The foreman's day overview lists the reports of this order.
+    await page.goto(`/production?order=${order.data!.order_number}`);
+    const main = page.getByRole("main");
+    await expect(main.getByTestId("day-reports")).toContainText(order.data!.order_number);
+    await expect(main.getByTestId("day-downtime-by-reason")).toContainText("Kvar mašine");
   } finally {
     const cleanup = await plannerClient();
     await cleanup.rpc("set_production_order_status", {

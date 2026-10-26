@@ -121,13 +121,14 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
 
   const { order, operation, operations, attachments } = result;
   const reporting = !operation.is_cutting && !operation.is_external;
-  const [work, downtimeReasons, scrapReasons] = reporting
+  const [work, downtimeReasons, scrapReasons, toolReasons] = reporting
     ? await Promise.all([
         getOperationWork(operation.id),
         listReasons(member.organization.id, "downtime_reason"),
         listReasons(member.organization.id, "scrap_reason"),
+        listReasons(member.organization.id, "tool_change_reason"),
       ])
-    : [null, [], []];
+    : [null, [], [], []];
   const plan = barPlan({
     barLength: order.bar_length_mm,
     remnant: order.bar_remnant_mm,
@@ -244,6 +245,7 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
           work={work}
           downtimeReasons={downtimeReasons}
           scrapReasons={scrapReasons}
+          toolReasons={toolReasons}
         />
       ) : null}
 

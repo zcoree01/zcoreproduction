@@ -1,6 +1,13 @@
 "use client";
 
-import { CheckCheckIcon, ClipboardPenIcon, PauseIcon, PlayIcon } from "lucide-react";
+import {
+  CheckCheckIcon,
+  ClipboardPenIcon,
+  PauseIcon,
+  PlayIcon,
+  TimerOffIcon,
+  WrenchIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -26,6 +33,8 @@ import { utcToZonedLocal } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import {
   pauseWorkAction,
+  recordDowntimeAction,
+  recordToolChangeAction,
   reportQuantityAction,
   requestCloseAction,
   startWorkAction,
@@ -54,27 +63,56 @@ type Props = {
   work: OperationWork;
   downtimeReasons: Reason[];
   scrapReasons: Reason[];
+  toolReasons: Reason[];
 };
+
+/** Blocks that rule out recording downtime or tool changes on the operation. */
+const NO_RECORDING = new Set([
+  "operation_external",
+  "cutting_uses_material_status",
+  "not_an_employee",
+  "not_assigned",
+  "order_closed",
+  "operation_done",
+]);
 
 /**
  * The worker's buttons on one operation: start / continue, pause with a
- * reason, report good and scrap in parts, finish. Inspectors use the same
- * panel for inspections and may ask to close an order with a shortage.
+ * reason, report good and scrap in parts, finish; downtime entered with a
+ * duration and tool changes. Inspectors use the same panel for inspections
+ * and may ask to close an order with a shortage.
+ *
+ * Forms keep what was typed when sending fails; each form instance keeps its
+ * idempotency key until the server confirms, so a resend never counts twice.
  */
 export function WorkPanel(props: Props) {
   const { work, operationStatus, isInspection } = props;
   const t = useTranslations("floorWork");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [sheet, setSheet] = useState<"pause" | "report" | "finish" | "close" | null>(null);
+  const [sheet, setSheet] = useState<
+    "pause" | "report" | "finish" | "close" | "downtime" | "tool" | null
+  >(null);
+  // Incremented after every confirmed save: forms start empty with a new key.
+  const [version, setVersion] = useState(0);
   const buttons = workButtons({ blocked: work.blocked, working: work.working, operationStatus });
+  const canRecord =
+    !isInspection && operationStatus !== "done" && !NO_RECORDING.has(work.blocked ?? "");
 
   const run = (action: () => Promise<WorkActionResult>, success: string) =>
     startTransition(async () => {
-      const result = await action();
+      let result: WorkActionResult;
+      try {
+        result = await action();
+      } catch {
+        // No connection: the open form keeps its values and key; send again.
+        toast.error(t("errors.network"));
+        return;
+      }
       if (result.ok) {
         toast.success(success);
         setSheet(null);
+        setVersion((current) => current + 1);
         router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
@@ -191,6 +229,28 @@ export function WorkPanel(props: Props) {
               {isInspection ? t("finishInspection") : t("finish")}
             </Button>
           ) : null}
+          {canRecord ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="h-12 text-base"
+                disabled={pending}
+                onClick={() => setSheet("downtime")}
+              >
+                <TimerOffIcon />
+                {t("downtime")}
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 text-base"
+                disabled={pending}
+                onClick={() => setSheet("tool")}
+              >
+                <WrenchIcon />
+                {t("toolChange")}
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         {operationStatus === "done" ? (
@@ -217,6 +277,7 @@ export function WorkPanel(props: Props) {
       </CardContent>
 
       <PauseSheet
+        key={`pause-${version}`}
         open={sheet === "pause"}
         onOpenChange={(open) => setSheet(open ? "pause" : null)}
         reasons={props.downtimeReasons}
@@ -226,7 +287,7 @@ export function WorkPanel(props: Props) {
         }
       />
       <ReportSheet
-        key={sheet === "finish" ? "finish" : "report"}
+        key={`${sheet === "finish" ? "finish" : "report"}-${version}`}
         open={sheet === "report" || sheet === "finish"}
         finish={sheet === "finish"}
         onOpenChange={(open) => {
@@ -247,7 +308,28 @@ export function WorkPanel(props: Props) {
           )
         }
       />
+      <DowntimeSheet
+        key={`downtime-${version}`}
+        open={sheet === "downtime"}
+        onOpenChange={(open) => setSheet(open ? "downtime" : null)}
+        reasons={props.downtimeReasons}
+        pending={pending}
+        onSubmit={(input) =>
+          run(() => recordDowntimeAction(props.operationId, input), t("downtimeToast"))
+        }
+      />
+      <ToolChangeSheet
+        key={`tool-${version}`}
+        open={sheet === "tool"}
+        onOpenChange={(open) => setSheet(open ? "tool" : null)}
+        reasons={props.toolReasons}
+        pending={pending}
+        onSubmit={(input) =>
+          run(() => recordToolChangeAction(props.operationId, input), t("toolToast"))
+        }
+      />
       <CloseSheet
+        key={`close-${version}`}
         open={sheet === "close"}
         onOpenChange={(open) => setSheet(open ? "close" : null)}
         pending={pending}
@@ -419,7 +501,7 @@ function ReportSheet({
   const [scrapReasonId, setScrapReasonId] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [key, setKey] = useState(() => crypto.randomUUID());
+  const [key] = useState(() => crypto.randomUUID());
 
   const parse = (value: string) => (value.trim() === "" ? "0" : parseDecimal(value, 3));
   const goodValue = parse(good);
@@ -465,7 +547,6 @@ function ReportSheet({
       idempotencyKey: key,
       finish,
     });
-    setKey(crypto.randomUUID());
   };
 
   return (
@@ -639,6 +720,253 @@ function CloseSheet({
             }}
           >
             {t("closeConfirm")}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/** Large reason buttons (radio group). */
+function ReasonButtons({
+  reasons,
+  value,
+  onChange,
+  label,
+}: {
+  reasons: Reason[];
+  value: string;
+  onChange: (id: string) => void;
+  label: string;
+}) {
+  const t = useTranslations("floorWork");
+  if (reasons.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t("noReasons")}</p>;
+  }
+  return (
+    <div role="radiogroup" aria-label={label} className="grid grid-cols-2 gap-2">
+      {reasons.map((reason) => (
+        <Button
+          key={reason.id}
+          type="button"
+          role="radio"
+          aria-checked={value === reason.id}
+          variant={value === reason.id ? "default" : "outline"}
+          className="h-auto min-h-12 text-base whitespace-normal"
+          onClick={() => onChange(reason.id)}
+        >
+          {reason.name}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+/** Minutes typed with a comma or dot; null when not a positive number. */
+function parseMinutes(value: string): string | null {
+  const parsed = parseDecimal(value, 2);
+  return parsed && !parsed.startsWith("-") && parsed !== "0" ? parsed : null;
+}
+
+/** Downtime that already happened: reason and how long it lasted (ends now). */
+function DowntimeSheet({
+  open,
+  onOpenChange,
+  reasons,
+  pending,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  reasons: Reason[];
+  pending: boolean;
+  onSubmit: (input: {
+    reasonId: string;
+    minutes: string;
+    startedAt: string;
+    notes: string;
+    idempotencyKey: string;
+  }) => void;
+}) {
+  const t = useTranslations("floorWork");
+  const [reasonId, setReasonId] = useState("");
+  const [minutes, setMinutes] = useState("");
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [key] = useState(() => crypto.randomUUID());
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="flex max-h-[90dvh] flex-col gap-0">
+        <SheetHeader className="border-b">
+          <SheetTitle>{t("downtimeTitle")}</SheetTitle>
+          <SheetDescription>{t("downtimeDescription")}</SheetDescription>
+        </SheetHeader>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <ReasonButtons
+            reasons={reasons}
+            value={reasonId}
+            onChange={(id) => {
+              setReasonId(id);
+              setError(null);
+            }}
+            label={t("pauseReason")}
+          />
+          <Field>
+            <FieldLabel htmlFor="downtime-minutes">{t("minutes")}</FieldLabel>
+            <Input
+              id="downtime-minutes"
+              inputMode="decimal"
+              autoComplete="off"
+              className="h-14 text-2xl tabular-nums"
+              value={minutes}
+              onChange={(event) => {
+                setMinutes(event.target.value);
+                setError(null);
+              }}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="downtime-notes">{t("note")}</FieldLabel>
+            <Textarea
+              id="downtime-notes"
+              rows={2}
+              maxLength={500}
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
+          </Field>
+          {error ? <FieldError>{error}</FieldError> : null}
+        </div>
+        <SheetFooter className="border-t">
+          <Button
+            className="h-12 text-base"
+            disabled={pending}
+            onClick={() => {
+              const parsed = parseMinutes(minutes);
+              if (!reasonId) return setError(t("pauseReasonRequired"));
+              if (!parsed) return setError(t("minutesInvalid"));
+              onSubmit({ reasonId, minutes: parsed, startedAt: "", notes, idempotencyKey: key });
+            }}
+          >
+            {t("downtimeConfirm")}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/** Tool / insert change: tool as text, reason, optional duration. */
+function ToolChangeSheet({
+  open,
+  onOpenChange,
+  reasons,
+  pending,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  reasons: Reason[];
+  pending: boolean;
+  onSubmit: (input: {
+    tool: string;
+    insert: string;
+    reasonId: string;
+    minutes: string;
+    notes: string;
+    idempotencyKey: string;
+  }) => void;
+}) {
+  const t = useTranslations("floorWork");
+  const [tool, setTool] = useState("");
+  const [insert, setInsert] = useState("");
+  const [reasonId, setReasonId] = useState("");
+  const [minutes, setMinutes] = useState("");
+  const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [key] = useState(() => crypto.randomUUID());
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="flex max-h-[90dvh] flex-col gap-0">
+        <SheetHeader className="border-b">
+          <SheetTitle>{t("toolTitle")}</SheetTitle>
+          <SheetDescription>{t("toolDescription")}</SheetDescription>
+        </SheetHeader>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <Field>
+            <FieldLabel htmlFor="tool-name">{t("tool")}</FieldLabel>
+            <Input
+              id="tool-name"
+              autoComplete="off"
+              className="h-12 text-base"
+              placeholder={t("toolPlaceholder")}
+              maxLength={200}
+              value={tool}
+              onChange={(event) => {
+                setTool(event.target.value);
+                setError(null);
+              }}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tool-insert">{t("insert")}</FieldLabel>
+            <Input
+              id="tool-insert"
+              autoComplete="off"
+              className="h-12 text-base"
+              maxLength={200}
+              value={insert}
+              onChange={(event) => setInsert(event.target.value)}
+            />
+          </Field>
+          <ReasonButtons
+            reasons={reasons}
+            value={reasonId}
+            onChange={(id) => {
+              setReasonId(id);
+              setError(null);
+            }}
+            label={t("toolReason")}
+          />
+          <Field>
+            <FieldLabel htmlFor="tool-minutes">{t("toolMinutes")}</FieldLabel>
+            <Input
+              id="tool-minutes"
+              inputMode="decimal"
+              autoComplete="off"
+              className="h-12 text-base tabular-nums"
+              value={minutes}
+              onChange={(event) => {
+                setMinutes(event.target.value);
+                setError(null);
+              }}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tool-notes">{t("note")}</FieldLabel>
+            <Textarea
+              id="tool-notes"
+              rows={2}
+              maxLength={500}
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
+          </Field>
+          {error ? <FieldError>{error}</FieldError> : null}
+        </div>
+        <SheetFooter className="border-t">
+          <Button
+            className="h-12 text-base"
+            disabled={pending}
+            onClick={() => {
+              if (tool.trim() === "") return setError(t("toolRequired"));
+              if (!reasonId) return setError(t("toolReasonRequired"));
+              const parsed = minutes.trim() === "" ? "" : parseMinutes(minutes);
+              if (parsed === null) return setError(t("minutesInvalid"));
+              onSubmit({ tool, insert, reasonId, minutes: parsed, notes, idempotencyKey: key });
+            }}
+          >
+            {t("toolConfirm")}
           </Button>
         </SheetFooter>
       </SheetContent>

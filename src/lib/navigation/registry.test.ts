@@ -118,10 +118,10 @@ describe("buildNavigation", () => {
     ).toEqual([["work", ["floor-home", "floor-operations"]]]);
   });
 
-  it("shows production orders to readers", () => {
+  it("shows production orders and the production overview to readers", () => {
     expect(ids(buildNavigation("app", access(["core", "production"], ["orders.read"])))).toEqual([
       ["overview", ["dashboard"]],
-      ["production", ["orders"]],
+      ["production", ["orders", "production-day"]],
     ]);
   });
 
