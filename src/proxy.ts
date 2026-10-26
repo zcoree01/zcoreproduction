@@ -14,6 +14,7 @@ import { requestHost, resolveTenant, TENANT_COOKIE, TENANT_HEADER } from "@/lib/
  * 3. Redirects to /login unless the session belongs to this tenant.
  * 4. Signs out a session that was replaced by a sign-in on another device
  *    (one active session per user, D-013).
+ * 5. Keeps users with a temporary password on /change-password (D-022).
  *
  * This is a coarse gate only. Pages, server actions and RLS re-check
  * membership and permissions on every request.
@@ -59,10 +60,12 @@ export async function proxy(request: NextRequest) {
   const email = typeof data?.claims.email === "string" ? data.claims.email : null;
   const signedInHere = tenant.slug !== null && slugFromAuthEmail(email) === tenant.slug;
 
+  const status = signedInHere ? await sessionStatus(supabase) : null;
   const decision = decideRoute({
     path: request.nextUrl.pathname,
     signedInHere,
-    sessionActive: signedInHere ? await isSessionActive(supabase) : false,
+    sessionActive: status?.active ?? false,
+    mustChangePassword: status?.mustChangePassword ?? false,
   });
 
   let result = response;
@@ -87,17 +90,18 @@ export async function proxy(request: NextRequest) {
 }
 
 /**
- * Whether the JWT's session still exists. Fails open on infrastructure errors:
- * this enforces the single-session policy, not authentication (JWT validity,
- * membership and RLS are checked independently).
+ * Whether the JWT's session still exists and whether the user must replace a
+ * temporary password. Fails open on infrastructure errors: this enforces the
+ * single-session and password-change policies, not authentication (JWT
+ * validity, membership and RLS are checked independently).
  */
-async function isSessionActive(supabase: SupabaseClient<Database>) {
-  const { data, error } = await supabase.rpc("is_session_active");
-  if (error) {
-    console.error("is_session_active failed", error);
-    return true;
+async function sessionStatus(supabase: SupabaseClient<Database>) {
+  const { data, error } = await supabase.rpc("session_status").maybeSingle();
+  if (error || !data) {
+    console.error("session_status failed", error);
+    return { active: true, mustChangePassword: false };
   }
-  return data === true;
+  return { active: data.active, mustChangePassword: data.must_change_password };
 }
 
 function redirectKeepingCookies(

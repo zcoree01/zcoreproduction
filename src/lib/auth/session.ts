@@ -6,6 +6,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 import { getTenantSlug } from "@/lib/tenant/server";
+import { parsePreferences, type ProfilePreferences } from "@/modules/profile/schemas";
 
 export type CurrentMember = {
   userId: string;
@@ -13,6 +14,9 @@ export type CurrentMember = {
   fullName: string | null;
   organization: { id: string; slug: string; name: string; timezone: string };
   role: { id: string; key: string; name: string; archived: boolean };
+  /** Temporary password set by an administrator: must be replaced first. */
+  mustChangePassword: boolean;
+  preferences: ProfilePreferences;
 };
 
 /**
@@ -34,7 +38,7 @@ export async function loadMember(
       `user_id,
        organization:organizations!memberships_organization_id_fkey (id, slug, name, timezone),
        role:roles!memberships_organization_id_role_id_fkey (id, key, name, archived_at),
-       profile:profiles!memberships_organization_id_user_id_fkey (username, full_name)`,
+       profile:profiles!memberships_organization_id_user_id_fkey (username, full_name, must_change_password, preferences)`,
     )
     .eq("user_id", userId)
     .is("archived_at", null)
@@ -54,6 +58,8 @@ export async function loadMember(
       name: data.role.name,
       archived: data.role.archived_at !== null,
     },
+    mustChangePassword: data.profile.must_change_password,
+    preferences: parsePreferences(data.profile.preferences),
   };
 }
 

@@ -157,6 +157,36 @@ test("admin manages catalogs, machines and employees", async ({ page }) => {
   await expect(page.getByRole("cell", { name: code, exact: true })).toBeVisible();
 });
 
+test("admin adds an employee together with a user account", async ({ page }) => {
+  const run = Date.now().toString(36);
+  const lastName = `Novak${run}`;
+
+  await login(page, testAdmin(), TEST_TENANTS.b.slug);
+  await expectPath(page, "/dashboard");
+  await page.goto("/employees");
+  await page.getByRole("button", { name: "Dodaj radnika" }).click();
+  const sheet = page.getByRole("dialog");
+  await sheet.getByLabel("Ime", { exact: true }).fill("Šemso");
+  await sheet.getByLabel("Prezime").fill(lastName);
+  await sheet.getByRole("checkbox", { name: "Napravi korisnički nalog" }).click();
+  // Operator is preselected; the username is ime + first letter(s) of the last name.
+  await expect(sheet.getByLabel("Uloga")).toHaveValue(/.+/);
+  await expect(sheet.getByText("Korisničko ime: semso.n")).toBeVisible();
+  await sheet.getByRole("button", { name: "Dodaj radnika" }).click();
+
+  const credentials = page.getByRole("alertdialog", { name: "Pristupni podaci" });
+  const username = (await credentials.getByTestId("temp-username").textContent()) ?? "";
+  expect(username).toMatch(/^semso\.n/);
+  await expect(credentials.getByTestId("temp-password")).toHaveText(/^[a-z]+[2-9]{3}$/);
+  await credentials.getByRole("button", { name: "Gotovo" }).click();
+
+  // The account is linked to the employee.
+  await page.getByRole("searchbox", { name: /Pretraži/ }).fill(run);
+  await expect(page.getByRole("row").filter({ hasText: `Šemso ${lastName}` })).toContainText(
+    username,
+  );
+});
+
 test.describe("shop floor", () => {
   test.beforeAll(async () => {
     // Also resets the fixture machine to 'available'.

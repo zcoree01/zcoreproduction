@@ -39,6 +39,187 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_alerts: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          kind: string
+          note: string | null
+          organization_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          kind: string
+          note?: string | null
+          organization_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          organization_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_alerts_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "attendance_alerts_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "attendance_alerts_organization_id_session_id_fkey"
+            columns: ["organization_id", "session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      attendance_sessions: {
+        Row: {
+          archived_at: string | null
+          breaks: Json
+          clock_in_at: string
+          clock_in_by: string | null
+          clock_in_source: string
+          clock_out_at: string | null
+          clock_out_by: string | null
+          clock_out_key: string | null
+          clock_out_source: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          idempotency_key: string
+          organization_id: string
+          scheduled_end: string | null
+          scheduled_start: string | null
+          shift_id: string | null
+          work_date: string
+        }
+        Insert: {
+          archived_at?: string | null
+          breaks?: Json
+          clock_in_at?: string
+          clock_in_by?: string | null
+          clock_in_source: string
+          clock_out_at?: string | null
+          clock_out_by?: string | null
+          clock_out_key?: string | null
+          clock_out_source?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          idempotency_key: string
+          organization_id: string
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          shift_id?: string | null
+          work_date: string
+        }
+        Update: {
+          archived_at?: string | null
+          breaks?: Json
+          clock_in_at?: string
+          clock_in_by?: string | null
+          clock_in_source?: string
+          clock_out_at?: string | null
+          clock_out_by?: string | null
+          clock_out_key?: string | null
+          clock_out_source?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          idempotency_key?: string
+          organization_id?: string
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          shift_id?: string | null
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "attendance_sessions_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "attendance_sessions_organization_id_shift_id_fkey"
+            columns: ["organization_id", "shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      attendance_settings: {
+        Row: {
+          absent_after_min: number
+          auto_close_after_hours: number
+          early_window_min: number
+          late_tolerance_min: number
+          operation_without_clock_in: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          absent_after_min?: number
+          auto_close_after_hours?: number
+          early_window_min?: number
+          late_tolerance_min?: number
+          operation_without_clock_in?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          absent_after_min?: number
+          auto_close_after_hours?: number
+          early_window_min?: number
+          late_tolerance_min?: number
+          operation_without_clock_in?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -2021,7 +2202,9 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          must_change_password: boolean
           organization_id: string
+          preferences: Json
           updated_at: string
           username: string
         }
@@ -2030,7 +2213,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          must_change_password?: boolean
           organization_id: string
+          preferences?: Json
           updated_at?: string
           username: string
         }
@@ -2039,7 +2224,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          must_change_password?: boolean
           organization_id?: string
+          preferences?: Json
           updated_at?: string
           username?: string
         }
@@ -2130,6 +2317,146 @@ export type Database = {
           },
         ]
       }
+      shift_breaks: {
+        Row: {
+          duration_min: number
+          id: string
+          name: string | null
+          organization_id: string
+          paid: boolean
+          position: number
+          shift_id: string
+          starts_at: string | null
+        }
+        Insert: {
+          duration_min: number
+          id?: string
+          name?: string | null
+          organization_id: string
+          paid?: boolean
+          position: number
+          shift_id: string
+          starts_at?: string | null
+        }
+        Update: {
+          duration_min?: number
+          id?: string
+          name?: string | null
+          organization_id?: string
+          paid?: boolean
+          position?: number
+          shift_id?: string
+          starts_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_breaks_organization_id_shift_id_fkey"
+            columns: ["organization_id", "shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      shift_schedule: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          organization_id: string
+          shift_id: string
+          work_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          organization_id: string
+          shift_id: string
+          work_date: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          organization_id?: string
+          shift_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_schedule_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_schedule_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_schedule_organization_id_shift_id_fkey"
+            columns: ["organization_id", "shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          archived_at: string | null
+          code: string
+          color: string | null
+          created_at: string
+          ends_at: string
+          id: string
+          name: string
+          organization_id: string
+          starts_at: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          code: string
+          color?: string | null
+          created_at?: string
+          ends_at: string
+          id?: string
+          name: string
+          organization_id: string
+          starts_at: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          code?: string
+          color?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          starts_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employee_directory: {
@@ -2205,6 +2532,7 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           is_active: boolean | null
+          must_change_password: boolean | null
           organization_id: string | null
           role_id: string | null
           role_key: string | null
@@ -2455,6 +2783,28 @@ export type Database = {
         }
         Returns: Json
       }
+      attendance_board: {
+        Args: { p_date: string; p_org_id: string }
+        Returns: Json
+      }
+      attendance_shift_for: {
+        Args: { p_at: string; p_employee_id: string }
+        Returns: {
+          breaks: Json
+          scheduled_end: string
+          scheduled_start: string
+          shift_id: string
+          work_date: string
+        }[]
+      }
+      clock_in: {
+        Args: { p_idempotency_key: string; p_org_id: string }
+        Returns: string
+      }
+      clock_out: {
+        Args: { p_idempotency_key: string; p_org_id: string }
+        Returns: string
+      }
       copy_product: {
         Args: {
           p_name: string
@@ -2544,6 +2894,10 @@ export type Database = {
         Returns: boolean
       }
       is_session_active: { Args: never; Returns: boolean }
+      my_attendance: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: Json
+      }
       order_file_path: { Args: { p_attachment_id: string }; Returns: string }
       order_operation_warnings: {
         Args: { p_operation_id: string }
@@ -2552,6 +2906,19 @@ export type Database = {
       pause_operation_work: {
         Args: { p_notes?: string; p_operation_id: string; p_reason_id: string }
         Returns: undefined
+      }
+      pending_attendance_alerts: {
+        Args: { p_org_id: string }
+        Returns: {
+          alert_id: string
+          clock_in_at: string
+          clock_out_at: string
+          created_at: string
+          employee_id: string
+          employee_name: string
+          kind: string
+          session_id: string
+        }[]
       }
       pending_close_requests: {
         Args: { p_org_id: string }
@@ -2724,6 +3091,11 @@ export type Database = {
         Args: { p_order_id: string; p_reason: string }
         Returns: string
       }
+      resolve_attendance_alert: {
+        Args: { p_alert_id: string; p_note?: string }
+        Returns: undefined
+      }
+      revoke_user_sessions: { Args: { p_user_id: string }; Returns: undefined }
       save_employee: {
         Args: {
           p_department_id?: string
@@ -2748,6 +3120,26 @@ export type Database = {
         }
         Returns: string
       }
+      save_shift: {
+        Args: {
+          p_breaks: Json
+          p_code: string
+          p_color: string
+          p_ends_at: string
+          p_id: string
+          p_name: string
+          p_org_id: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
+      session_status: {
+        Args: never
+        Returns: {
+          active: boolean
+          must_change_password: boolean
+        }[]
+      }
       set_current_revision: {
         Args: { p_revision_id: string }
         Returns: undefined
@@ -2766,6 +3158,10 @@ export type Database = {
       }
       set_production_order_status: {
         Args: { p_order_id: string; p_reason?: string; p_status: string }
+        Returns: undefined
+      }
+      set_shift_archived: {
+        Args: { p_archived: boolean; p_shift_id: string }
         Returns: undefined
       }
       start_operation_work: {

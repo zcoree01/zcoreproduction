@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ActionResult } from "@/lib/actions/result";
+import type { TempCredentials } from "@/modules/users/schemas";
 import { isUnique, optionalUuid, requiredText } from "@/lib/forms";
 
 // Must match the CHECKs on public.employees.status and employee_skills.level.
@@ -23,20 +24,28 @@ export const employeeNumberSchema = z
   .refine((value) => value === null || (value >= 1 && value <= MAX_EMPLOYEE_NUMBER));
 
 // Shared by the client form (react-hook-form) and the server action.
-export const employeeSchema = z.object({
-  employeeNumber: employeeNumberSchema,
-  firstName: requiredText(100),
-  lastName: requiredText(100),
-  departmentId: optionalUuid,
-  jobTitleId: optionalUuid,
-  userId: optionalUuid,
-  status: employeeStatusSchema,
-  skills: z
-    .array(z.object({ skillId: z.uuid(), level: skillLevelSchema }))
-    .max(200)
-    .refine((skills) => isUnique(skills.map((skill) => skill.skillId))),
-  machineIds: z.array(z.uuid()).max(500).refine(isUnique),
-});
+export const employeeSchema = z
+  .object({
+    employeeNumber: employeeNumberSchema,
+    firstName: requiredText(100),
+    lastName: requiredText(100),
+    departmentId: optionalUuid,
+    jobTitleId: optionalUuid,
+    userId: optionalUuid,
+    status: employeeStatusSchema,
+    skills: z
+      .array(z.object({ skillId: z.uuid(), level: skillLevelSchema }))
+      .max(200)
+      .refine((skills) => isUnique(skills.map((skill) => skill.skillId))),
+    machineIds: z.array(z.uuid()).max(500).refine(isUnique),
+    /** Create a user account with this role (temporary password); needs users.manage. */
+    newAccountRoleId: z
+      .union([z.literal(""), z.uuid()])
+      .optional()
+      .transform((value) => value || null),
+  })
+  // Either link an existing account or create a new one.
+  .refine((input) => !(input.userId && input.newAccountRoleId), { path: ["newAccountRoleId"] });
 
 export type EmployeeInput = z.infer<typeof employeeSchema>;
 export type EmployeeFormValues = z.input<typeof employeeSchema>;
@@ -51,12 +60,22 @@ export const EMPLOYEE_FIELDS = [
   "status",
   "skills",
   "machineIds",
+  "newAccountRoleId",
 ] as const;
 
 export type EmployeeField = (typeof EMPLOYEE_FIELDS)[number];
 
 export type EmployeeError = "number_taken" | "user_taken" | "invalid_reference";
 export type EmployeeActionResult = ActionResult<EmployeeField, EmployeeError>;
+
+/**
+ * Saving with a new account: the employee is saved first; `account` holds the
+ * temporary credentials, `accountFailed` that the employee was saved without
+ * an account (retry from the edit form).
+ */
+export type EmployeeSaveResult =
+  | Extract<EmployeeActionResult, { ok: false }>
+  | { ok: true; id: string; account?: TempCredentials; accountFailed?: true };
 
 /** Arguments of public.save_employee (absent optional values = null in SQL). */
 export function toSaveEmployeeArgs(

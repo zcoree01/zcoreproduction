@@ -47,6 +47,7 @@ async function UsersContent({ searchParams }: { searchParams: Promise<SearchPara
           canManage ? (
             <CreateUserSheet
               roles={roles.map((role) => ({ id: role.id, label: roleLabel(role) }))}
+              organizationName={member.organization.name}
             />
           ) : null
         }
@@ -58,7 +59,11 @@ async function UsersContent({ searchParams }: { searchParams: Promise<SearchPara
           fullName: row.fullName,
           roleLabel: roleLabel(row.role),
           active: row.active,
+          mustChangePassword: row.mustChangePassword,
         }))}
+        canManage={canManage}
+        currentUserId={member.userId}
+        organizationName={member.organization.name}
         total={page.total}
         page={params.page}
         pageSize={params.pageSize}

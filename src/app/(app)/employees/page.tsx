@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { getMemberAccess } from "@/lib/auth/access";
+import { isSystemRoleKey } from "@/lib/auth/roles";
 import { requireMember } from "@/lib/auth/session";
 import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { listCatalogOptions } from "@/modules/catalogs/queries";
 import { parseEmployeeListParams } from "@/modules/employees/list-params";
 import { listEmployeesPage, listLinkableUsers } from "@/modules/employees/queries";
 import { listMachineOptions } from "@/modules/machines/queries";
+import { listAssignableRoles } from "@/modules/users/queries";
 import { CreateEmployeeButton, type EmployeeFormOptions } from "./employee-sheet";
 import { EmployeesTable } from "./employees-table";
 
@@ -24,20 +26,27 @@ export default function EmployeesPage({ searchParams }: PageProps<"/employees">)
 async function EmployeesContent({ searchParams }: { searchParams: Promise<SearchParamsRecord> }) {
   const member = await requireMember();
   const organizationId = member.organization.id;
-  const [t, access] = await Promise.all([getTranslations("employees"), getMemberAccess(member)]);
+  const [t, tRoot, access] = await Promise.all([
+    getTranslations("employees"),
+    getTranslations(),
+    getMemberAccess(member),
+  ]);
 
   if (!access.modules.has("production")) return <ModuleDisabled />;
   if (!access.permissions.has("employees.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
   const canManage = access.permissions.has("employees.manage");
+  // Accounts for new workers right from the employee form (also needs users.manage).
+  const canCreateAccounts = canManage && access.permissions.has("users.manage");
 
   const params = parseEmployeeListParams(await searchParams);
-  const [page, catalogs, machines, users] = await Promise.all([
+  const [page, catalogs, machines, users, roles] = await Promise.all([
     listEmployeesPage(organizationId, params),
     listCatalogOptions(organizationId, ["department", "job_title", "skill"]),
     canManage ? listMachineOptions(organizationId) : Promise.resolve([]),
     canManage ? listLinkableUsers(organizationId) : Promise.resolve([]),
+    canCreateAccounts ? listAssignableRoles(organizationId) : Promise.resolve([]),
   ]);
   const options: EmployeeFormOptions = {
     departments: catalogs.department,
@@ -45,6 +54,13 @@ async function EmployeesContent({ searchParams }: { searchParams: Promise<Search
     skills: catalogs.skill,
     machines,
     users,
+    roles: roles.map((role) => ({
+      id: role.id,
+      key: role.key,
+      label: isSystemRoleKey(role.key) ? tRoot(`roles.${role.key}`) : role.name,
+    })),
+    canCreateAccounts,
+    organizationName: member.organization.name,
   };
 
   return (

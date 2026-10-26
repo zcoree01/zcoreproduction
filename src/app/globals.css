@@ -130,4 +130,8 @@
   html {
     @apply font-sans;
   }
+  /* "Velika slova" profile setting: every rem-based size grows (TextSizeMarker). */
+  html:has([data-text-size="large"]) {
+    font-size: 112.5%;
+  }
 }

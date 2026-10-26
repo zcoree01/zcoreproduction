@@ -6,6 +6,7 @@ import { actionFail, dbErrorKind, invalidFields, violates } from "@/lib/actions/
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { createUserWithTempPassword } from "@/modules/users/server";
 import {
   EMPLOYEE_FIELDS,
   employeeSchema,
@@ -13,6 +14,7 @@ import {
   type EmployeeActionResult,
   type EmployeeError,
   type EmployeeField,
+  type EmployeeSaveResult,
 } from "./schemas";
 
 const fail = actionFail<EmployeeField, EmployeeError>;
@@ -44,11 +46,11 @@ function mapWriteError(error: { code?: string; message?: string }): EmployeeActi
 /**
  * Creates (id null) or updates an employee together with skills and machines
  * in one transaction (public.save_employee). `input` is re-validated here.
+ * With `newAccountRoleId` (needs users.manage as well) a user account with a
+ * generated username (ime.p, ime.pr, …) and a temporary password is created
+ * after the employee is saved and linked to it.
  */
-export async function saveEmployeeAction(
-  id: unknown,
-  input: unknown,
-): Promise<EmployeeActionResult> {
+export async function saveEmployeeAction(id: unknown, input: unknown): Promise<EmployeeSaveResult> {
   const member = await requireMember();
   const organizationId = member.organization.id;
   if (!(await permitAction(organizationId, "employees.manage"))) return fail("denied");
@@ -57,6 +59,10 @@ export async function saveEmployeeAction(
   const parsed = employeeSchema.safeParse(input);
   if (!parsedId.success) return fail("invalid");
   if (!parsed.success) return fail("invalid", invalidFields(parsed.error, EMPLOYEE_FIELDS));
+  const { newAccountRoleId } = parsed.data;
+  if (newAccountRoleId && !(await permitAction(organizationId, "users.manage"))) {
+    return fail("denied");
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
@@ -64,9 +70,39 @@ export async function saveEmployeeAction(
     toSaveEmployeeArgs(organizationId, parsedId.data, parsed.data),
   );
   if (error) return mapWriteError(error);
-
   revalidateEmployeeScreens();
-  return { ok: true, id: data };
+  if (!newAccountRoleId) return { ok: true, id: data };
+
+  // Two systems (Auth + database): the employee stays saved if this fails and
+  // the account can be created again from the edit form.
+  try {
+    const { firstName, lastName } = parsed.data;
+    const account = await createUserWithTempPassword(member, {
+      username: null,
+      fullName: `${firstName} ${lastName}`,
+      firstName,
+      lastName,
+      roleId: newAccountRoleId,
+    });
+    if (!account.ok) return { ok: true, id: data, accountFailed: true };
+
+    const linked = await supabase
+      .from("employees")
+      .update({ user_id: account.userId })
+      .eq("organization_id", organizationId)
+      .eq("id", data);
+    if (linked.error) throw linked.error;
+
+    revalidatePath("/admin/users");
+    return {
+      ok: true,
+      id: data,
+      account: { username: account.username, password: account.password },
+    };
+  } catch (accountError) {
+    console.error("creating the employee's account failed", accountError);
+    return { ok: true, id: data, accountFailed: true };
+  }
 }
 
 /**

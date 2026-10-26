@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense, type CSSProperties, type ReactNode } from "react";
 import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getMemberAccess } from "@/lib/auth/access";
 import { canUseManagementApp, FLOOR_HOME } from "@/lib/auth/home";
+import { CHANGE_PASSWORD_PATH } from "@/lib/auth/route-guard";
 import { isSystemRoleKey } from "@/lib/auth/roles";
 import { requireMember } from "@/lib/auth/session";
 import { getNavigation } from "@/lib/navigation/server";
@@ -34,6 +36,8 @@ async function ShellFallback() {
 
 async function AppShell({ children }: { children: ReactNode }) {
   const member = await requireMember();
+  // Also when rendered by a server-action redirect, which skips the proxy.
+  if (member.mustChangePassword) redirect(CHANGE_PASSWORD_PATH);
   if (!canUseManagementApp(member.role.key)) redirect(FLOOR_HOME);
 
   const [t, groups, cookieStore, access] = await Promise.all([
@@ -60,6 +64,7 @@ async function AppShell({ children }: { children: ReactNode }) {
         } as CSSProperties
       }
     >
+      <TextSizeMarker size={member.preferences.textSize} />
       <AppSidebar
         variant="inset"
         organizationName={member.organization.name}

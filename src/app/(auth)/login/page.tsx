@@ -68,6 +68,7 @@ async function LoginCard({ searchParams }: { searchParams: Promise<SearchParamsR
           </Alert>
         ) : null}
         <LoginForm />
+        <p className="text-center text-sm text-muted-foreground">{t("forgotPassword")}</p>
       </CardContent>
     </Card>
   );

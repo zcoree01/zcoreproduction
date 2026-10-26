@@ -1,6 +1,7 @@
 "use client";
 
-import { EllipsisVerticalIcon, LogOutIcon } from "lucide-react";
+import { EllipsisVerticalIcon, LogOutIcon, UserRoundIcon } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -24,7 +25,7 @@ import { signOutAction } from "@/modules/auth/actions";
 
 export type NavUserInfo = { name: string; username: string; roleLabel: string };
 
-// Based on the shadcn dashboard-01 NavUser; only real actions (sign out).
+// Based on the shadcn dashboard-01 NavUser; only real actions (profile, sign out).
 export function NavUser({ user }: { user: NavUserInfo }) {
   const t = useTranslations("common");
   const { isMobile } = useSidebar();
@@ -64,6 +65,10 @@ export function NavUser({ user }: { user: NavUserInfo }) {
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/profile" />}>
+              <UserRoundIcon />
+              {t("myProfile")}
+            </DropdownMenuItem>
             <DropdownMenuItem
               disabled={pending}
               onClick={() => startTransition(() => signOutAction())}

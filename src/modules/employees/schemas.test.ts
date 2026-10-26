@@ -30,7 +30,17 @@ describe("employeeSchema", () => {
       status: "active",
       skills: [{ skillId: SKILL, level: 2 }],
       machineIds: [MACHINE],
+      newAccountRoleId: null,
     });
+  });
+
+  it("links an existing account or creates a new one, not both", () => {
+    const ROLE = "44444444-4444-4444-8444-444444444444";
+    expect(
+      employeeSchema.parse({ ...VALID, userId: "", newAccountRoleId: ROLE }).newAccountRoleId,
+    ).toBe(ROLE);
+    const both = employeeSchema.safeParse({ ...VALID, newAccountRoleId: ROLE });
+    expect(both.error?.issues.map((i) => i.path[0])).toEqual(["newAccountRoleId"]);
   });
 
   it("accepts employee numbers 1..999999 only", () => {
