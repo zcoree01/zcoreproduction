@@ -68,7 +68,10 @@
     "orders": "Radni nalozi",
     "floorOperations": "Nalozi",
     "inspections": "Kontrola (pogon)",
-    "productionDay": "Pregled proizvodnje"
+    "productionDay": "Pregled proizvodnje",
+    "attendance": "Prisustvo",
+    "shiftSettings": "Smjene i radno vrijeme",
+    "floorAttendance": "Dolazak"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -87,7 +90,9 @@
     "arrivedTitle": "Došlo do vaše mašine",
     "arrivedDescription": "Nalozi kod kojih su komadi stigli s prethodne operacije, najhitniji prvi.",
     "arrivedEmptyTitle": "Trenutno ništa nije stiglo",
-    "arrivedEmptyDescription": "Kad prethodna operacija prijavi dobre komade, nalog se pojavljuje ovdje."
+    "arrivedEmptyDescription": "Kad prethodna operacija prijavi dobre komade, nalog se pojavljuje ovdje.",
+    "clockInNoticeTitle": "Niste prijavili dolazak",
+    "clockInNoticeDescription": "Prijavite dolazak prije početka rada."
   },
   "users": {
     "title": "Korisnici",
@@ -1753,7 +1758,8 @@
         "downtime_in_future": "Zastoj ne može završiti u budućnosti.",
         "tool_required": "Unesite alat.",
         "tool_change_reason_required": "Izaberite razlog promjene alata.",
-        "inspection_has_no_tools": "Kontrola nema alate."
+        "inspection_has_no_tools": "Kontrola nema alate.",
+        "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad."
       },
       "summary": {
         "good": "Gotovo (dobro)",
@@ -1898,7 +1904,8 @@
       "downtime_in_future": "Zastoj ne može završiti u budućnosti.",
       "tool_required": "Unesite alat.",
       "tool_change_reason_required": "Izaberite razlog promjene alata.",
-      "inspection_has_no_tools": "Kontrola nema alate."
+      "inspection_has_no_tools": "Kontrola nema alate.",
+      "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad."
     }
   },
   "floorWork": {
@@ -2000,7 +2007,8 @@
       "downtime_in_future": "Zastoj ne može završiti u budućnosti.",
       "tool_required": "Unesite alat.",
       "tool_change_reason_required": "Izaberite razlog promjene alata.",
-      "inspection_has_no_tools": "Kontrola nema alate."
+      "inspection_has_no_tools": "Kontrola nema alate.",
+      "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad."
     },
     "downtime": "Zastoj",
     "downtimeTitle": "Unos zastoja",
@@ -2042,7 +2050,16 @@
     "closeItem": "{number}: {good} od {quantity} {unit} dobrih",
     "closeBy": "{name} · {reason}",
     "newToast": "Novi zahtjev za zatvaranje: {number}",
-    "open": "Otvori"
+    "open": "Otvori",
+    "attendanceTitle": "Prisustvo za provjeru",
+    "attendanceKinds": {
+      "auto_clock_out": "Zaboravljena odjava, automatski zatvoreno na kraju smjene",
+      "auto_clock_in": "Počeo rad bez prijave dolaska, prijavljen automatski"
+    },
+    "attendanceToast": {
+      "auto_clock_out": "{name}: zaboravljena odjava. Provjerite s radnikom.",
+      "auto_clock_in": "{name}: počeo rad bez prijave dolaska."
+    }
   },
   "productionDay": {
     "title": "Pregled proizvodnje",
@@ -2090,6 +2107,220 @@
       "good": "Dobro",
       "scrap": "Škart",
       "scrapReason": "Razlog škarta"
+    }
+  },
+  "shifts": {
+    "title": "Smjene i radno vrijeme",
+    "description": "Smjene, pauze i pravila prisustva za vašu firmu.",
+    "deniedDescription": "Za podešavanje smjena potrebna je dozvola za smjene.",
+    "listTitle": "Smjene",
+    "listDescription": "Svaka smjena može imati drugo trajanje (npr. 8 h ili turnus 12 h) i svoje pauze.",
+    "add": "Dodaj smjenu",
+    "emptyTitle": "Nema smjena",
+    "emptyDescription": "Dodajte prvu smjenu, npr. I smjena 06:00–14:00.",
+    "columns": {
+      "code": "Oznaka",
+      "name": "Naziv",
+      "time": "Vrijeme",
+      "length": "Trajanje",
+      "breaks": "Pauze",
+      "work": "Radno vrijeme",
+      "status": "Status",
+      "actions": "Radnje"
+    },
+    "nextDay": "sljedeći dan",
+    "noBreaks": "Bez pauze",
+    "breakPaid": "{minutes} min plaćena{fixed, select, yes { u {at}} other {}}",
+    "breakUnpaid": "{minutes} min neplaćena{fixed, select, yes { u {at}} other {}}",
+    "status": {
+      "active": "Aktivna",
+      "archived": "Arhivirana"
+    },
+    "restore": "Vrati",
+    "edit": "Uredi {name}",
+    "archive": "Arhiviraj {name}",
+    "restoredToast": "Smjena {name} je vraćena.",
+    "archivedToast": "Smjena {name} je arhivirana.",
+    "archiveTitle": "Arhivirati smjenu {name}?",
+    "archiveDescription": "Smjena se više ne nudi i ne prepoznaje pri dolasku. Ranije evidencije ostaju nepromijenjene.",
+    "archiveConfirm": "Arhiviraj",
+    "createTitle": "Nova smjena",
+    "editTitle": "Uredi smjenu {name}",
+    "formDescription": "Kraj prije početka znači da smjena završava sljedeći dan (npr. 22:00–06:00). Izmjene ne mijenjaju već zabilježene dane.",
+    "fields": {
+      "name": "Naziv",
+      "code": "Oznaka",
+      "startsAt": "Početak",
+      "endsAt": "Kraj",
+      "breakName": "Naziv pauze",
+      "breakStartsAt": "Početak pauze",
+      "breakMinutes": "Minuta",
+      "paid": "Plaćena pauza",
+      "color": "Boja u kalendaru"
+    },
+    "fieldErrors": {
+      "name": "Unesite naziv (do 60 znakova).",
+      "code": "Unesite oznaku (do 10 znakova).",
+      "startsAt": "Unesite početak (SS:MM).",
+      "endsAt": "Kraj mora biti različit od početka.",
+      "breaks": "Provjerite pauze: trajanje 1–240 minuta."
+    },
+    "lengthSummary": "Trajanje {length} h · radno vrijeme {work} h{nextDay, select, yes { · završava sljedeći dan} other {}}",
+    "breaksTitle": "Pauze",
+    "breaksDescription": "Bez početka pauza se uzima bilo kada u smjeni. Neplaćena pauza se ne računa u radno vrijeme.",
+    "breakNamePlaceholder": "npr. Užina",
+    "removeBreak": "Ukloni",
+    "addBreak": "Dodaj pauzu",
+    "extendQuestion": "Neplaćena pauza ({unpaid} min) smanjuje radno vrijeme na {work} h. Produžiti smjenu do {end} da radno vrijeme bude {target} h?",
+    "extendButton": "Produži do {end}",
+    "clearColor": "Bez boje",
+    "noColor": "Bez boje",
+    "submitting": "Spremam…",
+    "submitEdit": "Spremi izmjene",
+    "submitCreate": "Dodaj smjenu",
+    "createdToast": "Smjena {name} je dodana.",
+    "updatedToast": "Smjena {name} je izmijenjena.",
+    "errors": {
+      "invalid": "Neispravan unos.",
+      "denied": "Nemate dozvolu za podešavanje smjena.",
+      "not_found": "Smjena ne postoji.",
+      "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+      "invalid_shift_times": "Kraj smjene mora biti različit od početka.",
+      "breaks_too_long": "Pauze ukupno traju koliko i smjena ili duže.",
+      "break_outside_shift": "Pauza s početkom mora biti unutar smjene.",
+      "duplicate_name": "Smjena s tim nazivom već postoji.",
+      "duplicate_code": "Smjena s tom oznakom već postoji."
+    },
+    "rules": {
+      "title": "Pravila prisustva",
+      "description": "Kako se dolazak povezuje sa smjenom, šta je kašnjenje i šta se dešava kad radnik zaboravi odjavu.",
+      "fields": {
+        "earlyWindowMin": "Raniji dolazak (min)",
+        "lateToleranceMin": "Tolerancija kašnjenja (min)",
+        "absentAfterMin": "Nije došao nakon (min)",
+        "autoCloseAfterHours": "Automatska odjava nakon (h)",
+        "operationWithoutClockIn": "Početak rada bez prijave dolaska"
+      },
+      "hints": {
+        "earlyWindowMin": "Dolazak ovoliko minuta prije početka pripada toj smjeni. Rani dolazak se ne računa u radne sate.",
+        "lateToleranceMin": "Dolazak do ovoliko minuta nakon početka nije kašnjenje na pregledu. Minute kašnjenja se ne računaju u radne sate.",
+        "absentAfterMin": "Radnik u rasporedu koji se ne prijavi do tada vodi se kao da nije došao.",
+        "autoCloseAfterHours": "Zaboravljena odjava se zatvara na kraju smjene (ne s izmišljenim vremenom) i poslovođa dobija obavještenje."
+      },
+      "fieldErrors": {
+        "earlyWindowMin": "Unesite 0–240 minuta.",
+        "lateToleranceMin": "Unesite 0–120 minuta.",
+        "absentAfterMin": "Unesite 1–720 minuta.",
+        "autoCloseAfterHours": "Unesite 12–48 sati."
+      },
+      "operationModes": {
+        "auto_clock_in": "Automatski prijavi dolazak i obavijesti šefa",
+        "warn": "Samo upozori radnika",
+        "block": "Zabrani početak rada"
+      },
+      "operationModeHints": {
+        "auto_clock_in": "Dolazak se bilježi u trenutku početka rada; šef proizvodnje dobija obavještenje, a radnik može tražiti ispravku.",
+        "warn": "Rad počinje, a radnik na početnoj vidi da nije prijavio dolazak.",
+        "block": "Rad na operaciji može početi tek nakon prijave dolaska."
+      },
+      "save": "Spremi pravila",
+      "saving": "Spremam…",
+      "savedToast": "Pravila prisustva su spremljena.",
+      "errors": {
+        "invalid": "Neispravan unos.",
+        "denied": "Nemate dozvolu za podešavanje smjena.",
+        "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
+      }
+    }
+  },
+  "attendance": {
+    "title": "Dolazak i odlazak",
+    "noEmployeeTitle": "Niste povezani s radnikom",
+    "noEmployeeDescription": "Vaš korisnički račun nije povezan s profilom radnika. Javite se administratoru.",
+    "inSince": "U firmi od {time}",
+    "notIn": "Niste prijavili dolazak",
+    "lateBy": "Kašnjenje {minutes} min",
+    "autoClockInNote": "Dolazak je zabilježen automatski pri početku rada na operaciji.",
+    "noShift": "Bez smjene",
+    "serverTimeNote": "Vrijeme bilježi server, ne telefon.",
+    "todayTitle": "Danas",
+    "todayEmpty": "Danas još nema evidencije.",
+    "monthTitle": "Ovaj mjesec",
+    "regular": "Radni sati",
+    "overtime": "Prekovremeno",
+    "days": "Dana",
+    "monthNote": "Rani dolazak se ne računa; kašnjenje se može nadoknaditi ostankom nakon smjene.",
+    "now": "sada",
+    "autoClosed": "Automatski odjavljen",
+    "clockIn": "Prijava dolaska",
+    "clockOut": "Odjava s posla",
+    "sending": "Šaljem…",
+    "inToast": "Dolazak je zabilježen.",
+    "outToast": "Odlazak je zabilježen.",
+    "errors": {
+      "offline": "Nema veze sa serverom. Pokušajte ponovo; neće se zabilježiti dvaput.",
+      "invalid": "Neispravan zahtjev.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "unexpected": "Nije zabilježeno zbog greške. Pokušajte ponovo.",
+      "not_an_employee": "Vaš korisnički račun nije povezan s profilom radnika.",
+      "module_disabled": "Evidencija radnog vremena nije uključena za vašu firmu.",
+      "already_clocked_in": "Dolazak je već prijavljen.",
+      "not_clocked_in": "Dolazak nije prijavljen, pa nema odjave."
+    }
+  },
+  "attendanceBoard": {
+    "title": "Prisustvo",
+    "description": "Ko je u firmi, ko kasni ili nije došao i šta treba provjeriti.",
+    "deniedDescription": "Za pregled prisustva potrebna je dozvola za prisustvo.",
+    "date": "Datum",
+    "show": "Prikaži",
+    "today": "Danas",
+    "status": {
+      "present": "U firmi",
+      "late": "Kasni",
+      "absent": "Nije došao",
+      "expected": "Očekuje se",
+      "left": "Otišao",
+      "off": "Slobodan / bez rasporeda"
+    },
+    "alertsTitle": "Za provjeru",
+    "alertsDescription": "Automatske odjave i prijave. Provjerite usmeno s radnikom pa označite kao provjereno.",
+    "employeesTitle": "Radnici",
+    "hideOff": "Sakrij radnike bez evidencije",
+    "showOff": "Prikaži i ostale ({count})",
+    "emptyTitle": "Nema evidencije za taj dan",
+    "emptyDescription": "Niko nije prijavio dolazak i niko nije u rasporedu.",
+    "columns": {
+      "employee": "Radnik",
+      "status": "Status",
+      "shift": "Smjena",
+      "in": "Dolazak",
+      "out": "Odlazak",
+      "present": "U firmi",
+      "regular": "Radni sati",
+      "overtime": "Prekovremeno"
+    },
+    "minutes": "{minutes} min",
+    "arrivedLate": "kasnio {minutes} min",
+    "autoClosed": "Automatska odjava",
+    "autoClockIn": "Prijava s operacije",
+    "stillIn": "još u firmi",
+    "presenceNote": "Prisustvo je vrijeme u firmi; vrijeme na operacijama je posebna mjera (Pregled proizvodnje). Radnik na dvije mašine ima jedno prisustvo.",
+    "alertKinds": {
+      "auto_clock_out": "zaboravljena odjava",
+      "auto_clock_in": "rad bez prijave dolaska"
+    },
+    "alertAutoOut": "Dolazak {in}; odjava nije zabilježena, zatvoreno na kraju smjene ({out}).",
+    "alertAutoIn": "Prijavljen automatski pri početku rada na operaciji ({in}).",
+    "notePlaceholder": "Napomena (opcionalno)",
+    "resolve": "Provjereno",
+    "resolvedToast": "Označeno kao provjereno: {name}.",
+    "errors": {
+      "offline": "Nema veze sa serverom. Pokušajte ponovo.",
+      "invalid": "Neispravan unos.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "not_found": "Upozorenje više ne postoji.",
+      "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
     }
   }
 }

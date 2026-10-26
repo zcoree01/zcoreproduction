@@ -54,6 +54,7 @@ export const voidReportSchema = z.object({ reason: requiredText(500) });
 /** Business-rule errors raised by the reporting functions with a fixed message. */
 export const WORK_ERRORS = [
   "not_an_employee",
+  "not_clocked_in",
   "operation_external",
   "cutting_uses_material_status",
   "order_closed",

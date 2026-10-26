@@ -1,6 +1,7 @@
 import {
   BuildingIcon,
   ClipboardListIcon,
+  ClockIcon,
   CogIcon,
   HardHatIcon,
   HouseIcon,
@@ -29,6 +30,7 @@ const ICONS: Record<NavIconKey, LucideIcon> = {
   operation: WorkflowIcon,
   settings: SettingsIcon,
   order: ClipboardListIcon,
+  clock: ClockIcon,
 };
 
 export function NavIcon({ icon, className }: { icon: NavIconKey; className?: string }) {

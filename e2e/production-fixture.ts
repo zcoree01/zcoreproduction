@@ -17,6 +17,7 @@ export async function ensureFloorFixture() {
   const admin = createAdminClient();
   const org = await ensureOrganization(admin, TEST_TENANTS.b);
   await ensureModuleEnabled(admin, org, "production");
+  await ensureModuleEnabled(admin, org, "attendance");
   const userId = await ensureUser(admin, org, {
     ...FLOOR_OPERATOR,
     password: testTenantPassword(),

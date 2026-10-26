@@ -90,6 +90,9 @@ async function cleanup(service: Client, orgIds: string[]) {
     .like("first_name", `${MARK}%`);
   const employeeIds = (employees.data ?? []).map((row) => row.id);
   if (employeeIds.length > 0) {
+    // Starting work clocks a worker in (attendance module).
+    await service.from("attendance_alerts").delete().in("employee_id", employeeIds);
+    await service.from("attendance_sessions").delete().in("employee_id", employeeIds);
     await service.from("employee_machines").delete().in("employee_id", employeeIds);
     await service.from("employees").delete().in("id", employeeIds);
   }

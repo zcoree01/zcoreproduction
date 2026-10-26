@@ -21,6 +21,9 @@ export const PERMISSION_KEYS = [
   "orders.material.update",
   "orders.close.approve",
   "quality.inspect",
+  "attendance.read",
+  "attendance.manage",
+  "shifts.manage",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

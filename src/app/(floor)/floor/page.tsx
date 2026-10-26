@@ -1,4 +1,4 @@
-import { ClipboardListIcon, InboxIcon } from "lucide-react";
+import { ClipboardListIcon, InboxIcon, LogInIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -6,7 +6,9 @@ import { PageSuspense } from "@/components/shared/page-suspense";
 import { buttonVariants } from "@/components/ui/button";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
+import { zonedDate } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
+import { getMyAttendance } from "@/modules/attendance/queries";
 import { listMyMachines } from "@/modules/machines/queries";
 import { getAllMyFloorOperations } from "@/modules/production-orders/floor";
 import { FloorOperationCard } from "./operation-card";
@@ -27,10 +29,30 @@ async function FloorContent() {
     access.modules.has("production") &&
     (access.permissions.has("machines.status.update") || access.permissions.has("quality.inspect"));
 
+  // Not clocked in yet: a notice with a link to the attendance screen.
+  const today = zonedDate(new Date(), member.organization.timezone);
+  const attendance = access.modules.has("attendance")
+    ? await getMyAttendance(member.organization.id, today, today)
+    : null;
   const welcome = (
-    <h1 className="text-2xl font-semibold">
-      {t("welcome", { name: member.fullName ?? member.username })}
-    </h1>
+    <>
+      <h1 className="text-2xl font-semibold">
+        {t("welcome", { name: member.fullName ?? member.username })}
+      </h1>
+      {attendance && !attendance.open ? (
+        <Link
+          href="/floor/attendance"
+          data-testid="clock-in-notice"
+          className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4"
+        >
+          <span className="flex flex-col gap-1">
+            <span className="font-semibold">{t("clockInNoticeTitle")}</span>
+            <span className="text-sm text-muted-foreground">{t("clockInNoticeDescription")}</span>
+          </span>
+          <LogInIcon className="size-6 shrink-0" aria-hidden />
+        </Link>
+      ) : null}
+    </>
   );
   if (!hasOperations) {
     return (

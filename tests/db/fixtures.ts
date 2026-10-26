@@ -49,6 +49,7 @@ async function setupTenant(
 ): Promise<Tenant> {
   const org = await ensureOrganization(service, { slug, name });
   await ensureModuleEnabled(service, org, "production");
+  await ensureModuleEnabled(service, org, "attendance");
   const adminId = await ensureUser(service, org, {
     username: "admin",
     password: testTenantPassword(),

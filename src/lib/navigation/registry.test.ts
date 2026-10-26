@@ -109,6 +109,25 @@ describe("buildNavigation", () => {
     ]);
   });
 
+  it("offers attendance to every worker on the floor and to managers in the app", () => {
+    expect(
+      ids(
+        buildNavigation(
+          "floor",
+          access(["core", "production", "attendance"], ["machines.status.update"]),
+        ),
+      ),
+    ).toEqual([["work", ["floor-home", "floor-attendance", "floor-operations", "floor-machines"]]]);
+    const app = ids(
+      buildNavigation("app", access(["core", "attendance"], ["attendance.read", "shifts.manage"])),
+    );
+    expect(app).toEqual([
+      ["overview", ["dashboard"]],
+      ["production", ["attendance"]],
+      ["administration", ["shift-settings"]],
+    ]);
+  });
+
   it("offers operators their operations and machines on the floor", () => {
     expect(
       ids(buildNavigation("floor", access(["core", "production"], ["machines.status.update"]))),

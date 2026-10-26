@@ -9,6 +9,7 @@ import { canUseManagementApp, FLOOR_HOME } from "@/lib/auth/home";
 import { isSystemRoleKey } from "@/lib/auth/roles";
 import { requireMember } from "@/lib/auth/session";
 import { getNavigation } from "@/lib/navigation/server";
+import { listAttendanceAlerts } from "@/modules/attendance/queries";
 import { listPendingCloseRequests } from "@/modules/production-reporting/queries";
 import { AppSidebar } from "./app-sidebar";
 import { CloseRequestBell } from "./close-request-bell";
@@ -42,10 +43,16 @@ async function AppShell({ children }: { children: ReactNode }) {
     cookies(),
     getMemberAccess(member),
   ]);
-  // Approvers get a notification bell for requests to close with a shortage.
+  // Notification bell: requests to close with a shortage (approvers) and
+  // attendance alerts (attendance.manage).
   const approver =
     access.modules.has("production") && access.permissions.has("orders.close.approve");
-  const pendingCloses = approver ? await listPendingCloseRequests(member.organization.id) : [];
+  const attendanceManager =
+    access.modules.has("attendance") && access.permissions.has("attendance.manage");
+  const [pendingCloses, attendanceAlerts] = await Promise.all([
+    approver ? listPendingCloseRequests(member.organization.id) : Promise.resolve([]),
+    attendanceManager ? listAttendanceAlerts(member.organization.id) : Promise.resolve([]),
+  ]);
   const roleLabel = isSystemRoleKey(member.role.key)
     ? t(`roles.${member.role.key}`)
     : member.role.name;
@@ -74,7 +81,16 @@ async function AppShell({ children }: { children: ReactNode }) {
         <SiteHeader
           organizationName={member.organization.name}
           groups={groups}
-          actions={approver ? <CloseRequestBell initial={pendingCloses} /> : null}
+          actions={
+            approver || attendanceManager ? (
+              <CloseRequestBell
+                initial={pendingCloses}
+                initialAlerts={attendanceAlerts}
+                closes={approver}
+                attendance={attendanceManager}
+              />
+            ) : null
+          }
         />
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>
       </SidebarInset>

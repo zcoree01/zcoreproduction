@@ -23,7 +23,10 @@ export type NavLabelKey =
   | "orders"
   | "floorOperations"
   | "inspections"
-  | "productionDay";
+  | "productionDay"
+  | "attendance"
+  | "shiftSettings"
+  | "floorAttendance";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -36,7 +39,8 @@ export type NavIconKey =
   | "catalog"
   | "operation"
   | "settings"
-  | "order";
+  | "order"
+  | "clock";
 
 export type NavItemDef = {
   id: string;
@@ -103,6 +107,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "dashboard",
     module: "production",
     permission: "orders.read",
+    surface: "app",
+    section: "production",
+  },
+  {
+    id: "attendance",
+    href: "/attendance",
+    label: "attendance",
+    icon: "clock",
+    module: "attendance",
+    permission: "attendance.read",
     surface: "app",
     section: "production",
   },
@@ -177,6 +191,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     section: "administration",
   },
   {
+    id: "shift-settings",
+    href: "/settings/shifts",
+    label: "shiftSettings",
+    icon: "clock",
+    module: "attendance",
+    permission: "shifts.manage",
+    surface: "app",
+    section: "administration",
+  },
+  {
     id: "inspections",
     href: "/floor/operations?machine=mine",
     label: "inspections",
@@ -192,6 +216,15 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "floorHome",
     icon: "home",
     module: "core",
+    surface: "floor",
+    section: "work",
+  },
+  {
+    id: "floor-attendance",
+    href: "/floor/attendance",
+    label: "floorAttendance",
+    icon: "clock",
+    module: "attendance",
     surface: "floor",
     section: "work",
   },
