@@ -528,11 +528,209 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          activity: string | null
+          address: string | null
+          city: string | null
+          country: string
+          created_at: string
+          created_by_organization_id: string | null
+          email: string | null
+          id: string
+          legal_form: string | null
+          mail_address: string | null
+          mail_city: string | null
+          mail_postal_code: string | null
+          name: string
+          owner_organization_id: string | null
+          phone: string | null
+          postal_code: string | null
+          short_name: string | null
+          tax_id: string
+          updated_at: string
+          vat_id: string | null
+          website: string | null
+        }
+        Insert: {
+          activity?: string | null
+          address?: string | null
+          city?: string | null
+          country: string
+          created_at?: string
+          created_by_organization_id?: string | null
+          email?: string | null
+          id?: string
+          legal_form?: string | null
+          mail_address?: string | null
+          mail_city?: string | null
+          mail_postal_code?: string | null
+          name: string
+          owner_organization_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          short_name?: string | null
+          tax_id: string
+          updated_at?: string
+          vat_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          activity?: string | null
+          address?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          created_by_organization_id?: string | null
+          email?: string | null
+          id?: string
+          legal_form?: string | null
+          mail_address?: string | null
+          mail_city?: string | null
+          mail_postal_code?: string | null
+          name?: string
+          owner_organization_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          short_name?: string | null
+          tax_id?: string
+          updated_at?: string
+          vat_id?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_created_by_organization_id_fkey"
+            columns: ["created_by_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_bank_accounts: {
+        Row: {
+          account_number: string | null
+          archived_at: string | null
+          bank_name: string
+          company_id: string
+          created_at: string
+          iban: string | null
+          id: string
+          is_primary: boolean
+          sort_order: number
+          swift: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          archived_at?: string | null
+          bank_name: string
+          company_id: string
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_primary?: boolean
+          sort_order?: number
+          swift?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          archived_at?: string | null
+          bank_name?: string
+          company_id?: string
+          created_at?: string
+          iban?: string | null
+          id?: string
+          is_primary?: boolean
+          sort_order?: number
+          swift?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_bank_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_change_requests: {
+        Row: {
+          bank_accounts: Json | null
+          changes: Json
+          company_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          kind: string
+          reason: string | null
+          requested_by_organization_id: string
+          requested_by_user_id: string | null
+          status: string
+        }
+        Insert: {
+          bank_accounts?: Json | null
+          changes?: Json
+          company_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          requested_by_organization_id: string
+          requested_by_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          bank_accounts?: Json | null
+          changes?: Json
+          company_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          requested_by_organization_id?: string
+          requested_by_user_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_change_requests_requested_by_organization_id_fkey"
+            columns: ["requested_by_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
           archived_at: string | null
           city: string | null
+          company_id: string | null
           contact_person: string | null
           country: string | null
           created_at: string
@@ -543,6 +741,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           phone: string | null
+          postal_code: string | null
           tax_id: string | null
           updated_at: string
         }
@@ -550,6 +749,7 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           city?: string | null
+          company_id?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string
@@ -560,6 +760,7 @@ export type Database = {
           notes?: string | null
           organization_id: string
           phone?: string | null
+          postal_code?: string | null
           tax_id?: string | null
           updated_at?: string
         }
@@ -567,6 +768,7 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           city?: string | null
+          company_id?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string
@@ -577,10 +779,18 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           phone?: string | null
+          postal_code?: string | null
           tax_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_organization_id_fkey"
             columns: ["organization_id"]
@@ -1142,6 +1352,7 @@ export type Database = {
       }
       org_modules: {
         Row: {
+          active_until: string | null
           created_at: string
           enabled: boolean
           enabled_at: string | null
@@ -1150,6 +1361,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_until?: string | null
           created_at?: string
           enabled?: boolean
           enabled_at?: string | null
@@ -1158,6 +1370,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_until?: string | null
           created_at?: string
           enabled?: boolean
           enabled_at?: string | null
@@ -1185,8 +1398,10 @@ export type Database = {
       organizations: {
         Row: {
           archived_at: string | null
+          company_id: string | null
           created_at: string
           id: string
+          is_platform: boolean
           name: string
           settings: Json
           slug: string
@@ -1195,8 +1410,10 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
+          is_platform?: boolean
           name: string
           settings?: Json
           slug: string
@@ -1205,15 +1422,25 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
+          is_platform?: boolean
           name?: string
           settings?: Json
           slug?: string
           timezone?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       permissions: {
         Row: {
@@ -1246,6 +1473,24 @@ export type Database = {
             referencedColumns: ["key"]
           },
         ]
+      }
+      platform_settings: {
+        Row: {
+          default_trial_days: number
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          default_trial_days?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          default_trial_days?: number
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       product_attachments: {
         Row: {
@@ -2509,6 +2754,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_support: boolean
           must_change_password: boolean
           organization_id: string
           preferences: Json
@@ -2520,6 +2766,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          is_support?: boolean
           must_change_password?: boolean
           organization_id: string
           preferences?: Json
@@ -2531,6 +2778,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_support?: boolean
           must_change_password?: boolean
           organization_id?: string
           preferences?: Json
@@ -2546,6 +2794,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      registration_attempts: {
+        Row: {
+          client_hash: string
+          created_at: string
+          id: number
+          kind: string
+        }
+        Insert: {
+          client_hash: string
+          created_at?: string
+          id?: never
+          kind: string
+        }
+        Update: {
+          client_hash?: string
+          created_at?: string
+          id?: never
+          kind?: string
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
@@ -2981,6 +3250,68 @@ export type Database = {
           },
         ]
       }
+      support_access_requests: {
+        Row: {
+          approved_until: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          duration_minutes: number | null
+          ended_at: string | null
+          ended_by: string | null
+          id: string
+          organization_id: string
+          reason: string
+          requested_by: string
+          requester_name: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          approved_until?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          duration_minutes?: number | null
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          organization_id: string
+          reason: string
+          requested_by: string
+          requester_name: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          approved_until?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          duration_minutes?: number | null
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          organization_id?: string
+          reason?: string
+          requested_by?: string
+          requester_name?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_access_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employee_directory: {
@@ -3370,6 +3701,19 @@ export type Database = {
         Args: { p_absence_id: string; p_last_day: string }
         Returns: undefined
       }
+      company_change_requests_to_decide: {
+        Args: { p_org_id: string }
+        Returns: {
+          bank_accounts: Json
+          changes: Json
+          company: Json
+          created_at: string
+          id: string
+          kind: string
+          reason: string
+          requested_by: string
+        }[]
+      }
       copy_product: {
         Args: {
           p_name: string
@@ -3408,12 +3752,29 @@ export type Database = {
         Args: { p_order: Json; p_org_id: string }
         Returns: string
       }
+      current_support_session: {
+        Args: { p_org_id: string }
+        Returns: {
+          approved_until: string
+          id: string
+          requester_name: string
+        }[]
+      }
       decide_absence: {
         Args: { p_absence_id: string; p_approve: boolean; p_note?: string }
         Returns: undefined
       }
       decide_absence_interruption: {
         Args: { p_absence_id: string; p_approve: boolean; p_note?: string }
+        Returns: undefined
+      }
+      decide_company_change: {
+        Args: {
+          p_approve: boolean
+          p_note: string
+          p_org_id: string
+          p_request_id: string
+        }
         Returns: undefined
       }
       decide_correction: {
@@ -3424,10 +3785,21 @@ export type Database = {
         Args: { p_approve: boolean; p_note?: string; p_request_id: string }
         Returns: undefined
       }
+      decide_support_request: {
+        Args: {
+          p_approve: boolean
+          p_minutes?: number
+          p_note?: string
+          p_org_id: string
+          p_request_id: string
+        }
+        Returns: undefined
+      }
       end_rotation_assignment: {
         Args: { p_assignment_id: string; p_end_date: string }
         Returns: undefined
       }
+      end_support: { Args: { p_request_id: string }; Returns: string }
       enter_absence: {
         Args: {
           p_employee_id: string
@@ -3498,6 +3870,7 @@ export type Database = {
       }
       floor_operation_work: { Args: { p_operation_id: string }; Returns: Json }
       floor_order: { Args: { p_order_id: string }; Returns: Json }
+      get_company: { Args: { p_company_id: string }; Returns: Json }
       get_login_organization: {
         Args: { p_slug: string }
         Returns: {
@@ -3517,6 +3890,19 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
       }
+      my_company_change_requests: {
+        Args: { p_org_id: string }
+        Returns: {
+          changes: Json
+          company_name: string
+          created_at: string
+          decided_at: string
+          decision_note: string
+          id: string
+          kind: string
+          status: string
+        }[]
+      }
       my_requests: { Args: { p_org_id: string; p_year: number }; Returns: Json }
       my_schedule: {
         Args: { p_from: string; p_org_id: string; p_to: string }
@@ -3534,6 +3920,7 @@ export type Database = {
         Args: { p_operation_id: string }
         Returns: Json
       }
+      organization_profile: { Args: { p_org_id: string }; Returns: Json }
       pause_operation_work: {
         Args: { p_notes?: string; p_operation_id: string; p_reason_id: string }
         Returns: undefined
@@ -3566,6 +3953,57 @@ export type Database = {
         }[]
       }
       pending_requests: { Args: { p_org_id: string }; Returns: Json }
+      platform_begin_support: {
+        Args: { p_request_id: string }
+        Returns: {
+          approved_until: string
+          organization_id: string
+          slug: string
+        }[]
+      }
+      platform_get_settings: { Args: never; Returns: Json }
+      platform_organizations: {
+        Args: never
+        Returns: {
+          archived: boolean
+          claim_pending: boolean
+          company: Json
+          created_at: string
+          id: string
+          member_count: number
+          modules: Json
+          name: string
+          slug: string
+        }[]
+      }
+      platform_request_support: {
+        Args: { p_org_id: string; p_reason: string }
+        Returns: string
+      }
+      platform_set_module: {
+        Args: {
+          p_active_until?: string
+          p_enabled: boolean
+          p_module: string
+          p_org_id: string
+        }
+        Returns: undefined
+      }
+      platform_set_trial_days: { Args: { p_days: number }; Returns: undefined }
+      platform_support_requests: {
+        Args: never
+        Returns: {
+          approved_until: string
+          created_at: string
+          decision_note: string
+          duration_minutes: number
+          id: string
+          organization_id: string
+          reason: string
+          requester_name: string
+          status: string
+        }[]
+      }
       product_history: {
         Args: { p_limit?: number; p_product_id: string }
         Returns: {
@@ -3699,6 +4137,21 @@ export type Database = {
         }
         Returns: string
       }
+      register_organization: {
+        Args: {
+          p_bank_accounts: Json
+          p_country: string
+          p_fields: Json
+          p_slug: string
+          p_tax_id: string
+          p_timezone: string
+        }
+        Returns: Json
+      }
+      registration_attempt: {
+        Args: { p_client_hash: string; p_kind: string; p_max: number }
+        Returns: boolean
+      }
       reorder_product_operations: {
         Args: { p_operation_ids: string[]; p_revision_id: string }
         Returns: undefined
@@ -3735,6 +4188,16 @@ export type Database = {
         Args: { p_absence_id: string; p_last_day: string; p_note: string }
         Returns: undefined
       }
+      request_company_change: {
+        Args: {
+          p_bank_accounts?: Json
+          p_changes: Json
+          p_company_id: string
+          p_org_id: string
+          p_reason?: string
+        }
+        Returns: string
+      }
       request_correction: {
         Args: {
           p_clock_in_at: string
@@ -3765,6 +4228,15 @@ export type Database = {
         }
         Returns: string
       }
+      save_customer: {
+        Args: {
+          p_company_id?: string
+          p_customer: Json
+          p_customer_id?: string
+          p_org_id: string
+        }
+        Returns: Json
+      }
       save_employee: {
         Args: {
           p_department_id?: string
@@ -3791,6 +4263,16 @@ export type Database = {
           p_year: number
         }
         Returns: undefined
+      }
+      save_organization_profile: {
+        Args: {
+          p_bank_accounts: Json
+          p_country: string
+          p_fields: Json
+          p_org_id: string
+          p_tax_id: string
+        }
+        Returns: string
       }
       save_product_operation: {
         Args: {
@@ -3826,6 +4308,16 @@ export type Database = {
       schedule_range: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
+      }
+      search_companies: {
+        Args: { p_query: string }
+        Returns: {
+          city: string
+          country: string
+          id: string
+          name: string
+          tax_id: string
+        }[]
       }
       session_status: {
         Args: never

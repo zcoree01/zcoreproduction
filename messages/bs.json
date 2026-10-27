@@ -10,7 +10,9 @@
     "archive": "Arhiviraj",
     "restore": "Vrati iz arhive",
     "actions": "Akcije",
-    "myProfile": "Moj profil"
+    "myProfile": "Moj profil",
+    "newCompany": "Nova firma?",
+    "register": "Registrujte firmu"
   },
   "metadata": {
     "title": "Zcore Production",
@@ -57,7 +59,8 @@
       "overview": "Pregled",
       "production": "Proizvodnja",
       "administration": "Administracija",
-      "work": "Rad"
+      "work": "Rad",
+      "platform": "Zcore platforma"
     },
     "machines": "Mašine",
     "employees": "Radnici",
@@ -77,7 +80,12 @@
     "floorAttendance": "Dolazak",
     "schedule": "Raspored",
     "crews": "Ekipe i rotacije",
-    "absences": "Odsustva i zahtjevi"
+    "absences": "Odsustva i zahtjevi",
+    "companySettings": "Podaci o firmi",
+    "platformOrganizations": "Firme",
+    "platformRequests": "Zahtjevi za imenik",
+    "platformSettings": "Postavke platforme",
+    "supportSettings": "Zcore podrška"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -1162,14 +1170,29 @@
         "phone": "Najviše 50 znakova.",
         "email": "Unesite ispravnu e-mail adresu.",
         "notes": "Najviše 2000 znakova.",
-        "customerNumber": "Unesite cijeli broj od 1 do 999999 ili ostavite prazno."
+        "customerNumber": "Unesite cijeli broj od 1 do 999999 ili ostavite prazno.",
+        "postalCode": "Najviše 20 znakova.",
+        "baTaxId": "Za BiH unesite ID broj (13 cifara) ili PDV broj (12 cifara)."
       },
       "customerNumber": "Broj kupca",
       "customerNumberPlaceholder": "automatski",
       "customerNumberHint": "Prazno = sljedeći slobodan broj. Broj ulazi u broj radnog naloga.",
       "reuseTitle": "Preuzeti broj {number}?",
       "reuseDescription": "Taj broj je imao arhivirani kupac. Njegovi stari nalozi ostaju kod njega i ne prelaze na ovog kupca, ali novi nalozi će imati isti broj kupca.",
-      "reuseConfirm": "Preuzmi broj"
+      "reuseConfirm": "Preuzmi broj",
+      "postalCode": "Poštanski broj",
+      "countryNone": "Nije navedeno",
+      "directory": {
+        "searchHint": "Kucajte naziv ili ID broj: firme koje već postoje u sistemu se nude ispod polja.",
+        "linkedTitle": "Podaci iz zajedničkog imenika firmi",
+        "linkedDescription": "Naziv, ID broj i adresu održava imenik i ažuriraju se automatski. Broj kupca, kontakt osoba i napomena ostaju samo kod vas.",
+        "unlink": "Ne koristi podatke iz imenika",
+        "taxIdHintBa": "ID broj (13 cifara) ili PDV broj (12 cifara). S ID brojem kupac se upisuje i u zajednički imenik firmi.",
+        "taxIdHint": "Poreski broj. S njim se kupac upisuje i u zajednički imenik firmi.",
+        "loadFailed": "Podaci firme nisu učitani. Pokušajte ponovo.",
+        "createdToast": "Firma je upisana i u zajednički imenik firmi.",
+        "changeRequestedToast": "Vaši podaci se razlikuju od imenika: poslan je prijedlog izmjene."
+      }
     }
   },
   "materials": {
@@ -2800,5 +2823,391 @@
     "interruption": "Prekid odsustva",
     "interruptionDetail": "{period} → zadnji dan {lastDay}",
     "rejectNeedsNote": "Za odbijanje upišite razlog."
+  },
+  "companySearch": {
+    "label": "Firme iz imenika"
+  },
+  "moduleNames": {
+    "production": "Proizvodnja",
+    "attendance": "Radno vrijeme"
+  },
+  "companyFields": {
+    "name": "Puni naziv firme",
+    "shortName": "Skraćeni naziv",
+    "legalForm": "Pravni oblik",
+    "country": "Država",
+    "taxId": "Poreski broj",
+    "vatId": "PDV broj",
+    "activity": "Djelatnost",
+    "address": "Ulica i broj (sjedište)",
+    "postalCode": "Poštanski broj",
+    "city": "Grad",
+    "mailAddress": "Ulica i broj",
+    "mailPostalCode": "Poštanski broj",
+    "mailCity": "Grad",
+    "phone": "Telefon",
+    "email": "E-mail",
+    "website": "Web stranica",
+    "bankName": "Banka",
+    "accountNumber": "Broj računa",
+    "iban": "IBAN",
+    "swift": "SWIFT / BIC",
+    "nameHint": "Kako je upisan u sudski registar, npr. „Metal Precision d.o.o. Sarajevo“.",
+    "shortNameHint": "Prikazuje se u aplikaciji i na dokumentima, ako je kraći.",
+    "taxIdBa": "ID broj (JIB)",
+    "taxIdBaHint": "13 cifara.",
+    "taxIdHint": "Poreski / matični broj firme u njenoj državi.",
+    "taxIdLocked": "ID broj registrovane firme mijenja Zcore na vaš zahtjev.",
+    "vatIdBa": "PDV broj",
+    "vatIdBaHint": "12 cifara; samo ako je firma u sistemu PDV-a.",
+    "activityHint": "Npr. CNC obrada metala.",
+    "mailLegend": "Adresa za poštu",
+    "mailHint": "Popunite samo ako se pošta šalje na drugu adresu od sjedišta.",
+    "bankingHint": "Računi na koje vam drugi uplaćuju. Glavni račun se nudi prvi.",
+    "noBankAccounts": "Još nema računa.",
+    "bankAccountLegend": "Račun {number}",
+    "accountNumberBa": "Broj žiro računa",
+    "accountNumberBaHint": "16 cifara, npr. 1290079401028494.",
+    "primaryAccount": "Glavni račun",
+    "fillIban": "Popuni IBAN",
+    "removeBankAccount": "Ukloni",
+    "addBankAccount": "Dodaj račun",
+    "errors": {
+      "ba_tax_id": "ID broj u BiH ima 13 cifara.",
+      "ba_vat_id": "PDV broj u BiH ima 12 cifara.",
+      "ba_account": "Broj žiro računa nije ispravan (16 cifara, kontrolni broj).",
+      "iban": "IBAN nije ispravan.",
+      "swift": "SWIFT ima 8 ili 11 znakova.",
+      "email": "Unesite ispravnu e-mail adresu.",
+      "required": "Unesite broj računa ili IBAN.",
+      "field": {
+        "name": "Unesite naziv (do 200 znakova).",
+        "shortName": "Najviše 100 znakova.",
+        "legalForm": "Najviše 50 znakova.",
+        "country": "Odaberite državu.",
+        "taxId": "Unesite poreski broj.",
+        "vatId": "Najviše 50 znakova.",
+        "activity": "Najviše 200 znakova.",
+        "address": "Unesite ulicu i broj (do 300 znakova).",
+        "postalCode": "Najviše 20 znakova.",
+        "city": "Unesite grad.",
+        "mailAddress": "Najviše 300 znakova.",
+        "mailPostalCode": "Najviše 20 znakova.",
+        "mailCity": "Najviše 100 znakova.",
+        "phone": "Najviše 50 znakova.",
+        "email": "Unesite ispravnu e-mail adresu.",
+        "website": "Najviše 200 znakova.",
+        "bankName": "Unesite naziv banke.",
+        "accountNumber": "Najviše 50 znakova.",
+        "iban": "IBAN nije ispravan.",
+        "swift": "SWIFT ima 8 ili 11 znakova."
+      },
+      "company_owned": "Firma s ovim ID brojem je već registrovana."
+    }
+  },
+  "companyDirectory": {
+    "title": "Podaci iz imenika firmi",
+    "description": "Javni poslovni podaci firme, zajednički svim korisnicima sistema. Ako je nešto pogrešno ili zastarjelo, predložite izmjenu.",
+    "registered": "Registrovana na Zcore",
+    "registeredDescription": "Ove podatke održava sama firma. Prijedlog izmjene ide njoj.",
+    "propose": "Predloži izmjenu",
+    "bankAccounts": "Žiro računi",
+    "noBankAccounts": "Nema upisanih računa.",
+    "primary": "Glavni",
+    "proposal": {
+      "title": "Prijedlog izmjene: {name}",
+      "description": "Ispravite pogrešne podatke. Prijedlog pregleda Zcore; vaši podaci se ne mijenjaju dok se ne odobri.",
+      "descriptionRegistered": "Ispravite pogrešne podatke. Prijedlog ide firmi koja održava ove podatke (ne vidi ko ga je poslao).",
+      "nothingChanged": "Niste promijenili nijedan podatak.",
+      "sent": "Prijedlog izmjene je poslan.",
+      "was": "Bilo: {value}",
+      "reason": "Razlog (nije obavezno)",
+      "reasonHint": "Npr. „firma se preselila“ ili „novi račun s fakture“.",
+      "sending": "Slanje…",
+      "submit": "{count, plural, =0 {Pošalji prijedlog} one {Pošalji prijedlog (# izmjena)} few {Pošalji prijedlog (# izmjene)} other {Pošalji prijedlog (# izmjena)}}",
+      "errors": {
+        "invalid": "Provjerite unesene podatke.",
+        "denied": "Nemate dozvolu za slanje prijedloga.",
+        "not_found": "Firma nije pronađena.",
+        "unexpected": "Prijedlog nije poslan zbog greške. Pokušajte ponovo."
+      }
+    }
+  },
+  "companySettings": {
+    "title": "Podaci o firmi",
+    "description": "Naziv, adresa i računi vaše firme. Ovi podaci se nude i drugim firmama u sistemu kad vas dodaju kao kupca.",
+    "deniedDescription": "Podatke o firmi mijenja administrator.",
+    "claimPendingTitle": "Čeka potvrdu Zcore-a",
+    "claimPendingDescription": "Firma s ovim ID brojem već postoji u imeniku. Vaši podaci su sačuvani i biće primijenjeni čim Zcore potvrdi da je firma vaša (zahtjev od {date}).",
+    "noneTitle": "Unesite podatke o firmi",
+    "noneDescription": "Podaci o vašoj firmi još nisu uneseni.",
+    "basicsTitle": "Osnovne informacije",
+    "basicsDescription": "Naziv, pravni oblik, ID i PDV broj.",
+    "contactTitle": "Adresa i kontakt",
+    "contactDescription": "Sjedište, adresa za poštu, telefon i e-mail.",
+    "bankingTitle": "Plaćanje",
+    "bankingDescription": "Žiro računi za uplate.",
+    "save": "Sačuvaj promjene",
+    "saving": "Spremanje…",
+    "savedToast": "Podaci o firmi su sačuvani.",
+    "claimSentToast": "Podaci su sačuvani i čekaju potvrdu Zcore-a.",
+    "errors": {
+      "invalid": "Provjerite označena polja.",
+      "denied": "Nemate dozvolu za promjenu podataka o firmi.",
+      "company_owned": "Ovaj ID broj pripada drugoj firmi registrovanoj na Zcore. Obratite se Zcore podršci.",
+      "tax_id_taken": "Ovaj ID broj je već upisan za drugu firmu.",
+      "unexpected": "Podaci nisu sačuvani zbog greške. Pokušajte ponovo."
+    },
+    "incomingTitle": "Prijedlozi izmjena ({count})",
+    "incomingDescription": "Drugi korisnici sistema predlažu ispravke vaših podataka. Odobrene izmjene se odmah primjenjuju.",
+    "incomingEmpty": "Nema novih prijedloga.",
+    "sentTitle": "Poslani prijedlozi",
+    "sentDescription": "Prijedlozi izmjena koje je vaša firma poslala za druge firme.",
+    "sentKind": {
+      "update": "Prijedlog izmjene",
+      "claim": "Potvrda vlasništva"
+    },
+    "sentStatus": {
+      "pending": "Čeka",
+      "approved": "Odobren",
+      "rejected": "Odbijen",
+      "withdrawn": "Povučen"
+    }
+  },
+  "changeRequests": {
+    "kind": {
+      "update": "Prijedlog izmjene",
+      "claim": "Preuzimanje firme"
+    },
+    "requestedBy": "Poslala firma: {name}",
+    "claimDescription": "Novoregistrovana firma tvrdi da je ovo njen zapis u imeniku. Provjerite da su naziv i ID broj zaista njeni prije odobrenja.",
+    "field": "Podatak",
+    "before": "Sada",
+    "after": "Prijedlog",
+    "bankAccountsChanged": "Mijenjaju se i žiro računi.",
+    "reason": "Razlog",
+    "rejectNote": "Razlog odbijanja (vidi ga pošiljalac)",
+    "cancel": "Odustani",
+    "reject": "Odbij",
+    "approve": "Odobri",
+    "approvedToast": "Izmjena je odobrena i primijenjena.",
+    "rejectedToast": "Prijedlog je odbijen.",
+    "errors": {
+      "invalid": "Za odbijanje unesite razlog.",
+      "denied": "Nemate dozvolu za ovu odluku.",
+      "not_found": "Zahtjev više nije otvoren.",
+      "unexpected": "Odluka nije sačuvana zbog greške. Pokušajte ponovo."
+    }
+  },
+  "platform": {
+    "deniedDescription": "Ovaj dio je samo za Zcore administratore.",
+    "organizationsTitle": "Registrovane firme",
+    "organizationsDescription": "Firme na platformi i njihovi moduli. Podatke firmi (nalozi, radnici…) ovdje ne vidite.",
+    "emptyTitle": "Nema registrovanih firmi",
+    "emptyDescription": "Firme se pojavljuju ovdje nakon registracije.",
+    "archived": "Arhivirana",
+    "claimPending": "Čeka potvrdu imenika",
+    "noCompany": "Bez podataka o firmi",
+    "members": "{count, plural, one {# korisnik} few {# korisnika} other {# korisnika}}",
+    "since": "od {date}",
+    "requestsTitle": "Zahtjevi za imenik firmi",
+    "requestsDescription": "Preuzimanja postojećih zapisa od novih firmi i prijedlozi izmjena za firme koje nisu registrovane.",
+    "requestsEmptyTitle": "Nema otvorenih zahtjeva",
+    "requestsEmptyDescription": "Novi zahtjevi se pojavljuju ovdje.",
+    "settingsTitle": "Postavke platforme",
+    "settingsDescription": "Pravila koja važe za sve nove firme.",
+    "modules": {
+      "savedToast": "Modul {module} je sačuvan.",
+      "errors": {
+        "invalid": "Provjerite datum.",
+        "denied": "Nemate dozvolu.",
+        "unexpected": "Promjena nije sačuvana zbog greške."
+      },
+      "trialLeft": "{days, plural, one {Proba: još # dan} few {Proba: još # dana} other {Proba: još # dana}}",
+      "state": {
+        "off": "Isključen",
+        "on": "Uključen",
+        "expired": "Proba istekla"
+      },
+      "until": "do",
+      "untilLabel": "Posljednji dan za {module} (prazno = bez isteka)",
+      "save": "Sačuvaj",
+      "saving": "…"
+    },
+    "trial": {
+      "title": "Probni period",
+      "description": "Koliko dana nova firma nakon registracije koristi sve module. Pojedinim firmama i modulima možete postaviti drugi datum na stranici Firme.",
+      "days": "Broj dana",
+      "hint": "1–365 dana.",
+      "invalid": "Unesite broj od 1 do 365.",
+      "save": "Sačuvaj",
+      "saving": "Spremanje…",
+      "savedToast": "Probni period za nove firme: {days} dana.",
+      "errors": {
+        "invalid": "Unesite broj od 1 do 365.",
+        "denied": "Nemate dozvolu.",
+        "unexpected": "Promjena nije sačuvana zbog greške."
+      }
+    },
+    "support": {
+      "title": "Pristup podrške",
+      "pending": "Čeka odobrenje firme",
+      "approvedUntil": "Odobreno do {time}",
+      "rejected": "Odbijeno",
+      "ask": "Zatraži pristup",
+      "reason": "Razlog (vidi ga firma)",
+      "send": "Pošalji zahtjev",
+      "cancelAsk": "Odustani",
+      "enter": "Uđi u firmu",
+      "end": "Završi pristup",
+      "cancel": "Povuci zahtjev",
+      "askedToast": "Zahtjev je poslan firmi.",
+      "endedToast": "Pristup je završen.",
+      "errors": {
+        "invalid": "Unesite razlog.",
+        "denied": "Pristup nije odobren.",
+        "not_found": "Zahtjev više nije otvoren.",
+        "open_request": "Već postoji otvoren zahtjev za ovu firmu.",
+        "unexpected": "Akcija nije uspjela zbog greške."
+      }
+    }
+  },
+  "support": {
+    "title": "Zcore podrška",
+    "description": "Zcore može ući u vašu firmu da riješi problem samo kad to vi odobrite, na ograničeno vrijeme. Pristup prestaje čim ga završite ili istekne vrijeme.",
+    "deniedDescription": "Pristup podrške odobrava administrator ili direktor.",
+    "emptyTitle": "Nema zahtjeva",
+    "emptyDescription": "Kad Zcore zatraži pristup, zahtjev se pojavljuje ovdje.",
+    "reason": "Razlog",
+    "until": "Pristup važi do {time}.",
+    "rejectNote": "Razlog odbijanja (nije obavezno)",
+    "duration": "Trajanje pristupa",
+    "minutes": "{minutes, select, 30 {30 minuta} 60 {1 sat} 120 {2 sata} 240 {4 sata} 480 {8 sati} other {{minutes} minuta}}",
+    "approve": "Odobri pristup",
+    "reject": "Odbij",
+    "cancel": "Odustani",
+    "endNow": "Završi pristup odmah",
+    "approvedToast": "Pristup je odobren.",
+    "rejectedToast": "Zahtjev je odbijen.",
+    "endedToast": "Pristup podrške je završen.",
+    "status": {
+      "pending": "Čeka odobrenje",
+      "approved": "Odobreno",
+      "active": "U toku",
+      "rejected": "Odbijeno",
+      "ended": "Završeno",
+      "cancelled": "Povučeno"
+    },
+    "errors": {
+      "invalid": "Provjerite unos.",
+      "denied": "Nemate dozvolu.",
+      "not_found": "Zahtjev više nije otvoren.",
+      "open_request": "Već postoji otvoren zahtjev.",
+      "unexpected": "Akcija nije uspjela zbog greške. Pokušajte ponovo."
+    },
+    "banner": {
+      "text": "Zcore podrška ({name}) je prijavljena u vašu firmu do {time}. Sve promjene se bilježe.",
+      "end": "Završi podršku"
+    }
+  },
+  "registration": {
+    "title": "Registracija firme",
+    "description": "Nekoliko kratkih koraka. Nakon registracije odmah se prijavljujete i koristite sve module u probnom periodu.",
+    "haveAccount": "Firma je već registrovana?",
+    "toLogin": "Prijava",
+    "stepsLabel": "Koraci registracije",
+    "stepOf": "Korak {step} od {total}",
+    "back": "Nazad",
+    "next": "Dalje",
+    "submit": "Registruj firmu",
+    "submitting": "Registracija…",
+    "steps": {
+      "basics": {
+        "short": "Osnovno",
+        "title": "Osnovne informacije",
+        "description": "Naziv firme, pravni oblik i poreski brojevi, kako su upisani u registar."
+      },
+      "contact": {
+        "short": "Adresa",
+        "title": "Adresa i kontakt",
+        "description": "Sjedište firme, adresa za poštu i kontakt za druge firme."
+      },
+      "banking": {
+        "short": "Plaćanje",
+        "title": "Plaćanje",
+        "description": "Žiro računi na koje vam drugi uplaćuju. Možete ih dodati i kasnije."
+      },
+      "system": {
+        "short": "Adresa u sistemu",
+        "title": "Adresa u sistemu",
+        "description": "Vaša adresa za prijavu (npr. firma.zcore.ba) i vremenska zona."
+      },
+      "admin": {
+        "short": "Administrator",
+        "title": "Administrator",
+        "description": "Prvi korisnik firme. Kasnije on dodaje radnike i dodjeljuje uloge."
+      },
+      "review": {
+        "short": "Pregled",
+        "title": "Pregled i potvrda",
+        "description": "Provjerite podatke. Svaki dio možete još izmijeniti."
+      }
+    },
+    "system": {
+      "slug": "Adresa firme",
+      "slugHint": "Mala slova, brojevi i crtica, najmanje 3 znaka.",
+      "available": "{address} je slobodna.",
+      "timezone": "Vremenska zona",
+      "timezoneHint": "Smjene, rokovi i izvještaji se prikazuju u ovoj zoni.",
+      "errors": {
+        "slug_invalid": "Dozvoljena su mala slova, brojevi i crtica (ne na početku ni kraju).",
+        "slug_short": "Najmanje 3 znaka.",
+        "slug_reserved": "Ova adresa je rezervisana. Izaberite drugu.",
+        "slug_taken": "Ova adresa je zauzeta. Izaberite drugu.",
+        "slug_rate_limited": "Previše provjera. Pričekajte malo pa pokušajte ponovo."
+      }
+    },
+    "admin": {
+      "fullName": "Ime i prezime",
+      "username": "Korisničko ime",
+      "usernameHint": "Njime se prijavljujete; predloženo je iz imena.",
+      "adminPassword": "Lozinka",
+      "adminConfirmPassword": "Ponovite lozinku",
+      "passwordHint": "Najmanje 8 znakova.",
+      "errors": {
+        "adminFullName": "Unesite ime i prezime.",
+        "adminUsername": "3–32 znaka: mala slova, brojevi, tačka, crtica.",
+        "adminPassword": "Lozinka mora imati najmanje 8 znakova.",
+        "adminConfirmPassword": "Lozinke se ne podudaraju.",
+        "notUsername": "Lozinka ne smije biti isto što i korisničko ime.",
+        "mismatch": "Lozinke se ne podudaraju.",
+        "weak": "Lozinka je preslaba. Izaberite dužu lozinku."
+      }
+    },
+    "review": {
+      "edit": "Izmijeni",
+      "mail": "Adresa za poštu",
+      "bankAccounts": "Računi",
+      "none": "Nisu uneseni",
+      "primary": "glavni",
+      "terms": "Potvrđujem da sam ovlašten registrovati ovu firmu i da su podaci tačni. Javni poslovni podaci (naziv, ID broj, adresa, računi) biće dostupni drugim firmama u sistemu kad vas dodaju kao kupca.",
+      "termsRequired": "Potvrdite da ste ovlašteni i da su podaci tačni."
+    },
+    "errors": {
+      "invalid": "Neki podaci nisu ispravni. Provjerite označene korake.",
+      "slug_taken": "Adresa firme je u međuvremenu zauzeta. Izaberite drugu.",
+      "company_owned": "Firma s ovim ID brojem je već registrovana. Obratite se Zcore podršci.",
+      "weak_password": "Lozinka je preslaba.",
+      "rate_limited": "Previše pokušaja registracije. Pokušajte ponovo za sat vremena.",
+      "unexpected": "Registracija nije uspjela zbog greške. Pokušajte ponovo."
+    },
+    "success": {
+      "title": "Firma je registrovana",
+      "description": "Svi moduli su uključeni {days} dana probno. Prijavite se kao administrator i dodajte radnike.",
+      "claimTitle": "Podaci čekaju potvrdu",
+      "claimDescription": "Firma s vašim ID brojem je već postojala u imeniku (neko vas je unio kao kupca). Zcore će potvrditi da je firma vaša; do tada se vaši podaci ne prikazuju drugima.",
+      "username": "Vaše korisničko ime:",
+      "login": "Idi na prijavu"
+    }
   }
 }

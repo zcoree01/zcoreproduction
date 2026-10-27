@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "test:db": "vitest run --config vitest.db.config.mts",
     "seed:demo": "tsx --env-file=.env.local scripts/seed-demo.ts",
+    "platform:admin": "tsx --env-file=.env.local scripts/create-platform-admin.ts",
     "db:types": "supabase gen types typescript --linked > src/lib/supabase/types.ts"
   },
   "dependencies": {

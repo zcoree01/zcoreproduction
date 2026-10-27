@@ -1,17 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { BuildingIcon, PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import { CompanySearchInput } from "@/components/shared/company-search-input";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Sheet,
   SheetContent,
@@ -21,28 +23,36 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { COUNTRY_CODES, countryName } from "@/lib/countries";
+import { getCompanyAction } from "@/modules/companies/actions";
 import { saveCustomerAction } from "@/modules/customers/actions";
 import type { CustomerRow } from "@/modules/customers/queries";
 import {
   customerSchema,
-  type CustomerActionResult,
   type CustomerFormValues,
   type CustomerInput,
+  type CustomerSaveResult,
 } from "@/modules/customers/schemas";
 
-type FormError = Extract<CustomerActionResult, { ok: false }>["error"];
+type FormError = Extract<CustomerSaveResult, { ok: false }>["error"];
+type TextField = "taxId" | "address" | "postalCode" | "city" | "contactPerson" | "phone" | "email";
+
+/** Public data that come from the shared directory once a customer is linked. */
+const DIRECTORY_FIELDS: readonly TextField[] = ["taxId", "address", "postalCode", "city"];
 
 const EMPTY: CustomerFormValues = {
   customerNumber: "",
   name: "",
   taxId: "",
   address: "",
+  postalCode: "",
   city: "",
-  country: "",
+  country: "BA",
   contactPerson: "",
   phone: "",
   email: "",
   notes: "",
+  companyId: "",
 };
 
 function toFormValues(customer: CustomerRow): CustomerFormValues {
@@ -51,12 +61,14 @@ function toFormValues(customer: CustomerRow): CustomerFormValues {
     name: customer.name,
     taxId: customer.taxId ?? "",
     address: customer.address ?? "",
+    postalCode: customer.postalCode ?? "",
     city: customer.city ?? "",
     country: customer.country ?? "",
     contactPerson: customer.contactPerson ?? "",
     phone: customer.phone ?? "",
     email: customer.email ?? "",
     notes: customer.notes ?? "",
+    companyId: customer.companyId ?? "",
   };
 }
 
@@ -108,6 +120,29 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
     resolver: zodResolver(customerSchema),
     defaultValues: customer ? toFormValues(customer) : EMPTY,
   });
+  const [companyId, country] = useWatch({ control: form.control, name: ["companyId", "country"] });
+  const linked = Boolean(companyId);
+  // An existing link is kept; a pick while creating a customer can be undone.
+  const canUnlink = linked && !customer?.companyId;
+
+  const pickCompany = async (id: string) => {
+    const company = await getCompanyAction(id);
+    if (!company) {
+      toast.error(t("directory.loadFailed"));
+      return;
+    }
+    const options = { shouldDirty: true } as const;
+    form.setValue("companyId", company.id, options);
+    form.setValue("name", company.name, options);
+    form.setValue("taxId", company.taxId, options);
+    form.setValue("address", company.address ?? "", options);
+    form.setValue("postalCode", company.postalCode ?? "", options);
+    form.setValue("city", company.city ?? "", options);
+    form.setValue("country", company.country, options);
+    if (company.phone) form.setValue("phone", company.phone, options);
+    if (company.email) form.setValue("email", company.email, options);
+    form.clearErrors();
+  };
 
   const save = (values: CustomerInput, reuse: boolean) => {
     setFormError(null);
@@ -118,6 +153,14 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
           customer
             ? t("updatedToast", { name: values.name })
             : t("createdToast", { name: values.name }),
+          {
+            description:
+              result.directory === "created"
+                ? t("directory.createdToast")
+                : result.changeRequested
+                  ? t("directory.changeRequestedToast")
+                  : undefined,
+          },
         );
         onDone();
         if (customer) router.refresh();
@@ -131,7 +174,9 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
       } else if (result.error === "number_of_archived") {
         setConfirmReuse(true);
       } else if (result.error === "invalid" && result.fields.length > 0) {
-        for (const field of result.fields) form.setError(field, { type: "server" });
+        for (const name of result.fields) {
+          if (name !== "companyId") form.setError(name, { type: "server" });
+        }
       } else {
         setFormError(result.error);
       }
@@ -139,9 +184,16 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
   };
   const onSubmit = form.handleSubmit((values) => save(values, false));
 
+  const errorText = (name: TextField | "name", error?: { type?: string; message?: string }) =>
+    error?.type === "server" && error.message
+      ? error.message
+      : error?.message === "ba_tax_id"
+        ? t("fieldErrors.baTaxId")
+        : t(`fieldErrors.${name}`);
+
   const field = (
-    name: Exclude<keyof CustomerFormValues, "notes" | "customerNumber">,
-    options: { type?: string; inputMode?: "email" | "tel" } = {},
+    name: TextField,
+    options: { type?: string; inputMode?: "email" | "tel"; hint?: string } = {},
   ) => (
     <Controller
       key={name}
@@ -156,14 +208,13 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
             type={options.type}
             inputMode={options.inputMode}
             autoComplete="off"
+            readOnly={linked && DIRECTORY_FIELDS.includes(name)}
             aria-invalid={fieldState.invalid || undefined}
           />
           {fieldState.invalid ? (
-            <FieldError>
-              {fieldState.error?.type === "server" && fieldState.error.message
-                ? fieldState.error.message
-                : t(`fieldErrors.${name}`)}
-            </FieldError>
+            <FieldError>{errorText(name, fieldState.error)}</FieldError>
+          ) : options.hint ? (
+            <FieldDescription>{options.hint}</FieldDescription>
           ) : null}
         </Field>
       )}
@@ -217,12 +268,89 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
               </Field>
             )}
           />
-          {field("name")}
-          {field("taxId")}
-          {field("address")}
+          <Controller
+            name="name"
+            control={form.control}
+            render={({ field: input, fieldState }) => (
+              <Field data-invalid={fieldState.invalid || undefined}>
+                <FieldLabel htmlFor="customer-name">{t("name")}</FieldLabel>
+                {linked ? (
+                  <Input {...input} id="customer-name" readOnly />
+                ) : (
+                  <CompanySearchInput
+                    id="customer-name"
+                    name={input.name}
+                    value={input.value}
+                    onChange={input.onChange}
+                    onPick={(suggestion) => void pickCompany(suggestion.id)}
+                    aria-invalid={fieldState.invalid || undefined}
+                  />
+                )}
+                {fieldState.invalid ? (
+                  <FieldError>{errorText("name", fieldState.error)}</FieldError>
+                ) : linked ? null : (
+                  <FieldDescription>{t("directory.searchHint")}</FieldDescription>
+                )}
+              </Field>
+            )}
+          />
+          {linked ? (
+            <Alert>
+              <BuildingIcon />
+              <AlertTitle>{t("directory.linkedTitle")}</AlertTitle>
+              <AlertDescription>
+                <p>{t("directory.linkedDescription")}</p>
+                {canUnlink ? (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0"
+                    onClick={() => form.setValue("companyId", "")}
+                  >
+                    {t("directory.unlink")}
+                  </Button>
+                ) : null}
+              </AlertDescription>
+            </Alert>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
+            <Controller
+              name="country"
+              control={form.control}
+              render={({ field: input }) => (
+                <Field>
+                  <FieldLabel htmlFor="customer-country">{t("country")}</FieldLabel>
+                  <NativeSelect
+                    {...input}
+                    id="customer-country"
+                    className="w-full"
+                    disabled={linked}
+                  >
+                    <NativeSelectOption value="">{t("countryNone")}</NativeSelectOption>
+                    {input.value && !(COUNTRY_CODES as readonly string[]).includes(input.value) ? (
+                      <NativeSelectOption value={input.value}>{input.value}</NativeSelectOption>
+                    ) : null}
+                    {COUNTRY_CODES.map((code) => (
+                      <NativeSelectOption key={code} value={code}>
+                        {countryName(code)}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              )}
+            />
+            {field("taxId", {
+              hint: linked
+                ? undefined
+                : country === "BA"
+                  ? t("directory.taxIdHintBa")
+                  : t("directory.taxIdHint"),
+            })}
+          </div>
+          {field("address")}
+          <div className="grid gap-4 sm:grid-cols-[8rem_1fr]">
+            {field("postalCode")}
             {field("city")}
-            {field("country")}
           </div>
           {field("contactPerson")}
           <div className="grid gap-4 sm:grid-cols-2">

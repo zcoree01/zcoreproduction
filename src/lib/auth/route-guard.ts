@@ -4,7 +4,13 @@
 // notice. A user with a temporary password (set by an administrator) is kept
 // on /change-password until they choose their own.
 
-export const PUBLIC_PATHS: ReadonlySet<string> = new Set(["/login"]);
+// /support/enter redeems a one-time support token (D-026); /registracija is
+// the public company registration.
+export const PUBLIC_PATHS: ReadonlySet<string> = new Set([
+  "/login",
+  "/support/enter",
+  "/registracija",
+]);
 
 export const CHANGE_PASSWORD_PATH = "/change-password";
 

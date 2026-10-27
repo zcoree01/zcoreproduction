@@ -6,11 +6,13 @@ import {
   CogIcon,
   HardHatIcon,
   HouseIcon,
+  InboxIcon,
   LayersIcon,
   LayoutDashboardIcon,
   ListIcon,
   PackageIcon,
   SettingsIcon,
+  ShieldCheckIcon,
   UsersIcon,
   WorkflowIcon,
   type LucideIcon,
@@ -33,6 +35,9 @@ const ICONS: Record<NavIconKey, LucideIcon> = {
   order: ClipboardListIcon,
   clock: ClockIcon,
   calendar: CalendarDaysIcon,
+  building: BuildingIcon,
+  inbox: InboxIcon,
+  shield: ShieldCheckIcon,
 };
 
 export function NavIcon({ icon, className }: { icon: NavIconKey; className?: string }) {

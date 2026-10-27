@@ -14,9 +14,11 @@ import { getNavigation } from "@/lib/navigation/server";
 import { listPendingRequests } from "@/modules/attendance/absence-queries";
 import { listAttendanceAlerts } from "@/modules/attendance/queries";
 import { listPendingCloseRequests } from "@/modules/production-reporting/queries";
+import { getCurrentSupportSession } from "@/modules/support/queries";
 import { AppSidebar } from "./app-sidebar";
 import { CloseRequestBell } from "./close-request-bell";
 import { SiteHeader } from "./site-header";
+import { SupportBanner } from "./support-banner";
 
 // Management app (desktop-first). Session-dependent UI streams behind Suspense.
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -65,6 +67,10 @@ async function AppShell({ children }: { children: ReactNode }) {
       ? listPendingRequests(member.organization.id)
       : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
   ]);
+  // Zcore support account: banner with the end of the approved time.
+  const supportSession = member.isSupport
+    ? await getCurrentSupportSession(member.organization.id)
+    : null;
   const roleLabel = isSystemRoleKey(member.role.key)
     ? t(`roles.${member.role.key}`)
     : member.role.name;
@@ -91,6 +97,13 @@ async function AppShell({ children }: { children: ReactNode }) {
         }}
       />
       <SidebarInset>
+        {supportSession ? (
+          <SupportBanner
+            requestId={supportSession.id}
+            approvedUntil={supportSession.approvedUntil}
+            requesterName={supportSession.requesterName}
+          />
+        ) : null}
         <SiteHeader
           organizationName={member.organization.name}
           groups={groups}

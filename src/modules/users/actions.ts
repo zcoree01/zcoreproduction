@@ -73,7 +73,7 @@ export async function resetUserPasswordAction(userId: unknown): Promise<ResetPas
   const supabase = await createClient();
   const { data: target, error: lookupError } = await supabase
     .from("profiles")
-    .select("id, username")
+    .select("id, username, is_support")
     .eq("organization_id", organizationId)
     .eq("id", parsed.data)
     .maybeSingle();
@@ -81,7 +81,8 @@ export async function resetUserPasswordAction(userId: unknown): Promise<ResetPas
     console.error("resetUserPasswordAction lookup failed", lookupError);
     return { ok: false, error: "unexpected" };
   }
-  if (!target) return { ok: false, error: "not_found" };
+  // The Zcore support account has no password anyone may know (D-026).
+  if (!target || target.is_support) return { ok: false, error: "not_found" };
 
   const admin = createAdminClient();
   const password = generateTempPassword();

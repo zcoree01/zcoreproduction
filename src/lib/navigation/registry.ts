@@ -6,7 +6,7 @@ import type { PermissionKey } from "@/lib/auth/permissions";
 // page and action enforces access on the server.
 
 export type NavSurface = "app" | "floor";
-export type NavSectionKey = "overview" | "production" | "administration" | "work";
+export type NavSectionKey = "overview" | "production" | "administration" | "platform" | "work";
 export type NavLabelKey =
   | "dashboard"
   | "users"
@@ -29,7 +29,12 @@ export type NavLabelKey =
   | "floorAttendance"
   | "schedule"
   | "crews"
-  | "absences";
+  | "absences"
+  | "companySettings"
+  | "supportSettings"
+  | "platformOrganizations"
+  | "platformRequests"
+  | "platformSettings";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -44,7 +49,10 @@ export type NavIconKey =
   | "settings"
   | "order"
   | "clock"
-  | "calendar";
+  | "calendar"
+  | "building"
+  | "inbox"
+  | "shield";
 
 export type NavItemDef = {
   id: string;
@@ -60,7 +68,7 @@ export type NavItemDef = {
 };
 
 export const NAV_SECTIONS: Record<NavSurface, readonly NavSectionKey[]> = {
-  app: ["overview", "production", "administration"],
+  app: ["overview", "production", "administration", "platform"],
   floor: ["work"],
 };
 
@@ -183,6 +191,56 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     permission: "users.read",
     surface: "app",
     section: "administration",
+  },
+  {
+    id: "company-settings",
+    href: "/settings/company",
+    label: "companySettings",
+    icon: "building",
+    module: "core",
+    permission: "org.settings.manage",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "support-settings",
+    href: "/settings/support",
+    label: "supportSettings",
+    icon: "shield",
+    module: "core",
+    permission: "support.approve",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "platform-organizations",
+    href: "/platform",
+    label: "platformOrganizations",
+    icon: "shield",
+    module: "platform",
+    permission: "platform.manage",
+    surface: "app",
+    section: "platform",
+  },
+  {
+    id: "platform-requests",
+    href: "/platform/requests",
+    label: "platformRequests",
+    icon: "inbox",
+    module: "platform",
+    permission: "platform.manage",
+    surface: "app",
+    section: "platform",
+  },
+  {
+    id: "platform-settings",
+    href: "/platform/settings",
+    label: "platformSettings",
+    icon: "settings",
+    module: "platform",
+    permission: "platform.manage",
+    surface: "app",
+    section: "platform",
   },
   {
     id: "catalogs",

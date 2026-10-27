@@ -34,6 +34,8 @@ import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { formatDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { formatDecimal } from "@/lib/decimal";
+import { countryName } from "@/lib/countries";
+import { getCompany, getOrganizationProfile } from "@/modules/companies/queries";
 import { getCustomer } from "@/modules/customers/queries";
 import {
   ORDER_STATUS_FILTERS,
@@ -42,6 +44,7 @@ import {
 import { listCustomerOrders } from "@/modules/production-orders/queries";
 import { listProductsPage } from "@/modules/products/queries";
 import { CustomerActions } from "./customer-actions";
+import { DirectoryCard } from "./directory-card";
 
 function Item({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -117,6 +120,11 @@ async function CustomerContent({
   const orders = access.permissions.has("orders.read")
     ? await listCustomerOrders(organizationId, customer.id, filters)
     : null;
+  // Shared directory entry (public data, bank accounts); own company: no proposals.
+  const [company, ownProfile] = customer.companyId
+    ? await Promise.all([getCompany(customer.companyId), getOrganizationProfile(organizationId)])
+    : [null, null];
+  const ownCompanyId = ownProfile?.status === "owned" ? ownProfile.company.id : null;
 
   return (
     <>
@@ -151,7 +159,12 @@ async function CustomerContent({
             <Item label={t("form.taxId")}>{customer.taxId}</Item>
             <Item label={t("form.address")}>{customer.address}</Item>
             <Item label={t("form.city")}>
-              {[customer.city, customer.country].filter(Boolean).join(", ") || null}
+              {[
+                [customer.postalCode, customer.city].filter(Boolean).join(" "),
+                countryName(customer.country),
+              ]
+                .filter(Boolean)
+                .join(", ") || null}
             </Item>
             <Item label={t("form.contactPerson")}>{customer.contactPerson}</Item>
             <Item label={t("form.phone")}>{customer.phone}</Item>
@@ -172,6 +185,13 @@ async function CustomerContent({
           </dl>
         </CardContent>
       </Card>
+
+      {company ? (
+        <DirectoryCard
+          company={company}
+          canPropose={access.permissions.has("customers.manage") && company.id !== ownCompanyId}
+        />
+      ) : null}
 
       {orders ? (
         <Card>

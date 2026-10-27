@@ -9,12 +9,15 @@ export type CustomerRow = {
   name: string;
   taxId: string | null;
   address: string | null;
+  postalCode: string | null;
   city: string | null;
   country: string | null;
   contactPerson: string | null;
   phone: string | null;
   email: string | null;
   notes: string | null;
+  /** Linked entry of the shared directory (public data follow it). */
+  companyId: string | null;
   productCount: number;
   archived: boolean;
 };
@@ -22,7 +25,7 @@ export type CustomerRow = {
 export type CustomerPage = { rows: CustomerRow[]; total: number };
 
 const COLUMNS =
-  "id, customer_number, name, tax_id, address, city, country, contact_person, phone, email, notes, archived_at, products(count)";
+  "id, customer_number, name, tax_id, address, postal_code, city, country, contact_person, phone, email, notes, company_id, archived_at, products(count)";
 
 type Row = {
   id: string;
@@ -30,12 +33,14 @@ type Row = {
   name: string;
   tax_id: string | null;
   address: string | null;
+  postal_code: string | null;
   city: string | null;
   country: string | null;
   contact_person: string | null;
   phone: string | null;
   email: string | null;
   notes: string | null;
+  company_id: string | null;
   archived_at: string | null;
   products: { count: number }[];
 };
@@ -47,12 +52,14 @@ function toCustomerRow(row: Row): CustomerRow {
     name: row.name,
     taxId: row.tax_id,
     address: row.address,
+    postalCode: row.postal_code,
     city: row.city,
     country: row.country,
     contactPerson: row.contact_person,
     phone: row.phone,
     email: row.email,
     notes: row.notes,
+    companyId: row.company_id,
     productCount: row.products[0]?.count ?? 0,
     archived: row.archived_at !== null,
   };

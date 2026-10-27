@@ -105,8 +105,24 @@ describe("buildNavigation", () => {
     ]);
     expect(visible(["org.settings.manage"])).toEqual([
       ["overview", ["dashboard"]],
-      ["administration", ["production-settings"]],
+      ["administration", ["company-settings", "production-settings"]],
     ]);
+  });
+
+  it("shows the platform section only with the platform module and platform.manage", () => {
+    const withPlatform = (modules: string[], permissions: string[]) =>
+      ids(
+        buildNavigation("app", {
+          modules: new Set(["core", ...modules]),
+          permissions: new Set(permissions),
+        }),
+      ).find(([section]) => section === "platform");
+    expect(withPlatform(["platform"], ["platform.manage"])).toEqual([
+      "platform",
+      ["platform-organizations", "platform-requests", "platform-settings"],
+    ]);
+    expect(withPlatform([], ["platform.manage"])).toBeUndefined();
+    expect(withPlatform(["platform"], [])).toBeUndefined();
   });
 
   it("offers attendance to every worker on the floor and to managers in the app", () => {

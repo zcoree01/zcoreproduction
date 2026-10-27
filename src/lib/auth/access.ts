@@ -9,7 +9,7 @@ export type MemberAccess = {
 };
 
 /**
- * Enabled modules and the member's permissions, read through RLS. Used only
+ * Enabled modules (a trial counts until its active_until) and the member's permissions, read through RLS. Used only
  * to decide what to show; access itself is enforced by requirePermission/RLS.
  */
 export const getMemberAccess = cache(async (member: CurrentMember): Promise<MemberAccess> => {
@@ -19,7 +19,8 @@ export const getMemberAccess = cache(async (member: CurrentMember): Promise<Memb
       .from("org_modules")
       .select("module_key")
       .eq("organization_id", member.organization.id)
-      .eq("enabled", true),
+      .eq("enabled", true)
+      .or(`active_until.is.null,active_until.gt.${new Date().toISOString()}`),
     member.role.archived
       ? Promise.resolve({ data: [], error: null })
       : supabase

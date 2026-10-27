@@ -16,6 +16,8 @@ export type CurrentMember = {
   role: { id: string; key: string; name: string; archived: boolean };
   /** Temporary password set by an administrator: must be replaced first. */
   mustChangePassword: boolean;
+  /** The organization's Zcore support account (only during an approved session). */
+  isSupport: boolean;
   preferences: ProfilePreferences;
 };
 
@@ -38,7 +40,7 @@ export async function loadMember(
       `user_id,
        organization:organizations!memberships_organization_id_fkey (id, slug, name, timezone),
        role:roles!memberships_organization_id_role_id_fkey (id, key, name, archived_at),
-       profile:profiles!memberships_organization_id_user_id_fkey (username, full_name, must_change_password, preferences)`,
+       profile:profiles!memberships_organization_id_user_id_fkey (username, full_name, must_change_password, preferences, is_support)`,
     )
     .eq("user_id", userId)
     .is("archived_at", null)
@@ -59,6 +61,7 @@ export async function loadMember(
       archived: data.role.archived_at !== null,
     },
     mustChangePassword: data.profile.must_change_password,
+    isSupport: data.profile.is_support,
     preferences: parsePreferences(data.profile.preferences),
   };
 }

@@ -1,5 +1,6 @@
 import { FactoryIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/page-skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,6 +26,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <Suspense fallback={<PageSkeleton label={t("loading")} />}>
           <LoginCard searchParams={searchParams} />
         </Suspense>
+        <p className="text-center text-sm text-muted-foreground">
+          {t("newCompany")}{" "}
+          <Link href="/registracija" className="underline underline-offset-4">
+            {t("register")}
+          </Link>
+        </p>
       </div>
     </div>
   );
