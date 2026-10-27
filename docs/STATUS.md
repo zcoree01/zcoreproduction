@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** nearly done (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs, customers, materials, products/parts and **production orders with operations, assignments and status tracking** are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. **Phase 3 — shop-floor reporting** is implemented (start / pause / finish, good and scrap in parts, inspections by the inspector, automatic completion, closing with a shortage, downtime and tool changes, foreman's day overview). **Shifts and working time** are in progress: part A (shifts, breaks, clock-in / clock-out, forgotten clock-outs, attendance board) and part B (crews, rotations, schedule grid; absences, leave, corrections) are done; part C and C (overtime / night / holiday calculation, monthly overview, payroll export, kiosk) follow (see "Next step").
+**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** nearly done (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs, customers, materials, products/parts and **production orders with operations, assignments and status tracking** are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. **Phase 3 — shop-floor reporting** is implemented (start / pause / finish, good and scrap in parts, inspections by the inspector, automatic completion, closing with a shortage, downtime and tool changes, foreman's day overview). **Shifts and working time** are in progress: part A (shifts, breaks, clock-in / clock-out, forgotten clock-outs, attendance board) part B (crews, rotations, schedule grid; absences, leave, corrections) and part C1 (calculation, holidays, net pay, monthly overview, exports) are done; part C2 (kiosk) and C (overtime / night / holiday calculation, monthly overview, payroll export, kiosk) follow (see "Next step").
 
 ## Implemented
 
@@ -88,6 +88,10 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - RPCs `save_crew`, `set_crew_archived`, `save_rotation`, `set_rotation_archived`, `assign_rotation`, `end_rotation_assignment`, `apply_rotations` (range ≤ 62 days; manual days stay; own rotation beats the crew's), `set_schedule_entries`, `copy_schedule_week`, `schedule_range`, `my_schedule`.
   - Screens: `/attendance/schedule` "Raspored" (week / month grid, crew filter, click a day → shift or day off, "Primijeni rotacije", "Kopiraj na sljedeću sedmicu", manual days marked), `/attendance/crews` "Ekipe i rotacije" (crews with members, rotations with a day-by-day pattern, assignments with end); the worker sees "Moj raspored" (next 14 days) on `/floor/attendance`.
   - Demo: crews A (Omer Operater) and B (Benjamin Bravar) on "Sedmična izmjena I/II", a week apart, written for six weeks.
+- **Attendance part C1 — calculation, holidays, net pay, monthly overview** (`20261028090000_attendance_payroll`, D-027):
+  - Settings: overtime daily / weekly (40 h, warning above 10 h overtime a week), rounding always up (15 min), night 22–06, weekend days; premiums 30 / 30 / 30 / 50 % and the default net hourly rate (director, HR); own rates per employee valid from a date. Permissions `payroll.read`, `payroll.manage`.
+  - Holidays: platform list FBiH 2026–2028 copied per organization (Bajram dates to verify), `/settings/holidays` (dates, own holidays, non-working for nobody / everybody / selected employees, import a year).
+  - `/attendance/monthly`: per employee days, worked / regular / overtime / night / weekend / holiday hours, absence days (GO, BO, PO, NO, SD), net pay with `payroll.read`, overtime warnings, employee settings (weekend, holidays, rates); Excel and CSV export; `/attendance/specification` (print, amounts for the accountant). Worker: premiums hours and net pay so far on `/floor/attendance`.
 - **Attendance part B2 — absences, leave, corrections, role Kadrovska** (`20261027120000_attendance_absences`, `20261027130000_my_requests_upcoming`, D-024):
   - New system role `hr` (Kadrovska); permissions `absences.read`, `absences.manage`, `absences.sensitive.read`, `attendance.approve.managers`.
   - Tables `absences` (no overlap of open absences), `absence_details` (sick-leave reason and sick note; RLS: own / sensitive), `attendance_corrections`, `employee_work_info`, `employee_leave_years`; leave rules in `attendance_settings`; private bucket `absence-documents`.
@@ -175,7 +179,7 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 
 ## Next step
 
-0. **Shifts and working time, part C:** per-employee weekend days, overtime daily or weekly, rounding, night hours (22–06), weekend / holiday hours with FBiH holidays (religious ones selectable globally and later per person), monthly overview per employee, pay so far for the worker, payroll form for FBiH filled automatically + Excel / CSV export, kiosk (QR / NFC badge, name + PIN without an account). Then: shift filter on the production overview and work hours per day for priorities from the shift plan.
+0. **Shifts and working time, part C2:** kiosk (admin activates a tablet with a one-time code; QR / NFC badge or name + 4-digit PIN without an account; printable QR badges). Then: shift filter on the production overview and work hours per day for priorities from the shift plan.
 1. **Complete user management** (`/admin/users`): edit full name and role, deactivate / reactivate (archive membership, with `ConfirmDialog`). Audit entries for every action, server-side `users.manage`, RLS already allows it; unit + e2e tests. (Password reset and forced change on first login are done, D-022.)
 2. **Org settings** (`org.settings.manage`): timezone and other organization-wide settings (company data are done, D-026).
 3. **Deploy:** connect the GitHub repo to Vercel (production from `main`, preview per PR), set env vars there, wildcard subdomain `*.zcore.ba`.
@@ -183,6 +187,11 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 5. **Reports and analytics:** productivity per machine / worker / order over periods (good per hour, actual vs planned time, downtime by reason, scrap by reason), export; builds on sessions, run time, downtime and reports.
 
 ## Log
+
+### 2026-10-28 — Shifts and working time, part C1
+
+- Product owner answers: net pay only, premiums 30/30/30/50 % (editable), rounding up, weekly 40 h with a warning, holidays from a base with a manual non-working choice, own rates. Migration `20261028090000_attendance_payroll` (applied after the company-directory branch landed on main), types regenerated, D-027. New dependency `exceljs` 4.4.0. HR can open `/settings/shifts` for the pay card only.
+- Verified: `npm run check` (353; new: pay rules incl. night over DST, weekend per employee, holidays, weekly overtime, rounding up, coinciding premiums, rate changes; monthly helpers), `npm run test:db` (201; new: calculation vs premium permissions, hourly rates only for director / HR and the own worker, holidays copied with the non-working scope for all / selected, monthly data without rates for the head of production, re-import without duplicates, tenant isolation), `npm run e2e` (full run 54 passed, 3 failed: the clock-in test found two employees named "Omer Operater" (now matches employee #1), `companies.spec` (passed on rerun) and `products.spec` (leftover active E2E products pushed the new one off page 1; the cleanup now searches for it); all passed when rerun; new: monthly overview, Excel / CSV export, specification, holidays and HR setting the default rate), `npm run build`, `npm run format:check`.
 
 ### 2026-10-27 — Company registration, shared directory, platform admin, support access
 

@@ -30,6 +30,8 @@ export const PERMISSION_KEYS = [
   "attendance.approve.managers",
   "platform.manage",
   "support.approve",
+  "payroll.read",
+  "payroll.manage",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

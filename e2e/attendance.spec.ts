@@ -51,7 +51,8 @@ test("@mobile operator clocks in and out; the head of production sees the presen
   await expectPath(manager, "/dashboard");
   await manager.goto("/attendance");
   await expect(manager.getByRole("heading", { name: "Prisustvo" })).toBeVisible();
-  const row = manager.getByTestId("attendance-row").filter({ hasText: "Omer Operater" });
+  // Employee #1 (another employee may share the name).
+  const row = manager.getByTestId("attendance-row").filter({ hasText: /Omer Operater\s*#1 ·/ });
   await expect(row).toContainText("U firmi");
   await expect(row).toContainText("još u firmi");
   await managerContext.close();
@@ -229,4 +230,59 @@ test("@mobile worker asks for leave and a correction; the head of production dec
   await page.reload();
   await expect(page.getByTestId("my-requests")).toContainText("Odbijeno");
   await expect(page.getByTestId("my-requests")).toContainText("Odgovor: E2E odbijeno");
+});
+
+test("monthly overview, exports, specification, holidays and pay settings by HR", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  // Head of production: hours, but no pay.
+  await login(page, demoUser("head_of_production"), DEMO_ORG.slug);
+  await expectPath(page, "/dashboard");
+  await page.goto("/attendance/monthly?all=1");
+  await expect(page.getByRole("heading", { name: "Mjesečni pregled" })).toBeVisible();
+  await expect(page.getByTestId("monthly-table")).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Neto zarada" })).toHaveCount(0);
+  const csv = await page.request.get("/attendance/monthly/export?month=2026-10&format=csv");
+  expect(csv.status()).toBe(200);
+  expect(csv.headers()["content-type"]).toContain("text/csv");
+  expect(await csv.text()).toContain("Radnik");
+  const xlsx = await page.request.get("/attendance/monthly/export?month=2026-10&format=xlsx");
+  expect(xlsx.status()).toBe(200);
+  expect(xlsx.headers()["content-type"]).toContain("spreadsheetml");
+  await page.goto("/attendance/specification?month=2026-10");
+  await expect(page.getByText("SPECIFIKACIJA UZ ISPLATU PLAĆE")).toBeVisible();
+  await expect(page.getByText("1.10.2026. – 31.10.2026.")).toBeVisible();
+
+  await page.goto("/settings/holidays?year=2026");
+  await expect(page.getByRole("heading", { name: "Praznici" })).toBeVisible();
+  const statehood = page
+    .getByTestId("holiday-row")
+    .filter({ has: page.locator('input[value="Dan državnosti"]') });
+  await expect(statehood).toHaveCount(1);
+  await expect(
+    page.getByTestId("holiday-row").filter({ has: page.locator('input[value="Kurban-bajram"]') }),
+  ).toContainText("provjeriti datum");
+
+  // HR sets the default net hourly rate and sees net pay; the rate is restored at the end.
+  const hrContext = await browser.newContext();
+  const hr = await hrContext.newPage();
+  await login(hr, demoUser("hr"), DEMO_ORG.slug);
+  await expectPath(hr, "/dashboard");
+  await hr.goto("/settings/shifts");
+  await expect(hr.getByText("Uvećanja i satnica", { exact: true })).toBeVisible();
+  await expect(hr.getByRole("button", { name: "Dodaj smjenu" })).toHaveCount(0);
+  const rate = hr.getByLabel("Početna neto satnica (KM)");
+  const original = await rate.inputValue();
+  await rate.fill("8,5");
+  await hr.getByRole("button", { name: "Spremi uvećanja" }).click();
+  await expect(hr.getByText("Uvećanja i satnica su spremljeni.")).toBeVisible();
+  await hr.goto("/attendance/monthly?all=1");
+  await expect(hr.getByRole("columnheader", { name: "Neto zarada" })).toBeVisible();
+  await hr.goto("/settings/shifts");
+  await hr.getByLabel("Početna neto satnica (KM)").fill(original);
+  await hr.getByRole("button", { name: "Spremi uvećanja" }).click();
+  await expect(hr.getByText("Uvećanja i satnica su spremljeni.")).toBeVisible();
+  await hrContext.close();
 });

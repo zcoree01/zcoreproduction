@@ -139,8 +139,8 @@ describe("buildNavigation", () => {
     );
     expect(app).toEqual([
       ["overview", ["dashboard"]],
-      ["production", ["attendance", "schedule", "crews"]],
-      ["administration", ["shift-settings"]],
+      ["production", ["attendance", "schedule", "crews", "monthly"]],
+      ["administration", ["shift-settings", "holidays"]],
     ]);
   });
 

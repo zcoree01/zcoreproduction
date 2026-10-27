@@ -7,7 +7,7 @@ import { OPERATION_WITHOUT_CLOCK_IN, type AttendanceRules } from "./schemas";
 // Reads for the attendance screens. Access is decided by the database
 // functions (own employee / attendance.read / attendance.manage).
 
-const sessionSchema = z
+export const sessionSchema = z
   .object({
     id: z.uuid(),
     employee_id: z.uuid(),

@@ -34,7 +34,9 @@ export type NavLabelKey =
   | "supportSettings"
   | "platformOrganizations"
   | "platformRequests"
-  | "platformSettings";
+  | "platformSettings"
+  | "monthly"
+  | "holidays";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -163,6 +165,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     section: "production",
   },
   {
+    id: "monthly",
+    href: "/attendance/monthly",
+    label: "monthly",
+    icon: "dashboard",
+    module: "attendance",
+    permission: "attendance.read",
+    surface: "app",
+    section: "production",
+  },
+  {
     id: "products",
     href: "/products",
     label: "products",
@@ -287,6 +299,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     href: "/settings/shifts",
     label: "shiftSettings",
     icon: "clock",
+    module: "attendance",
+    permission: ["shifts.manage", "payroll.manage"],
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "holidays",
+    href: "/settings/holidays",
+    label: "holidays",
+    icon: "calendar",
     module: "attendance",
     permission: "shifts.manage",
     surface: "app",

@@ -187,8 +187,8 @@ test("admin builds a product with customer, material, drawing, routing and a rev
   await expect(page.getByText("Pregled stare revizije bez oznake")).toBeVisible();
   await expect(page.getByRole("button", { name: "Uredi" })).toHaveCount(0);
 
-  // Clean up: archive the product.
-  await page.goto("/products");
+  // Clean up: archive the product (searched, so leftovers of earlier runs never push it off page 1).
+  await page.goto(`/products?q=${partNumber}`);
   await page.getByRole("button", { name: `Akcije za proizvod ${partNumber}` }).click();
   await page.getByRole("menuitem", { name: "Arhiviraj" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Arhiviraj" }).click();

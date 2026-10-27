@@ -85,7 +85,9 @@
     "platformOrganizations": "Firme",
     "platformRequests": "Zahtjevi za imenik",
     "platformSettings": "Postavke platforme",
-    "supportSettings": "Zcore podrška"
+    "supportSettings": "Zcore podrška",
+    "monthly": "Mjesečni pregled",
+    "holidays": "Praznici"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -2316,6 +2318,61 @@
         "denied": "Nemate dozvolu za podešavanje.",
         "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
       }
+    },
+    "calc": {
+      "title": "Obračun rada",
+      "description": "Kako se računaju prekovremeni, noćni rad i vikend.",
+      "fields": {
+        "overtimeMode": "Prekovremeni rad",
+        "weeklyHours": "Sedmično sati",
+        "warning": "Upozorenje iznad (h prekovremenog sedmično)",
+        "step": "Zaokruživanje naviše (min)",
+        "nightStart": "Noćni rad od",
+        "nightEnd": "Noćni rad do",
+        "weekendDays": "Vikend (za radnike bez vlastitog)"
+      },
+      "modes": {
+        "daily": "Dnevno – preko trajanja smjene",
+        "weekly": "Sedmično – preko sedmičnih sati"
+      },
+      "modeHints": {
+        "daily": "Sve poslije kraja smjene (i nadoknađenog kašnjenja) je prekovremeni rad.",
+        "weekly": "Prekovremeni je sve preko sedmičnih sati (ponedjeljak–nedjelja)."
+      },
+      "weeklyHint": "Prekovremeni se zaokružuje uvijek naviše (npr. 22 min → 30 min uz korak 15). Kad sedmični prekovremeni pređe granicu, mjesečni pregled upozorava poslovođu.",
+      "weekendHint": "Radnici u turnusu mogu imati vlastite dane vikenda (Mjesečni pregled → postavke radnika).",
+      "save": "Spremi obračun",
+      "saving": "Spremam…",
+      "savedToast": "Pravila obračuna su spremljena.",
+      "errors": {
+        "invalid": "Neispravan unos.",
+        "denied": "Nemate dozvolu za ovu radnju.",
+        "not_found": "Zapis više ne postoji.",
+        "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+        "offline": "Nema veze sa serverom. Pokušajte ponovo."
+      }
+    },
+    "pay": {
+      "title": "Uvećanja i satnica",
+      "description": "Neto satnica i procenti uvećanja. Vide i mijenjaju samo direktor i kadrovska.",
+      "fields": {
+        "overtimePct": "Prekovremeni rad (%)",
+        "nightPct": "Noćni rad (%)",
+        "weekendPct": "Rad vikendom (%)",
+        "holidayPct": "Rad na praznik (%)",
+        "defaultHourlyRate": "Početna neto satnica (KM)"
+      },
+      "hint": "Uvećanja se zbrajaju kad se poklope (npr. noćni rad na praznik). Radnik može imati vlastitu satnicu od nekog datuma (Mjesečni pregled → postavke radnika).",
+      "save": "Spremi uvećanja",
+      "saving": "Spremam…",
+      "savedToast": "Uvećanja i satnica su spremljeni.",
+      "errors": {
+        "invalid": "Neispravan unos.",
+        "denied": "Nemate dozvolu za ovu radnju.",
+        "not_found": "Zapis više ne postoji.",
+        "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+        "offline": "Nema veze sa serverom. Pokušajte ponovo."
+      }
     }
   },
   "attendance": {
@@ -2355,7 +2412,12 @@
     "scheduleTitle": "Moj raspored",
     "scheduleEmpty": "Za narednih 14 dana još nema rasporeda.",
     "recentTitle": "Evidencija (zadnjih 7 dana)",
-    "recentEmpty": "Nema evidencije u zadnjih 7 dana."
+    "recentEmpty": "Nema evidencije u zadnjih 7 dana.",
+    "night": "Noćni",
+    "weekend": "Vikend",
+    "holiday": "Praznik",
+    "paySoFar": "Zarada ovog mjeseca do sada (neto)",
+    "payNote": "Bez naknada za odsustva i praznike; konačan obračun radi računovodstvo."
   },
   "attendanceBoard": {
     "title": "Prisustvo",
@@ -3208,6 +3270,183 @@
       "claimDescription": "Firma s vašim ID brojem je već postojala u imeniku (neko vas je unio kao kupca). Zcore će potvrditi da je firma vaša; do tada se vaši podaci ne prikazuju drugima.",
       "username": "Vaše korisničko ime:",
       "login": "Idi na prijavu"
+    }
+  },
+  "monthly": {
+    "title": "Mjesečni pregled",
+    "description": "Sati po radniku za mjesec: redovni, prekovremeni, noćni, vikend i praznik, odsustva i neto zarada.",
+    "deniedDescription": "Za mjesečni pregled potrebna je dozvola za prisustvo.",
+    "month": "Mjesec",
+    "show": "Prikaži",
+    "showAll": "Prikaži i radnike bez evidencije",
+    "emptyTitle": "Nema evidencije",
+    "emptyDescription": "U ovom mjesecu niko nema rad ni odsustvo.",
+    "exportExcel": "Excel",
+    "exportCsv": "CSV",
+    "specification": "Specifikacija",
+    "rulesSummary": "Prekovremeni: {mode, select, weekly {sedmično preko {weekly} h} other {dnevno}} · zaokruživanje {step} min naviše · noć {night}",
+    "columns": {
+      "number": "Br.",
+      "employee": "Radnik",
+      "days": "Dana",
+      "worked": "Ukupno h",
+      "regular": "Redovni",
+      "overtime": "Prekovremeni",
+      "night": "Noćni",
+      "weekend": "Vikend",
+      "holiday": "Praznik",
+      "absences": "Odsustva (dana)",
+      "pay": "Neto zarada",
+      "actions": "Radnje"
+    },
+    "absenceShort": {
+      "vacation": "GO",
+      "sick": "BO",
+      "paid_leave": "PO",
+      "unpaid_leave": "NO",
+      "day_off": "SD"
+    },
+    "total": "Ukupno",
+    "ownWeekend": "vlastiti vikend",
+    "overtimeWarning": "{count, plural, one {# sedmica} few {# sedmice} other {# sedmica}} s više od {hours} h prekovremenog",
+    "noRate": "dio rada bez satnice",
+    "note": "Sati su decimalni (7,5 = 7 h 30 min). Noćni, vikend i praznik su dio ukupnih sati; uvećanja se plaćaju povrh. Zarada je neto, bez naknada za odsustva i praznike. {kinds}.",
+    "employeeSettings": "Postavke: {name}",
+    "employeeSettingsDescription": "Vikend radnika, praznici koje koristi i satnica.",
+    "weekendTitle": "Vikend",
+    "ownWeekendLabel": "Vlastiti dani vikenda (turnus)",
+    "weekendHint": "Bez vlastitog vikenda vrijede dani iz postavki obračuna.",
+    "holidaysTitle": "Praznici koje radnik koristi",
+    "noSelectableHolidays": "Nema praznika „za izabrane radnike“ (Postavke → Praznici).",
+    "saveCalendar": "Spremi vikend i praznike",
+    "calendarSavedToast": "Postavke za {name} su spremljene.",
+    "ratesTitle": "Neto satnica",
+    "noOwnRate": "Nema vlastite satnice; vrijedi početna satnica firme.",
+    "rateFrom": "od {date}: {rate} KM/h",
+    "removeRate": "Ukloni satnicu",
+    "rateValidFrom": "Vrijedi od",
+    "rateValue": "KM/h",
+    "addRate": "Dodaj satnicu",
+    "rateHint": "Nova satnica vrijedi od datuma; raniji mjeseci ostaju po staroj.",
+    "rateSavedToast": "Satnica je spremljena.",
+    "close": "Zatvori",
+    "export": {
+      "sheet": "Radno vrijeme {month}",
+      "title": "Radno vrijeme {month} – {organization}",
+      "worked": "Ukupno sati",
+      "regular": "Redovni sati",
+      "overtime": "Prekovremeni sati",
+      "night": "Noćni sati",
+      "weekend": "Sati vikendom",
+      "holiday": "Sati na praznik",
+      "pay": "Neto zarada (KM)",
+      "absence": {
+        "vacation": "Godišnji (dana)",
+        "sick": "Bolovanje (dana)",
+        "paid_leave": "Plaćeno odsustvo (dana)",
+        "unpaid_leave": "Neplaćeno odsustvo (dana)",
+        "day_off": "Slobodan dan (dana)"
+      }
+    },
+    "errors": {
+      "invalid": "Neispravan unos.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "not_found": "Zapis više ne postoji.",
+      "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+      "offline": "Nema veze sa serverom. Pokušajte ponovo."
+    }
+  },
+  "specification": {
+    "title": "SPECIFIKACIJA UZ ISPLATU PLAĆE",
+    "denied": "Za specifikaciju potrebna je dozvola za prisustvo.",
+    "back": "Nazad na mjesečni pregled",
+    "print": "Štampaj",
+    "netNote": "Zcore vodi samo neto zaradu. Popunjeni su podaci o firmi, period i broj zaposlenih; iznose plaća, doprinosa i poreza upisuje računovodstvo.",
+    "part1": "Dio 1 – Podaci o poslodavcu / isplatiocu i plaćama",
+    "part2": "Dio 2 – Podaci o doprinosima iz osnovice (na teret osiguranika)",
+    "part3": "Dio 3 – Podaci o doprinosima na osnovicu (na teret poslodavca / isplatioca)",
+    "part4": "Dio 4 – Podaci o obavezama",
+    "part5": "Dio 5 – Izjava poslodavca / isplatioca",
+    "fields": {
+      "name": "1) Naziv",
+      "taxId": "2) JIB/JMB",
+      "address": "3) Adresa",
+      "municipality": "4) Općina",
+      "period": "5) Period (od/do)",
+      "activity": "6) Vrsta djelatnosti (šifra, naziv)",
+      "employees": "7) Broj zaposlenih",
+      "cashPay": "8) Plaće u novcu",
+      "inKindPay": "9) Plaće u stvarima ili uslugama",
+      "totalPay": "10) Ukupno plaće",
+      "paymentType": "13) Vrsta isplate",
+      "signature": "Potpis obveznika",
+      "date": "Datum"
+    },
+    "paymentTypeValue": "a) doprinosa i poreza",
+    "columns": {
+      "number": "R.br",
+      "description": "Opis",
+      "rate": "Stopa",
+      "amount": "Iznos"
+    },
+    "lines": {
+      "pension": "Doprinosi za penzijsko i invalidsko osiguranje",
+      "health": "Doprinosi za zdravstveno osiguranje",
+      "unemployment": "Doprinosi za osiguranje od nezaposlenosti",
+      "total2": "Ukupno doprinosi (14+15+16)",
+      "extraPension": "Dodatni doprinosi za penzijsko i invalidsko osiguranje",
+      "extraHealth": "Dodatni doprinosi za zdravstveno osiguranje",
+      "total3": "Ukupno doprinosi (18+19+20+21+22)",
+      "obligationPension": "Doprinosi za penzijsko i invalidsko osiguranje (14+18+21)",
+      "obligationHealth": "Doprinosi za zdravstveno osiguranje (15+19+22)",
+      "obligationUnemployment": "Doprinosi za osiguranje od nezaposlenosti (16+20)",
+      "incomeTax": "Porez na dohodak 716111",
+      "obligationsTotal": "Ukupno obaveze"
+    },
+    "statement": "Upoznat sam sa svim sankcijama propisanim Zakonom i drugim propisima, izjavljujem da su podaci navedeni u ovoj specifikaciji uključujući sve priloge tačni, potpuni i jasni."
+  },
+  "holidays": {
+    "title": "Praznici",
+    "description": "Praznici po godinama iz baze praznika (FBiH). Za svaki praznik izaberite da li je neradni za sve, za izabrane radnike ili nije neradni.",
+    "deniedDescription": "Za praznike potrebna je dozvola za smjene.",
+    "import": "Preuzmi praznike za {year}",
+    "importedToast": "Praznici su preuzeti iz baze praznika.",
+    "newName": "Naziv novog praznika",
+    "newDate": "Datum",
+    "add": "Dodaj praznik",
+    "save": "Spremi",
+    "archive": "Arhiviraj",
+    "restore": "Vrati",
+    "savedToast": "Praznik je spremljen.",
+    "scopeSavedToast": "Spremljeno.",
+    "emptyTitle": "Nema praznika za {year}",
+    "emptyDescription": "Preuzmite ih iz baze praznika ili dodajte vlastite.",
+    "verifyDate": "provjeriti datum",
+    "note": "Datumi bajrama se objavljuju svake godine: provjerite ih i ispravite ako treba. Rad na neradni praznik dobija uvećanje za praznik. Praznike „za izabrane“ radnicima dodjeljujete u Mjesečnom pregledu (postavke radnika).",
+    "columns": {
+      "date": "Datum",
+      "name": "Naziv",
+      "kind": "Vrsta",
+      "scope": "Neradni",
+      "actions": "Radnje"
+    },
+    "kinds": {
+      "state": "Državni",
+      "islamic": "Islamski",
+      "catholic": "Katolički",
+      "orthodox": "Pravoslavni",
+      "other": "Ostalo"
+    },
+    "scopes": {
+      "none": "Nije neradni",
+      "all": "Za sve",
+      "selected": "Za izabrane radnike"
+    },
+    "errors": {
+      "invalid": "Neispravan unos.",
+      "denied": "Nemate dozvolu za praznike.",
+      "not_found": "Praznik više ne postoji.",
+      "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
     }
   }
 }

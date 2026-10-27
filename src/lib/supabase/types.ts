@@ -398,43 +398,76 @@ export type Database = {
           absent_after_min: number
           auto_close_after_hours: number
           early_window_min: number
+          holiday_pct: number
           late_tolerance_min: number
           leave_base_days: number
           leave_extra_days: number
           leave_extra_every_years: number
           leave_max_days: number
           leave_probation_months: number
+          night_end: string
+          night_pct: number
+          night_start: string
           operation_without_clock_in: string
           organization_id: string
+          overtime_mode: string
+          overtime_pct: number
+          overtime_step_min: number
           updated_at: string
+          weekend_days: number[]
+          weekend_pct: number
+          weekly_hours: number
+          weekly_overtime_warning_hours: number
         }
         Insert: {
           absent_after_min?: number
           auto_close_after_hours?: number
           early_window_min?: number
+          holiday_pct?: number
           late_tolerance_min?: number
           leave_base_days?: number
           leave_extra_days?: number
           leave_extra_every_years?: number
           leave_max_days?: number
           leave_probation_months?: number
+          night_end?: string
+          night_pct?: number
+          night_start?: string
           operation_without_clock_in?: string
           organization_id: string
+          overtime_mode?: string
+          overtime_pct?: number
+          overtime_step_min?: number
           updated_at?: string
+          weekend_days?: number[]
+          weekend_pct?: number
+          weekly_hours?: number
+          weekly_overtime_warning_hours?: number
         }
         Update: {
           absent_after_min?: number
           auto_close_after_hours?: number
           early_window_min?: number
+          holiday_pct?: number
           late_tolerance_min?: number
           leave_base_days?: number
           leave_extra_days?: number
           leave_extra_every_years?: number
           leave_max_days?: number
           leave_probation_months?: number
+          night_end?: string
+          night_pct?: number
+          night_start?: string
           operation_without_clock_in?: string
           organization_id?: string
+          overtime_mode?: string
+          overtime_pct?: number
+          overtime_step_min?: number
           updated_at?: string
+          weekend_days?: number[]
+          weekend_pct?: number
+          weekly_hours?: number
+          weekly_overtime_warning_hours?: number
         }
         Relationships: [
           {
@@ -800,6 +833,84 @@ export type Database = {
           },
         ]
       }
+      employee_holiday_keys: {
+        Row: {
+          employee_id: string
+          key: string
+          organization_id: string
+        }
+        Insert: {
+          employee_id: string
+          key: string
+          organization_id: string
+        }
+        Update: {
+          employee_id?: string
+          key?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_holiday_keys_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_holiday_keys_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      employee_hourly_rates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          organization_id: string
+          rate: number
+          valid_from: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          organization_id: string
+          rate: number
+          valid_from: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          organization_id?: string
+          rate?: number
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_hourly_rates_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_hourly_rates_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       employee_leave_years: {
         Row: {
           carried_over_days: number
@@ -957,6 +1068,7 @@ export type Database = {
           organization_id: string
           prior_service_months: number
           updated_at: string
+          weekend_days: number[] | null
         }
         Insert: {
           employee_id: string
@@ -964,6 +1076,7 @@ export type Database = {
           organization_id: string
           prior_service_months?: number
           updated_at?: string
+          weekend_days?: number[] | null
         }
         Update: {
           employee_id?: string
@@ -971,6 +1084,7 @@ export type Database = {
           organization_id?: string
           prior_service_months?: number
           updated_at?: string
+          weekend_days?: number[] | null
         }
         Relationships: [
           {
@@ -1068,6 +1182,33 @@ export type Database = {
             referencedColumns: ["organization_id", "id"]
           },
         ]
+      }
+      holiday_templates: {
+        Row: {
+          confirmed: boolean
+          date: string
+          id: string
+          key: string
+          kind: string
+          name: string
+        }
+        Insert: {
+          confirmed?: boolean
+          date: string
+          id?: string
+          key: string
+          kind: string
+          name: string
+        }
+        Update: {
+          confirmed?: boolean
+          date?: string
+          id?: string
+          key?: string
+          kind?: string
+          name?: string
+        }
+        Relationships: []
       }
       machines: {
         Row: {
@@ -1350,6 +1491,76 @@ export type Database = {
           },
         ]
       }
+      org_holiday_rules: {
+        Row: {
+          key: string
+          organization_id: string
+          scope: string
+        }
+        Insert: {
+          key: string
+          organization_id: string
+          scope: string
+        }
+        Update: {
+          key?: string
+          organization_id?: string
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_holiday_rules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_holidays: {
+        Row: {
+          archived_at: string | null
+          confirmed: boolean
+          created_at: string
+          date: string
+          id: string
+          key: string
+          kind: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          confirmed?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          key: string
+          kind: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          confirmed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          key?: string
+          kind?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_holidays_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_modules: {
         Row: {
           active_until: string | null
@@ -1438,6 +1649,32 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_settings: {
+        Row: {
+          default_hourly_rate: number | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          default_hourly_rate?: number | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          default_hourly_rate?: number | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3671,6 +3908,15 @@ export type Database = {
         Args: { p_date: string; p_org_id: string }
         Returns: Json
       }
+      attendance_month: {
+        Args: {
+          p_from: string
+          p_org_id: string
+          p_sessions_from: string
+          p_to: string
+        }
+        Returns: Json
+      }
       attendance_shift_for: {
         Args: { p_at: string; p_employee_id: string }
         Returns: {
@@ -3881,6 +4127,10 @@ export type Database = {
         Args: { p_org_id: string; p_permission: string }
         Returns: boolean
       }
+      import_org_holidays: {
+        Args: { p_org_id: string; p_year: number }
+        Returns: number
+      }
       is_session_active: { Args: never; Returns: boolean }
       leave_overview: {
         Args: { p_org_id: string; p_year: number }
@@ -3902,6 +4152,10 @@ export type Database = {
           kind: string
           status: string
         }[]
+      }
+      my_pay_inputs: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: Json
       }
       my_requests: { Args: { p_org_id: string; p_year: number }; Returns: Json }
       my_schedule: {
@@ -4264,6 +4518,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_org_holiday: {
+        Args: {
+          p_archived: boolean
+          p_date: string
+          p_id: string
+          p_name: string
+          p_org_id: string
+        }
+        Returns: string
+      }
       save_organization_profile: {
         Args: {
           p_bank_accounts: Json
@@ -4273,6 +4537,17 @@ export type Database = {
           p_tax_id: string
         }
         Returns: string
+      }
+      save_pay_settings: {
+        Args: {
+          p_default_hourly_rate: number
+          p_holiday_pct: number
+          p_night_pct: number
+          p_org_id: string
+          p_overtime_pct: number
+          p_weekend_pct: number
+        }
+        Returns: undefined
       }
       save_product_operation: {
         Args: {
@@ -4305,6 +4580,14 @@ export type Database = {
         }
         Returns: string
       }
+      save_work_calendar: {
+        Args: {
+          p_employee_id: string
+          p_holiday_keys: string[]
+          p_weekend_days: number[]
+        }
+        Returns: undefined
+      }
       schedule_range: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
@@ -4332,6 +4615,14 @@ export type Database = {
       }
       set_current_revision: {
         Args: { p_revision_id: string }
+        Returns: undefined
+      }
+      set_holiday_scope: {
+        Args: { p_key: string; p_org_id: string; p_scope: string }
+        Returns: undefined
+      }
+      set_hourly_rate: {
+        Args: { p_employee_id: string; p_rate: number; p_valid_from: string }
         Returns: undefined
       }
       set_machine_status: {

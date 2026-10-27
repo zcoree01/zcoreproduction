@@ -12,8 +12,11 @@ import { formatDay, formatLocalDateTime } from "@/lib/format";
 import { utcToZonedLocal, zonedDate } from "@/lib/timezone";
 import { getMyRequests } from "@/modules/attendance/absence-queries";
 import { leaveBalance } from "@/modules/attendance/leave-rules";
+import { effectiveRates, formatMoney, hoursLabel } from "@/modules/attendance/month-rules";
+import { monthTotals } from "@/modules/attendance/pay-rules";
+import { getCalcSettings, getMyPayInputs } from "@/modules/attendance/payroll-queries";
 import { getMyAttendance } from "@/modules/attendance/queries";
-import { addDays, dateRange, isoWeekday } from "@/modules/attendance/schedule-rules";
+import { addDays, dateRange, isoWeekday, mondayOf } from "@/modules/attendance/schedule-rules";
 import { getMySchedule } from "@/modules/attendance/schedule-queries";
 import {
   formatMinutes,
@@ -57,11 +60,15 @@ async function FloorAttendanceContent() {
   const month = monthRange(today);
   const year = Number(today.slice(0, 4));
   const weekAgo = addDays(today, -7);
-  const [mine, planned, tSchedule, requests] = await Promise.all([
-    getMyAttendance(member.organization.id, weekAgo < month.from ? weekAgo : month.from, month.to),
+  // Weekly overtime needs the whole first week of the month.
+  const firstWeek = mondayOf(month.from);
+  const [mine, planned, tSchedule, requests, calc, payInputs] = await Promise.all([
+    getMyAttendance(member.organization.id, weekAgo < firstWeek ? weekAgo : firstWeek, month.to),
     getMySchedule(member.organization.id, today, addDays(today, 13)),
     getTranslations("schedule"),
     getMyRequests(member.organization.id, year),
+    getCalcSettings(member.organization.id),
+    getMyPayInputs(member.organization.id, firstWeek, month.to),
   ]);
   if (!mine || !requests) {
     return (
@@ -84,6 +91,18 @@ async function FloorAttendanceContent() {
     mine.sessions.filter((session) => session.workDate >= month.from),
     now,
   );
+  // Net pay so far (hours × own rate or the default, plus premiums).
+  const pay = payInputs
+    ? monthTotals(
+        mine.sessions,
+        calc,
+        { weekendDays: payInputs.weekendDays, holidays: new Set(payInputs.holidays) },
+        effectiveRates(payInputs.rates, payInputs.defaultRate),
+        month,
+        timeZone,
+        now,
+      )
+    : null;
   const shift = open?.shiftCode
     ? {
         code: open.shiftCode,
@@ -201,10 +220,28 @@ async function FloorAttendanceContent() {
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-3 gap-2">
-            <Figure label={t("regular")}>{formatMinutes(totals.regularMinutes)}</Figure>
-            <Figure label={t("overtime")}>{formatMinutes(totals.overtimeMinutes)}</Figure>
-            <Figure label={t("days")}>{totals.days}</Figure>
+            <Figure label={t("regular")}>
+              {formatMinutes(pay ? pay.regularMin : totals.regularMinutes)}
+            </Figure>
+            <Figure label={t("overtime")}>
+              {formatMinutes(pay ? pay.overtimeMin : totals.overtimeMinutes)}
+            </Figure>
+            <Figure label={t("days")}>{pay ? pay.days : totals.days}</Figure>
           </dl>
+          {pay ? (
+            <dl className="mt-2 grid grid-cols-3 gap-2" data-testid="month-premiums">
+              <Figure label={t("night")}>{hoursLabel(pay.nightMin)}</Figure>
+              <Figure label={t("weekend")}>{hoursLabel(pay.weekendMin)}</Figure>
+              <Figure label={t("holiday")}>{hoursLabel(pay.holidayMin)}</Figure>
+            </dl>
+          ) : null}
+          {pay?.pay ? (
+            <div className="mt-2 rounded-lg border p-3 text-center" data-testid="month-pay">
+              <div className="text-xs text-muted-foreground">{t("paySoFar")}</div>
+              <div className="text-3xl font-semibold tabular-nums">{formatMoney(pay.pay)} KM</div>
+              <div className="text-xs text-muted-foreground">{t("payNote")}</div>
+            </div>
+          ) : null}
           <p className="mt-3 text-xs text-muted-foreground">{t("monthNote")}</p>
         </CardContent>
       </Card>
