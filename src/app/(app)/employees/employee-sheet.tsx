@@ -3,14 +3,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Controller,
   useForm,
+  useWatch,
   type FieldPath,
   type FieldError as FormFieldError,
 } from "react-hook-form";
 import { toast } from "sonner";
+import {
+  TempCredentialsDialog,
+  type TempCredentialsInfo,
+} from "@/components/shared/temp-credentials-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,11 +46,12 @@ import {
   employeeSchema,
   SKILL_LEVELS,
   skillLevelSchema,
-  type EmployeeActionResult,
   type EmployeeFormValues,
   type EmployeeInput,
+  type EmployeeSaveResult,
 } from "@/modules/employees/schemas";
 import type { MachineOption } from "@/modules/machines/queries";
+import { usernameCandidates } from "@/modules/users/username-suggest";
 
 export type EmployeeFormOptions = {
   departments: CatalogOption[];
@@ -53,9 +59,13 @@ export type EmployeeFormOptions = {
   skills: CatalogOption[];
   machines: MachineOption[];
   users: LinkableUser[];
+  /** Roles for a new account; empty without users.manage. */
+  roles: { id: string; key: string; label: string }[];
+  canCreateAccounts: boolean;
+  organizationName: string;
 };
 
-type FormError = Extract<EmployeeActionResult, { ok: false }>["error"];
+type FormError = Extract<EmployeeSaveResult, { ok: false }>["error"];
 type Option = { id: string; label: string; archived?: boolean };
 
 const EMPTY: EmployeeFormValues = {
@@ -68,6 +78,7 @@ const EMPTY: EmployeeFormValues = {
   status: "active",
   skills: [],
   machineIds: [],
+  newAccountRoleId: "",
 };
 
 function toFormValues(employee: EmployeeRow): EmployeeFormValues {
@@ -81,6 +92,7 @@ function toFormValues(employee: EmployeeRow): EmployeeFormValues {
     status: employee.status,
     skills: employee.skills.map((skill) => ({ skillId: skill.skillId, level: skill.level })),
     machineIds: employee.machines.map((machine) => machine.machineId),
+    newAccountRoleId: "",
   };
 }
 
@@ -124,20 +136,28 @@ export function EmployeeSheet({
   employee: EmployeeRow | null;
   options: EmployeeFormOptions;
 }) {
+  // Outside the sheet: shown after it closes.
+  const [credentials, setCredentials] = useState<TempCredentialsInfo | null>(null);
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col gap-0 sm:max-w-lg">
-        {/* Keyed so the form resets to the selected employee every time it opens. */}
-        {open ? (
-          <EmployeeForm
-            key={employee?.id ?? "new"}
-            employee={employee}
-            options={options}
-            onDone={() => onOpenChange(false)}
-          />
-        ) : null}
-      </SheetContent>
-    </Sheet>
+    <>
+      <TempCredentialsDialog credentials={credentials} onClose={() => setCredentials(null)} />
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent className="flex flex-col gap-0 sm:max-w-lg">
+          {/* Keyed so the form resets to the selected employee every time it opens. */}
+          {open ? (
+            <EmployeeForm
+              key={employee?.id ?? "new"}
+              employee={employee}
+              options={options}
+              onDone={() => onOpenChange(false)}
+              onAccountCreated={(account) =>
+                setCredentials({ ...account, organizationName: options.organizationName })
+              }
+            />
+          ) : null}
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 
@@ -145,10 +165,12 @@ function EmployeeForm({
   employee,
   options,
   onDone,
+  onAccountCreated,
 }: {
   employee: EmployeeRow | null;
   options: EmployeeFormOptions;
   onDone: () => void;
+  onAccountCreated: (account: { username: string; password: string; fullName: string }) => void;
 }) {
   const t = useTranslations("employees.form");
   const tStatus = useTranslations("employeeStatus");
@@ -195,6 +217,8 @@ function EmployeeForm({
       if (result.ok) {
         const name = `${values.firstName} ${values.lastName}`;
         toast.success(employee ? t("updatedToast", { name }) : t("createdToast", { name }));
+        if (result.account) onAccountCreated({ ...result.account, fullName: name });
+        if (result.accountFailed) toast.error(t("accountFailed"));
         onDone();
         return;
       }
@@ -209,6 +233,20 @@ function EmployeeForm({
       }
     });
   });
+
+  // New account: only while no account is linked or chosen.
+  const [userId, firstName, lastName, newAccountRoleId] = useWatch({
+    control: form.control,
+    name: ["userId", "firstName", "lastName", "newAccountRoleId"],
+  });
+  const canOfferAccount = options.canCreateAccounts && !employee?.user && !userId;
+  const usernamePreview = usernameCandidates(firstName, lastName)[0];
+  useEffect(() => {
+    // Choosing an existing account drops a pending new one.
+    if (!canOfferAccount && newAccountRoleId) form.setValue("newAccountRoleId", "");
+  }, [canOfferAccount, newAccountRoleId, form]);
+  const defaultRoleId =
+    options.roles.find((role) => role.key === "operator")?.id ?? options.roles[0]?.id ?? "";
 
   const errorFor = (name: FieldPath<EmployeeFormValues>, error: FormFieldError | undefined) =>
     error?.type === "server" && error.message
@@ -311,6 +349,53 @@ function EmployeeForm({
           {selectField("departmentId", t("department"), t("departmentNone"), departments)}
           {selectField("jobTitleId", t("jobTitle"), t("jobTitleNone"), jobTitles)}
           {selectField("userId", t("user"), t("userNone"), users, t("userHint"))}
+          {canOfferAccount ? (
+            <FieldSet className="rounded-lg border p-3">
+              <Field orientation="horizontal">
+                <Checkbox
+                  id="employee-new-account"
+                  checked={Boolean(newAccountRoleId)}
+                  onCheckedChange={(checked) =>
+                    form.setValue("newAccountRoleId", checked ? defaultRoleId : "")
+                  }
+                />
+                <FieldLabel htmlFor="employee-new-account" className="font-normal">
+                  {t("newAccount")}
+                </FieldLabel>
+              </Field>
+              {newAccountRoleId ? (
+                <Controller
+                  name="newAccountRoleId"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid || undefined}>
+                      <FieldLabel htmlFor="employee-newAccountRoleId">
+                        {t("newAccountRole")}
+                      </FieldLabel>
+                      <NativeSelect
+                        {...field}
+                        value={field.value ?? ""}
+                        id="employee-newAccountRoleId"
+                        className="w-full"
+                        aria-invalid={fieldState.invalid || undefined}
+                      >
+                        {options.roles.map((role) => (
+                          <NativeSelectOption key={role.id} value={role.id}>
+                            {role.label}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                      <FieldDescription>
+                        {usernamePreview && (firstName.trim() || lastName.trim())
+                          ? t("newAccountHint", { username: usernamePreview })
+                          : t("newAccountHintEmpty")}
+                      </FieldDescription>
+                    </Field>
+                  )}
+                />
+              ) : null}
+            </FieldSet>
+          ) : null}
           <Controller
             name="status"
             control={form.control}

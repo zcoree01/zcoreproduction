@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { homePathFor } from "@/lib/auth/home";
+import { CHANGE_PASSWORD_PATH } from "@/lib/auth/route-guard";
 import { loadMember } from "@/lib/auth/session";
 import { toAuthEmail } from "@/lib/auth/username";
 import { createClient } from "@/lib/supabase/server";
@@ -40,7 +41,8 @@ export async function signInAction(input: unknown): Promise<SignInResult> {
   const others = await supabase.auth.signOut({ scope: "others" });
   if (others.error) console.error("revoking other sessions failed", others.error);
 
-  redirect(homePathFor(member.role.key));
+  // A temporary password must be replaced first (D-022).
+  redirect(member.mustChangePassword ? CHANGE_PASSWORD_PATH : homePathFor(member.role.key));
 }
 
 // Signs out this device only (other sessions cannot exist, see signInAction).

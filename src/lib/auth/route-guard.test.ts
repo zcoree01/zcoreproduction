@@ -30,4 +30,37 @@ describe("decideRoute", () => {
       });
     }
   });
+
+  it("keeps a user with a temporary password on /change-password", () => {
+    for (const path of ["/floor", "/login", "/machines", "/"]) {
+      expect(
+        decideRoute({ path, signedInHere: true, sessionActive: true, mustChangePassword: true }),
+      ).toEqual({ action: "redirect", to: "/change-password" });
+    }
+    expect(
+      decideRoute({
+        path: "/change-password",
+        signedInHere: true,
+        sessionActive: true,
+        mustChangePassword: true,
+      }),
+    ).toEqual({ action: "next" });
+  });
+
+  it("signs out a replaced session even with a temporary password", () => {
+    expect(
+      decideRoute({
+        path: "/floor",
+        signedInHere: true,
+        sessionActive: false,
+        mustChangePassword: true,
+      }),
+    ).toEqual({ action: "sign_out", to: "/login" });
+  });
+
+  it("sends anonymous visitors of /change-password to /login", () => {
+    expect(
+      decideRoute({ path: "/change-password", signedInHere: false, sessionActive: false }),
+    ).toEqual({ action: "redirect", to: "/login" });
+  });
 });

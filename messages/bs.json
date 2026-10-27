@@ -9,7 +9,8 @@
     "edit": "Uredi",
     "archive": "Arhiviraj",
     "restore": "Vrati iz arhive",
-    "actions": "Akcije"
+    "actions": "Akcije",
+    "myProfile": "Moj profil"
   },
   "metadata": {
     "title": "Zcore Production",
@@ -42,7 +43,8 @@
       },
       "usernameRequired": "Unesite korisničko ime.",
       "passwordRequired": "Unesite lozinku.",
-      "sessionReplaced": "Odjavljeni ste jer se ovaj korisnik prijavio na drugom uređaju. Korisnik može biti prijavljen samo na jednom uređaju."
+      "sessionReplaced": "Odjavljeni ste jer se ovaj korisnik prijavio na drugom uređaju. Korisnik može biti prijavljen samo na jednom uređaju.",
+      "forgotPassword": "Zaboravili ste lozinku? Obratite se administratoru da vam postavi novu privremenu lozinku."
     }
   },
   "nav": {
@@ -103,26 +105,26 @@
       "username": "Korisničko ime",
       "fullName": "Ime i prezime",
       "role": "Uloga",
-      "status": "Status"
+      "status": "Status",
+      "actions": "Akcije"
     },
     "status": {
       "active": "Aktivan",
-      "inactive": "Neaktivan"
+      "inactive": "Neaktivan",
+      "tempPassword": "Privremena lozinka"
     },
     "deniedDescription": "Za pregled korisnika potrebna je dozvola za korisnike.",
     "form": {
       "title": "Dodaj korisnika",
-      "description": "Postavite korisničko ime i početnu lozinku i predajte ih radniku.",
+      "description": "Lozinka se generiše automatski. Korisnik je mijenja pri prvoj prijavi.",
       "username": "Korisničko ime",
-      "usernameHint": "3–32 znaka: mala slova, brojevi, tačka, crtica.",
+      "usernameHint": "Ostavite prazno za automatsko (ime i prvo slovo prezimena, npr. mirza.z). 3–32 znaka: mala slova, brojevi, tačka, crtica.",
       "fullName": "Ime i prezime",
       "role": "Uloga",
       "rolePlaceholder": "Odaberite ulogu",
-      "password": "Početna lozinka",
-      "passwordHint": "Najmanje 8 znakova.",
       "submit": "Kreiraj korisnika",
       "submitting": "Kreiranje…",
-      "success": "Korisnik {username} je dodan. Predajte mu korisničko ime i početnu lozinku.",
+      "success": "Korisnik {username} je dodan.",
       "errors": {
         "invalid": "Provjerite označena polja.",
         "denied": "Nemate dozvolu za dodavanje korisnika.",
@@ -133,10 +135,10 @@
       "fieldErrors": {
         "username": "Neispravno korisničko ime.",
         "fullName": "Unesite ime i prezime.",
-        "roleId": "Odaberite ulogu.",
-        "password": "Lozinka mora imati najmanje 8 znakova."
+        "roleId": "Odaberite ulogu."
       },
-      "open": "Dodaj korisnika"
+      "open": "Dodaj korisnika",
+      "usernamePlaceholder": "automatski: {username}"
     },
     "searchPlaceholder": "Pretraži korisnike…",
     "filters": {
@@ -144,7 +146,20 @@
       "allStatuses": "Svi statusi"
     },
     "noResultsTitle": "Nema rezultata",
-    "noResultsDescription": "Promijenite pretragu ili filtere."
+    "noResultsDescription": "Promijenite pretragu ili filtere.",
+    "rowActions": {
+      "menu": "Akcije za {username}",
+      "resetPassword": "Resetuj lozinku"
+    },
+    "resetTitle": "Resetovati lozinku za {username}?",
+    "resetDescription": "Generisaće se nova privremena lozinka, a korisnik će biti odjavljen sa svih uređaja. Pri sljedećoj prijavi mora postaviti svoju lozinku.",
+    "resetErrors": {
+      "invalid": "Korisnik nije ispravno odabran.",
+      "denied": "Samo administrator može resetovati lozinku.",
+      "not_found": "Korisnik nije pronađen.",
+      "self": "Svoju lozinku mijenjate u svom profilu.",
+      "unexpected": "Lozinka nije resetovana zbog greške. Pokušajte ponovo."
+    }
   },
   "errors": {
     "title": "Nešto nije u redu",
@@ -366,8 +381,14 @@
         "userId": "Odaberite korisnički račun iz liste.",
         "status": "Odaberite status.",
         "skills": "Provjerite vještine.",
-        "machineIds": "Provjerite mašine."
-      }
+        "machineIds": "Provjerite mašine.",
+        "newAccountRoleId": "Odaberite ulogu ili izaberite postojeći nalog."
+      },
+      "newAccount": "Napravi korisnički nalog",
+      "newAccountRole": "Uloga",
+      "newAccountHint": "Korisničko ime: {username} (ili sljedeće slobodno). Lozinka se generiše i prikazuje nakon spremanja.",
+      "newAccountHintEmpty": "Korisničko ime se pravi iz imena i prezimena. Lozinka se generiše i prikazuje nakon spremanja.",
+      "accountFailed": "Radnik je spremljen, ali korisnički nalog nije napravljen. Pokušajte ponovo iz uređivanja radnika."
     }
   },
   "catalogs": {
@@ -2321,6 +2342,95 @@
       "denied": "Nemate dozvolu za ovu radnju.",
       "not_found": "Upozorenje više ne postoji.",
       "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
+    }
+  },
+  "credentials": {
+    "title": "Pristupni podaci",
+    "description": "Predajte ove podatke korisniku. Pri prvoj prijavi postaviće svoju lozinku.",
+    "username": "Korisničko ime",
+    "password": "Privremena lozinka",
+    "copy": "Kopiraj",
+    "copied": "Kopirano",
+    "copyFailed": "Kopiranje nije uspjelo. Prepišite podatke ručno.",
+    "print": "Printaj karticu",
+    "printBlocked": "Preglednik je blokirao prozor za printanje. Dozvolite iskačuće prozore.",
+    "cardTitle": "Pristupni podaci",
+    "cardNote": "Pri prvoj prijavi postavite svoju lozinku. Ovu karticu nakon toga uništite.",
+    "onceNote": "Lozinka se prikazuje samo sada. Ako se izgubi, administrator je može ponovo resetovati.",
+    "done": "Gotovo"
+  },
+  "passwordForm": {
+    "show": "Prikaži lozinku",
+    "hide": "Sakrij lozinku",
+    "currentPassword": "Trenutna lozinka",
+    "newPassword": "Nova lozinka",
+    "confirmPassword": "Ponovite novu lozinku",
+    "newPasswordHint": "Najmanje 8 znakova. Duža lozinka je sigurnija.",
+    "submit": "Promijeni lozinku",
+    "submitInitial": "Spremi i nastavi",
+    "submitting": "Spremanje…",
+    "success": "Lozinka je promijenjena.",
+    "strength": {
+      "0": "Prekratka",
+      "1": "Slaba",
+      "2": "Dobra",
+      "3": "Jaka"
+    },
+    "errors": {
+      "invalid": "Provjerite označena polja.",
+      "denied": "Ova promjena lozinke nije dozvoljena.",
+      "wrong_current": "Trenutna lozinka nije tačna.",
+      "same_password": "Nova lozinka mora biti drugačija od stare.",
+      "weak_password": "Lozinka je preslaba. Izaberite dužu lozinku.",
+      "rate_limited": "Previše pokušaja. Pričekajte nekoliko minuta pa pokušajte ponovo.",
+      "unexpected": "Lozinka nije promijenjena zbog greške. Pokušajte ponovo."
+    },
+    "fieldErrors": {
+      "currentPassword": "Unesite trenutnu lozinku.",
+      "newPassword": "Lozinka mora imati najmanje 8 znakova.",
+      "confirmPassword": "Lozinke se ne podudaraju.",
+      "notUsername": "Lozinka ne smije biti isto što i korisničko ime.",
+      "sameAsCurrent": "Nova lozinka mora biti drugačija od trenutne."
+    }
+  },
+  "changePassword": {
+    "title": "Postavite svoju lozinku",
+    "description": "{name}, prijavili ste se privremenom lozinkom. Prije nastavka izaberite svoju lozinku."
+  },
+  "profile": {
+    "title": "Moj profil",
+    "description": "Vaši podaci, lozinka i izgled aplikacije.",
+    "details": {
+      "title": "Moji podaci",
+      "description": "Ime i ulogu mijenja administrator.",
+      "fullName": "Ime i prezime",
+      "username": "Korisničko ime",
+      "role": "Uloga",
+      "organization": "Firma",
+      "employeeNumber": "Broj radnika",
+      "department": "Odjel",
+      "jobTitle": "Radno mjesto",
+      "machines": "Mašine"
+    },
+    "password": {
+      "title": "Promjena lozinke",
+      "description": "Za promjenu je potrebna trenutna lozinka."
+    },
+    "appearance": {
+      "title": "Izgled",
+      "theme": "Tema",
+      "themeHint": "Tema se pamti na ovom uređaju.",
+      "textSize": "Veličina teksta",
+      "textSizeHint": "Velika slova su lakša za čitanje na telefonu u pogonu. Pamti se na vašem profilu.",
+      "textSizes": {
+        "normal": "Normalna",
+        "large": "Velika"
+      },
+      "saveFailed": "Postavka nije spremljena. Pokušajte ponovo."
+    },
+    "session": {
+      "title": "Prijava",
+      "description": "Prijavljeni ste na ovom uređaju. Korisnik može biti prijavljen samo na jednom uređaju."
     }
   }
 }

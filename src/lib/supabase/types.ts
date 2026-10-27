@@ -2202,7 +2202,9 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          must_change_password: boolean
           organization_id: string
+          preferences: Json
           updated_at: string
           username: string
         }
@@ -2211,7 +2213,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          must_change_password?: boolean
           organization_id: string
+          preferences?: Json
           updated_at?: string
           username: string
         }
@@ -2220,7 +2224,9 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          must_change_password?: boolean
           organization_id?: string
+          preferences?: Json
           updated_at?: string
           username?: string
         }
@@ -2526,6 +2532,7 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           is_active: boolean | null
+          must_change_password: boolean | null
           organization_id: string | null
           role_id: string | null
           role_key: string | null
@@ -3088,6 +3095,7 @@ export type Database = {
         Args: { p_alert_id: string; p_note?: string }
         Returns: undefined
       }
+      revoke_user_sessions: { Args: { p_user_id: string }; Returns: undefined }
       save_employee: {
         Args: {
           p_department_id?: string
@@ -3124,6 +3132,13 @@ export type Database = {
           p_starts_at: string
         }
         Returns: string
+      }
+      session_status: {
+        Args: never
+        Returns: {
+          active: boolean
+          must_change_password: boolean
+        }[]
       }
       set_current_revision: {
         Args: { p_revision_id: string }

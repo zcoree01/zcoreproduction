@@ -9,6 +9,8 @@ export type MemberRow = {
   fullName: string | null;
   role: { key: string; name: string };
   active: boolean;
+  /** Still has a temporary password set by an administrator. */
+  mustChangePassword: boolean;
   createdAt: string;
 };
 
@@ -25,9 +27,12 @@ export async function listMembersPage(
   const filtered = () => {
     let query = supabase
       .from("member_directory")
-      .select("user_id, username, full_name, role_key, role_name, is_active, created_at", {
-        count: "exact",
-      })
+      .select(
+        "user_id, username, full_name, role_key, role_name, is_active, must_change_password, created_at",
+        {
+          count: "exact",
+        },
+      )
       .eq("organization_id", organizationId);
     if (params.status) query = query.eq("is_active", params.status === "active");
     if (params.role) query = query.eq("role_key", params.role);
@@ -59,6 +64,7 @@ export async function listMembersPage(
               fullName: row.full_name,
               role: { key: row.role_key, name: row.role_name },
               active: row.is_active === true,
+              mustChangePassword: row.must_change_password === true,
               createdAt: row.created_at,
             },
           ]
