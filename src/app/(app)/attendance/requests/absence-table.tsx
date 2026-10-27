@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDay } from "@/lib/format";
+import { formatPeriod } from "@/lib/format";
 import {
   absenceDocumentUrlAction,
   cancelAbsenceAction,
@@ -103,8 +103,7 @@ export function AbsenceTable({
               <TableCell className="font-medium">{absence.employeeName}</TableCell>
               <TableCell>{t(`kinds.${absence.kind}`)}</TableCell>
               <TableCell className="tabular-nums">
-                {formatDay(absence.startDate)}
-                {absence.endDate !== absence.startDate ? ` – ${formatDay(absence.endDate)}` : ""}
+                {formatPeriod(absence.startDate, absence.endDate, t("openEnded"))}
               </TableCell>
               <TableCell className="text-right tabular-nums">{absence.workingDays}</TableCell>
               <TableCell>
@@ -275,12 +274,14 @@ function EntryForm({
                 value={startDate}
                 onChange={(event) => {
                   setStartDate(event.target.value);
-                  if (event.target.value > endDate) setEndDate(event.target.value);
+                  if (endDate && event.target.value > endDate) setEndDate(event.target.value);
                 }}
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="entry-end">{t("fields.endDate")}</FieldLabel>
+              <FieldLabel htmlFor="entry-end">
+                {kind === "sick" ? t("fields.endDateOptional") : t("fields.endDate")}
+              </FieldLabel>
               <Input
                 id="entry-end"
                 type="date"

@@ -62,12 +62,18 @@ export type MyAbsence = {
   id: string;
   kind: AbsenceKind;
   startDate: string;
-  endDate: string;
+  /** null = open sick leave. */
+  endDate: string | null;
   status: RequestStatus;
   note: string | null;
   decisionNote: string | null;
   workingDays: number;
   hasDocument: boolean;
+  interruption: {
+    status: "requested" | "approved" | "rejected";
+    lastDay: string;
+    decisionNote: string | null;
+  } | null;
 };
 
 export type MyCorrection = {
@@ -92,12 +98,15 @@ const myRequestsSchema = z.object({
       id: z.uuid(),
       kind,
       start_date: z.string(),
-      end_date: z.string(),
+      end_date: z.string().nullable(),
       status,
       note: z.string().nullable(),
       decision_note: z.string().nullable(),
       working_days: z.number().int(),
       has_document: z.boolean(),
+      interruption_status: z.enum(["requested", "approved", "rejected"]).nullable().optional(),
+      interruption_end_date: z.string().nullable().optional(),
+      interruption_decision_note: z.string().nullable().optional(),
     }),
   ),
   corrections: z.array(
@@ -138,6 +147,14 @@ export async function getMyRequests(
       decisionNote: item.decision_note,
       workingDays: item.working_days,
       hasDocument: item.has_document,
+      interruption:
+        item.interruption_status && item.interruption_end_date
+          ? {
+              status: item.interruption_status,
+              lastDay: item.interruption_end_date,
+              decisionNote: item.interruption_decision_note ?? null,
+            }
+          : null,
     })),
     corrections: row.corrections.map((item) => ({
       id: item.id,
@@ -158,7 +175,7 @@ export type PendingAbsence = {
   employeeName: string;
   kind: AbsenceKind;
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   workingDays: number;
   note: string | null;
   requestedAt: string;
@@ -178,7 +195,23 @@ export type PendingCorrection = {
   requestedAt: string;
 };
 
-export type PendingRequests = { absences: PendingAbsence[]; corrections: PendingCorrection[] };
+export type PendingInterruption = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  kind: AbsenceKind;
+  startDate: string;
+  endDate: string;
+  lastDay: string;
+  note: string | null;
+  requestedAt: string;
+};
+
+export type PendingRequests = {
+  absences: PendingAbsence[];
+  interruptions: PendingInterruption[];
+  corrections: PendingCorrection[];
+};
 
 const pendingSchema = z.object({
   absences: z.array(
@@ -188,13 +221,28 @@ const pendingSchema = z.object({
       employee_name: z.string(),
       kind,
       start_date: z.string(),
-      end_date: z.string(),
+      end_date: z.string().nullable(),
       working_days: z.number().int(),
       note: z.string().nullable(),
       requested_at: z.string(),
       has_document: z.boolean(),
     }),
   ),
+  interruptions: z
+    .array(
+      z.object({
+        id: z.uuid(),
+        employee_id: z.uuid(),
+        employee_name: z.string(),
+        kind,
+        start_date: z.string(),
+        end_date: z.string(),
+        last_day: z.string(),
+        note: z.string().nullable(),
+        requested_at: z.string(),
+      }),
+    )
+    .default([]),
   corrections: z.array(
     z.object({
       id: z.uuid(),
@@ -230,6 +278,17 @@ export async function listPendingRequests(organizationId: string): Promise<Pendi
       requestedAt: item.requested_at,
       hasDocument: item.has_document,
     })),
+    interruptions: row.interruptions.map((item) => ({
+      id: item.id,
+      employeeId: item.employee_id,
+      employeeName: item.employee_name,
+      kind: item.kind,
+      startDate: item.start_date,
+      endDate: item.end_date,
+      lastDay: item.last_day,
+      note: item.note,
+      requestedAt: item.requested_at,
+    })),
     corrections: row.corrections.map((item) => ({
       id: item.id,
       employeeId: item.employee_id,
@@ -251,7 +310,8 @@ export type AbsenceRow = {
   employeeName: string;
   kind: AbsenceKind;
   startDate: string;
-  endDate: string;
+  /** null = open sick leave. */
+  endDate: string | null;
   status: RequestStatus;
   workingDays: number;
   note: string | null;
@@ -268,7 +328,7 @@ const rangeSchema = z.array(
     employee_name: z.string(),
     kind,
     start_date: z.string(),
-    end_date: z.string(),
+    end_date: z.string().nullable(),
     status,
     working_days: z.number().int(),
     note: z.string().nullable(),

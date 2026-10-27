@@ -63,7 +63,7 @@ async function AppShell({ children }: { children: ReactNode }) {
     attendanceManager ? listAttendanceAlerts(member.organization.id) : Promise.resolve([]),
     decider
       ? listPendingRequests(member.organization.id)
-      : Promise.resolve({ absences: [], corrections: [] }),
+      : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
   ]);
   const roleLabel = isSystemRoleKey(member.role.key)
     ? t(`roles.${member.role.key}`)

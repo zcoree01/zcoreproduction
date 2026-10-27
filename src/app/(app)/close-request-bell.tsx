@@ -64,7 +64,11 @@ export function CloseRequestBell({
       approvalList: PendingRequests,
     ) => {
       const known = seen.current ?? new Set<string>();
-      for (const item of [...approvalList.absences, ...approvalList.corrections]) {
+      for (const item of [
+        ...approvalList.absences,
+        ...approvalList.interruptions,
+        ...approvalList.corrections,
+      ]) {
         if (known.has(item.id)) continue;
         toast.info(t("approvalToast", { name: item.employeeName }), {
           id: item.id,
@@ -92,6 +96,7 @@ export function CloseRequestBell({
         ...list.map((request) => request.requestId),
         ...alertList.map((alert) => alert.id),
         ...approvalList.absences.map((item) => item.id),
+        ...approvalList.interruptions.map((item) => item.id),
         ...approvalList.corrections.map((item) => item.id),
       ]);
     };
@@ -100,7 +105,9 @@ export function CloseRequestBell({
         const [list, alertList, approvalList] = await Promise.all([
           closes ? pendingCloseRequestsAction() : Promise.resolve([]),
           attendance ? pendingAttendanceAlertsAction() : Promise.resolve([]),
-          approver ? pendingRequestsAction() : Promise.resolve({ absences: [], corrections: [] }),
+          approver
+            ? pendingRequestsAction()
+            : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
         ]);
         if (!active) return;
         setRequests(list);
@@ -127,6 +134,11 @@ export function CloseRequestBell({
       id: item.id,
       name: item.employeeName,
       label: t(`approvalKinds.${item.kind}`),
+    })),
+    ...approvals.interruptions.map((item) => ({
+      id: item.id,
+      name: item.employeeName,
+      label: t("approvalKinds.interruption"),
     })),
     ...approvals.corrections.map((item) => ({
       id: item.id,

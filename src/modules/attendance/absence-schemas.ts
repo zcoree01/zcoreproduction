@@ -14,7 +14,11 @@ const isoDate = z.iso.date();
 /** <input type="datetime-local"> value in the organization's time zone. */
 const localDateTime = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
 
-const period = <T extends { startDate: string; endDate: string }>(value: T) => {
+/** A dated period of at most a year; only sick leave may stay open (no end). */
+const period = <T extends { kind: AbsenceKind; startDate: string; endDate: string | null }>(
+  value: T,
+) => {
+  if (value.endDate === null) return value.kind === "sick";
   const days = daysBetween(value.startDate, value.endDate);
   return days >= 0 && days <= 366;
 };
@@ -22,7 +26,8 @@ const period = <T extends { startDate: string; endDate: string }>(value: T) => {
 const absenceFields = {
   kind: z.enum(ABSENCE_KINDS),
   startDate: isoDate,
-  endDate: isoDate,
+  /** "" = open (sick leave until it is closed). */
+  endDate: z.union([z.literal(""), isoDate]).transform((value) => value || null),
   /** Visible to managers. */
   note: optionalText(500),
   /** Sensitive (sick leave): only the employee, the director and HR see it. */
@@ -137,7 +142,15 @@ export const absenceDocumentSchema = z.object({
 });
 
 /** Business-rule errors raised by the functions with a fixed message. */
+export const closeSickSchema = z.object({ lastDay: isoDate });
+
+export const interruptionSchema = z.object({ lastDay: isoDate, note: optionalText(500) });
+
 export const REQUEST_ERRORS = [
+  "sick_leave_open",
+  "sick_leave_not_open",
+  "absence_not_running",
+  "interruption_pending",
   "not_an_employee",
   "absence_overlaps",
   "invalid_period",

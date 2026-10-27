@@ -86,6 +86,7 @@ async function RequestsContent({ searchParams }: { searchParams: Promise<SearchP
         <h2 className="text-lg font-semibold">{t("pendingTitle")}</h2>
         <PendingList
           absences={pending.absences}
+          interruptions={pending.interruptions}
           corrections={pending.corrections.map((correction) => ({
             ...correction,
             proposed: `${local(correction.clockInAt)} – ${local(correction.clockOutAt)}`,

@@ -15,9 +15,11 @@ import {
   absenceDocumentSchema,
   absenceEntrySchema,
   absenceRequestSchema,
+  closeSickSchema,
   correctionEntrySchema,
   correctionRequestSchema,
   decisionSchema,
+  interruptionSchema,
   leaveDataSchema,
   leaveRulesSchema,
   REQUEST_ERRORS,
@@ -76,7 +78,7 @@ export async function requestAbsenceAction(input: unknown): Promise<RequestActio
     p_org_id: member.organization.id,
     p_kind: parsed.data.kind,
     p_start: parsed.data.startDate,
-    p_end: parsed.data.endDate,
+    p_end: nullableParam(parsed.data.endDate),
     p_note: nullableParam(parsed.data.note),
     p_reason: nullableParam(parsed.data.kind === "sick" ? parsed.data.reason : null),
     p_idempotency_key: parsed.data.idempotencyKey,
@@ -125,6 +127,45 @@ export async function cancelMyCorrectionAction(
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_correction", { p_correction_id: parsed.data });
   if (error) return mapError(error, "cancel correction");
+  revalidateRequests();
+  return { ok: true };
+}
+
+/** The worker closes their open sick leave with its last day. */
+export async function closeSickLeaveAction(
+  absenceId: unknown,
+  input: unknown,
+): Promise<RequestActionResult> {
+  await requireMember();
+  const parsedId = id.safeParse(absenceId);
+  const parsed = closeSickSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) return fail("invalid");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("close_sick_leave", {
+    p_absence_id: parsedId.data,
+    p_last_day: parsed.data.lastDay,
+  });
+  if (error) return mapError(error, "close sick leave");
+  revalidateRequests();
+  return { ok: true };
+}
+
+/** The worker asks to end a running absence early (the head of production decides). */
+export async function requestInterruptionAction(
+  absenceId: unknown,
+  input: unknown,
+): Promise<RequestActionResult> {
+  await requireMember();
+  const parsedId = id.safeParse(absenceId);
+  const parsed = interruptionSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) return fail("invalid");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_absence_interruption", {
+    p_absence_id: parsedId.data,
+    p_last_day: parsed.data.lastDay,
+    p_note: nullableParam(parsed.data.note),
+  });
+  if (error) return mapError(error, "request interruption");
   revalidateRequests();
   return { ok: true };
 }
@@ -225,7 +266,7 @@ export async function enterAbsenceAction(input: unknown): Promise<RequestActionR
     p_employee_id: parsed.data.employeeId,
     p_kind: parsed.data.kind,
     p_start: parsed.data.startDate,
-    p_end: parsed.data.endDate,
+    p_end: nullableParam(parsed.data.endDate),
     p_note: nullableParam(parsed.data.note),
     p_reason: nullableParam(parsed.data.kind === "sick" ? parsed.data.reason : null),
     p_idempotency_key: parsed.data.idempotencyKey,
@@ -275,6 +316,27 @@ export async function cancelAbsenceAction(
     ...(parsedNote.data ? { p_note: parsedNote.data } : {}),
   });
   if (error) return mapError(error, "cancel absence");
+  revalidateRequests();
+  return { ok: true };
+}
+
+export async function decideInterruptionAction(
+  absenceId: unknown,
+  input: unknown,
+): Promise<RequestActionResult> {
+  const member = await requireMember();
+  if (!(await permitAction(member.organization.id, "absences.manage"))) return fail("denied");
+  const parsedId = id.safeParse(absenceId);
+  const parsed = decisionSchema.safeParse(input);
+  if (!parsedId.success) return fail("invalid");
+  if (!parsed.success) return fail("reject_note_required");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decide_absence_interruption", {
+    p_absence_id: parsedId.data,
+    p_approve: parsed.data.approve,
+    ...(parsed.data.note ? { p_note: parsed.data.note } : {}),
+  });
+  if (error) return mapError(error, "decide interruption");
   revalidateRequests();
   return { ok: true };
 }
@@ -373,6 +435,6 @@ export async function pendingRequestsAction(): Promise<PendingRequests> {
     permitAction(member.organization.id, "absences.manage"),
     permitAction(member.organization.id, "attendance.manage"),
   ]);
-  if (!absences && !attendance) return { absences: [], corrections: [] };
+  if (!absences && !attendance) return { absences: [], interruptions: [], corrections: [] };
   return listPendingRequests(member.organization.id);
 }

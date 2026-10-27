@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/supabase/types";
+import { zonedDate } from "@/lib/timezone";
+import { addDays } from "@/modules/attendance/schedule-rules";
 import { ensureUser } from "@/modules/organizations/provision";
 import { testTenantPassword } from "../shared/test-tenants";
 import { setupFixture, signIn, type Fixture } from "./fixtures";
@@ -473,6 +475,115 @@ describe("corrections", () => {
       (await fx.a.admin.rpc("decide_correction", { p_correction_id: own.data!, p_approve: true }))
         .error,
     ).toBeNull();
+  });
+});
+
+describe("open sick leave and interruptions", () => {
+  const today = zonedDate(new Date(), "Europe/Sarajevo");
+
+  it("opens sick leave without an end, once, until it is closed", async () => {
+    const open = (key_: string) =>
+      fx.a.operator.rpc("request_absence", {
+        p_org_id: fx.a.org.id,
+        p_kind: "sick",
+        p_start: "2026-10-01",
+        p_end: null as unknown as string,
+        p_note: null as unknown as string,
+        p_reason: null as unknown as string,
+        p_idempotency_key: key_,
+      });
+    const first = await open(key());
+    expect(first.error).toBeNull();
+    expect((await open(key())).error?.message).toBe("sick_leave_open");
+    const vacationWithoutEnd = await fx.a.operator.rpc("request_absence", {
+      p_org_id: fx.a.org.id,
+      p_kind: "vacation",
+      p_start: "2026-12-01",
+      p_end: null as unknown as string,
+      p_note: null as unknown as string,
+      p_reason: null as unknown as string,
+      p_idempotency_key: key(),
+    });
+    expect(vacationWithoutEnd.error?.message).toBe("invalid_period");
+
+    const close = (lastDay: string) =>
+      fx.a.operator.rpc("close_sick_leave", { p_absence_id: first.data!, p_last_day: lastDay });
+    // A planned absence after the first sick day is still possible…
+    const later = await head.rpc("enter_absence", {
+      p_org_id: fx.a.org.id,
+      p_employee_id: ids.worker,
+      p_kind: "day_off",
+      p_start: "2026-10-10",
+      p_end: "2026-10-10",
+      p_note: null as unknown as string,
+      p_reason: null as unknown as string,
+      p_idempotency_key: key(),
+    });
+    expect(later.error).toBeNull();
+    // …but the sick leave cannot be closed across it.
+    expect((await close("2026-10-12")).error?.message).toBe("absence_overlaps");
+    expect((await close("2026-09-30")).error?.message).toBe("invalid_period");
+    expect((await close("2026-10-05")).error).toBeNull();
+    expect((await close("2026-10-06")).error?.message).toBe("sick_leave_not_open");
+    const { data } = await fx.service
+      .from("absences")
+      .select("end_date")
+      .eq("id", first.data!)
+      .single()
+      .throwOnError();
+    expect(data.end_date).toBe("2026-10-05");
+  });
+
+  it("lets the worker ask to end a running absence early; the head of production decides", async () => {
+    const entered = await head.rpc("enter_absence", {
+      p_org_id: fx.a.org.id,
+      p_employee_id: ids.worker,
+      p_kind: "paid_leave",
+      p_start: addDays(today, -1),
+      p_end: addDays(today, 5),
+      p_note: null as unknown as string,
+      p_reason: null as unknown as string,
+      p_idempotency_key: key(),
+    });
+    expect(entered.error).toBeNull();
+    const ask = () =>
+      fx.a.operator.rpc("request_absence_interruption", {
+        p_absence_id: entered.data!,
+        p_last_day: today,
+        p_note: "Vraćam se ranije",
+      });
+    expect((await ask()).error).toBeNull();
+    expect((await ask()).error?.message).toBe("interruption_pending");
+
+    const pending = await head.rpc("pending_requests", { p_org_id: fx.a.org.id });
+    expect(
+      (pending.data as { interruptions: { id: string }[] }).interruptions.some(
+        (row) => row.id === entered.data,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await head.rpc("decide_absence_interruption", {
+          p_absence_id: entered.data!,
+          p_approve: false,
+        })
+      ).error?.message,
+    ).toBe("reject_note_required");
+    expect(
+      (
+        await head.rpc("decide_absence_interruption", {
+          p_absence_id: entered.data!,
+          p_approve: true,
+        })
+      ).error,
+    ).toBeNull();
+    const { data } = await fx.service
+      .from("absences")
+      .select("end_date, interruption_status")
+      .eq("id", entered.data!)
+      .single()
+      .throwOnError();
+    expect(data).toEqual({ end_date: today, interruption_status: "approved" });
   });
 });
 

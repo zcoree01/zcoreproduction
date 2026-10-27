@@ -141,8 +141,9 @@ test("@mobile worker asks for leave and a correction; the head of production dec
   test.setTimeout(180_000);
   const today = zonedDate(new Date(), "Europe/Sarajevo");
   const yesterday = addDays(today, -1);
-  // A Monday far ahead; the request is rejected at the end, so reruns never overlap.
-  const leaveDay = addDays(mondayOf(addDays(today, 400)), 0);
+  // A different future day per run (rejected at the end; an interrupted run
+  // leaves its request on another day).
+  const leaveDay = addDays("2030-01-01", Math.floor(Date.now() / 60_000) % 3000);
 
   await login(page, demoUser("operator"), DEMO_ORG.slug);
   await expectPath(page, "/floor");
@@ -157,6 +158,27 @@ test("@mobile worker asks for leave and a correction; the head of production dec
   await sheet.getByRole("button", { name: "Pošalji" }).click();
   await expect(page.getByText("Zahtjev je poslan.")).toBeVisible();
   await expect(page.getByTestId("my-requests")).toContainText("Na čekanju");
+
+  // Sick leave is reported with its first day only; while open it can only be closed.
+  await page.getByRole("button", { name: "Prijavi bolovanje" }).click();
+  sheet = page.getByRole("dialog");
+  await expect(sheet.getByLabel("Do", { exact: true })).toBeHidden();
+  await sheet.getByRole("button", { name: "Pošalji" }).click();
+  await expect(page.getByText("Bolovanje je prijavljeno.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prijavi bolovanje" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Zatvori bolovanje" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Pošalji" }).click();
+  await expect(page.getByText("Bolovanje je zatvoreno.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prijavi bolovanje" })).toBeVisible();
+  // Withdrawn, so a later run can report the same day again.
+  const sickItem = page
+    .getByTestId("my-requests")
+    .getByRole("listitem")
+    .filter({ hasText: "Bolovanje" })
+    .filter({ hasText: "Na čekanju" })
+    .first();
+  await sickItem.getByRole("button", { name: "Povuci zahtjev" }).click();
+  await expect(page.getByText("Povučeno.").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Zaboravio sam prijavu – dodaj" }).click();
   sheet = page.getByRole("dialog");
@@ -181,6 +203,8 @@ test("@mobile worker asks for leave and a correction; the head of production dec
     await expect(items.first()).toBeVisible();
     for (let count = await items.count(); count > 0; count -= 1) {
       const item = items.first();
+      // No reject without a reason.
+      await expect(item.getByRole("button", { name: "Odbij" })).toBeDisabled();
       await item.getByLabel("Napomena (obavezna kod odbijanja)").fill("E2E odbijeno");
       await item.getByRole("button", { name: "Odbij" }).click();
       await expect(items).toHaveCount(count - 1);

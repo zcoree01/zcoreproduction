@@ -83,9 +83,17 @@ export type Database = {
           decided_by: string | null
           decision_note: string | null
           employee_id: string
-          end_date: string
+          end_date: string | null
           id: string
           idempotency_key: string | null
+          interruption_decided_at: string | null
+          interruption_decided_by: string | null
+          interruption_decision_note: string | null
+          interruption_end_date: string | null
+          interruption_note: string | null
+          interruption_requested_at: string | null
+          interruption_requested_by: string | null
+          interruption_status: string | null
           kind: string
           note: string | null
           organization_id: string
@@ -99,9 +107,17 @@ export type Database = {
           decided_by?: string | null
           decision_note?: string | null
           employee_id: string
-          end_date: string
+          end_date?: string | null
           id?: string
           idempotency_key?: string | null
+          interruption_decided_at?: string | null
+          interruption_decided_by?: string | null
+          interruption_decision_note?: string | null
+          interruption_end_date?: string | null
+          interruption_note?: string | null
+          interruption_requested_at?: string | null
+          interruption_requested_by?: string | null
+          interruption_status?: string | null
           kind: string
           note?: string | null
           organization_id: string
@@ -115,9 +131,17 @@ export type Database = {
           decided_by?: string | null
           decision_note?: string | null
           employee_id?: string
-          end_date?: string
+          end_date?: string | null
           id?: string
           idempotency_key?: string | null
+          interruption_decided_at?: string | null
+          interruption_decided_by?: string | null
+          interruption_decision_note?: string | null
+          interruption_end_date?: string | null
+          interruption_note?: string | null
+          interruption_requested_at?: string | null
+          interruption_requested_by?: string | null
+          interruption_status?: string | null
           kind?: string
           note?: string | null
           organization_id?: string
@@ -3342,6 +3366,10 @@ export type Database = {
         Args: { p_idempotency_key: string; p_org_id: string }
         Returns: string
       }
+      close_sick_leave: {
+        Args: { p_absence_id: string; p_last_day: string }
+        Returns: undefined
+      }
       copy_product: {
         Args: {
           p_name: string
@@ -3381,6 +3409,10 @@ export type Database = {
         Returns: string
       }
       decide_absence: {
+        Args: { p_absence_id: string; p_approve: boolean; p_note?: string }
+        Returns: undefined
+      }
+      decide_absence_interruption: {
         Args: { p_absence_id: string; p_approve: boolean; p_note?: string }
         Returns: undefined
       }
@@ -3698,6 +3730,10 @@ export type Database = {
           p_start: string
         }
         Returns: string
+      }
+      request_absence_interruption: {
+        Args: { p_absence_id: string; p_last_day: string; p_note: string }
+        Returns: undefined
       }
       request_correction: {
         Args: {

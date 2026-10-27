@@ -1,6 +1,13 @@
 "use client";
 
-import { CameraIcon, PalmtreeIcon, PencilIcon, ThermometerIcon, XIcon } from "lucide-react";
+import {
+  CameraIcon,
+  PalmtreeIcon,
+  PencilIcon,
+  SquareIcon,
+  ThermometerIcon,
+  XIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -20,15 +27,17 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDay } from "@/lib/format";
+import { formatPeriod } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import {
   attachAbsenceDocumentAction,
   cancelMyAbsenceAction,
   cancelMyCorrectionAction,
+  closeSickLeaveAction,
   prepareAbsenceDocumentAction,
   requestAbsenceAction,
   requestCorrectionAction,
+  requestInterruptionAction,
 } from "@/modules/attendance/absence-actions";
 import type { MyAbsence, MyCorrection } from "@/modules/attendance/absence-queries";
 import {
@@ -73,8 +82,29 @@ function isDocumentType(type: string): type is keyof typeof ABSENCE_DOCUMENT_TYP
 export function RequestsPanel(props: Props) {
   const t = useTranslations("absences");
   const router = useRouter();
-  const [sheet, setSheet] = useState<"leave" | "sick" | null>(null);
+  const [sheet, setSheet] = useState<"leave" | "sick" | "closeSick" | "interrupt" | null>(null);
   const [, startTransition] = useTransition();
+  // An open sick leave can only be closed; a running absence only interrupted.
+  const openSick =
+    props.absences.find(
+      (absence) =>
+        absence.kind === "sick" &&
+        absence.endDate === null &&
+        (absence.status === "requested" || absence.status === "approved"),
+    ) ?? null;
+  const running =
+    props.absences.find(
+      (absence) =>
+        absence.kind !== "sick" &&
+        absence.status === "approved" &&
+        absence.endDate !== null &&
+        absence.startDate <= props.today &&
+        absence.endDate >= props.today,
+    ) ?? null;
+  const done = () => {
+    setSheet(null);
+    router.refresh();
+  };
 
   const cancel = (action: () => Promise<RequestActionResult>) =>
     startTransition(async () => {
@@ -124,14 +154,44 @@ export function RequestsPanel(props: Props) {
             </p>
           ) : null}
           <div className="grid grid-cols-2 gap-2">
-            <Button size="lg" variant="outline" className="h-14" onClick={() => setSheet("leave")}>
-              <PalmtreeIcon />
-              {t("requestLeave")}
-            </Button>
-            <Button size="lg" variant="outline" className="h-14" onClick={() => setSheet("sick")}>
-              <ThermometerIcon />
-              {t("reportSick")}
-            </Button>
+            {running ? (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14"
+                disabled={running.interruption?.status === "requested"}
+                onClick={() => setSheet("interrupt")}
+              >
+                <SquareIcon />
+                {t("interrupt")}
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14"
+                onClick={() => setSheet("leave")}
+              >
+                <PalmtreeIcon />
+                {t("requestLeave")}
+              </Button>
+            )}
+            {openSick ? (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14"
+                onClick={() => setSheet("closeSick")}
+              >
+                <ThermometerIcon />
+                {t("closeSick")}
+              </Button>
+            ) : (
+              <Button size="lg" variant="outline" className="h-14" onClick={() => setSheet("sick")}>
+                <ThermometerIcon />
+                {t("reportSick")}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -154,10 +214,7 @@ export function RequestsPanel(props: Props) {
                     </StatusBadge>
                   </div>
                   <span className="text-sm text-muted-foreground tabular-nums">
-                    {formatDay(absence.startDate)}
-                    {absence.endDate !== absence.startDate
-                      ? ` – ${formatDay(absence.endDate)}`
-                      : ""}
+                    {formatPeriod(absence.startDate, absence.endDate, t("openEnded"))}
                     {" · "}
                     {t("workingDays", { count: absence.workingDays })}
                     {absence.hasDocument ? ` · ${t("documentAttached")}` : ""}
@@ -165,6 +222,21 @@ export function RequestsPanel(props: Props) {
                   {absence.decisionNote ? (
                     <span className="text-sm">
                       {t("decisionNote", { note: absence.decisionNote })}
+                    </span>
+                  ) : null}
+                  {absence.interruption ? (
+                    <span className="text-sm">
+                      {t("interruptionStatus", {
+                        date: formatPeriod(
+                          absence.interruption.lastDay,
+                          absence.interruption.lastDay,
+                          "",
+                        ),
+                        status: t(`statuses.${absence.interruption.status}`),
+                      })}
+                      {absence.interruption.decisionNote
+                        ? ` · ${t("decisionNote", { note: absence.interruption.decisionNote })}`
+                        : ""}
                     </span>
                   ) : null}
                   {absence.status === "requested" ? (
@@ -217,15 +289,23 @@ export function RequestsPanel(props: Props) {
 
       <Sheet open={sheet !== null} onOpenChange={(open) => !open && setSheet(null)}>
         <SheetContent side="bottom" className="flex max-h-[90dvh] flex-col gap-0">
-          {sheet !== null ? (
-            <AbsenceForm
-              key={sheet}
-              sick={sheet === "sick"}
+          {sheet === "leave" || sheet === "sick" ? (
+            <AbsenceForm key={sheet} sick={sheet === "sick"} today={props.today} onDone={done} />
+          ) : null}
+          {sheet === "closeSick" && openSick ? (
+            <LastDayForm
+              mode="closeSick"
+              absenceId={openSick.id}
               today={props.today}
-              onDone={() => {
-                setSheet(null);
-                router.refresh();
-              }}
+              onDone={done}
+            />
+          ) : null}
+          {sheet === "interrupt" && running ? (
+            <LastDayForm
+              mode="interrupt"
+              absenceId={running.id}
+              today={props.today}
+              onDone={done}
             />
           ) : null}
         </SheetContent>
@@ -294,7 +374,7 @@ function AbsenceForm({
           const result = await requestAbsenceAction({
             kind,
             startDate,
-            endDate,
+            endDate: sick ? "" : endDate,
             note,
             reason: sick ? reason : "",
             idempotencyKey,
@@ -344,9 +424,11 @@ function AbsenceForm({
               </NativeSelect>
             </Field>
           ) : null}
-          <div className="grid grid-cols-2 gap-3">
+          <div className={sick ? "grid gap-3" : "grid grid-cols-2 gap-3"}>
             <Field>
-              <FieldLabel htmlFor="absence-start">{t("fields.startDate")}</FieldLabel>
+              <FieldLabel htmlFor="absence-start">
+                {sick ? t("fields.sickStart") : t("fields.startDate")}
+              </FieldLabel>
               <Input
                 id="absence-start"
                 type="date"
@@ -358,7 +440,7 @@ function AbsenceForm({
                 }}
               />
             </Field>
-            <Field>
+            <Field className={sick ? "hidden" : undefined}>
               <FieldLabel htmlFor="absence-end">{t("fields.endDate")}</FieldLabel>
               <Input
                 id="absence-end"
@@ -538,6 +620,87 @@ function CorrectionForm({ target, onDone }: { target: CorrectionTarget; onDone: 
           disabled={pending || reason.trim() === ""}
           onClick={submit}
         >
+          {pending ? t("sending") : t("send")}
+        </Button>
+      </SheetFooter>
+    </>
+  );
+}
+
+/**
+ * Closing an open sick leave (last day, optional sick note) or asking to
+ * interrupt a running absence (last day, note; the head of production decides).
+ */
+function LastDayForm({
+  mode,
+  absenceId,
+  today,
+  onDone,
+}: {
+  mode: "closeSick" | "interrupt";
+  absenceId: string;
+  today: string;
+  onDone: () => void;
+}) {
+  const t = useTranslations("absences");
+  const [pending, startTransition] = useTransition();
+  const [lastDay, setLastDay] = useState(today);
+  const [note, setNote] = useState("");
+
+  const submit = () =>
+    startTransition(async () => {
+      try {
+        const result =
+          mode === "closeSick"
+            ? await closeSickLeaveAction(absenceId, { lastDay })
+            : await requestInterruptionAction(absenceId, { lastDay, note });
+        if (!result.ok) {
+          toast.error(t(`errors.${result.error}`));
+          return;
+        }
+        toast.success(t(mode === "closeSick" ? "closedSickToast" : "interruptSentToast"));
+        onDone();
+      } catch {
+        toast.error(t("errors.offline"));
+      }
+    });
+
+  return (
+    <>
+      <SheetHeader className="border-b">
+        <SheetTitle>{mode === "closeSick" ? t("closeSickTitle") : t("interruptTitle")}</SheetTitle>
+        <SheetDescription>
+          {mode === "closeSick" ? t("closeSickDescription") : t("interruptDescription")}
+        </SheetDescription>
+      </SheetHeader>
+      <div className="flex-1 overflow-y-auto p-4">
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="last-day">{t("fields.lastDay")}</FieldLabel>
+            <Input
+              id="last-day"
+              type="date"
+              className="h-12"
+              max={mode === "closeSick" ? today : undefined}
+              value={lastDay}
+              onChange={(event) => setLastDay(event.target.value)}
+            />
+          </Field>
+          {mode === "interrupt" ? (
+            <Field>
+              <FieldLabel htmlFor="interrupt-note">{t("fields.note")}</FieldLabel>
+              <Textarea
+                id="interrupt-note"
+                value={note}
+                maxLength={500}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </Field>
+          ) : null}
+        </FieldGroup>
+      </div>
+      <SheetFooter className="border-t">
+        <Button size="lg" className="h-12" disabled={pending || lastDay === ""} onClick={submit}>
           {pending ? t("sending") : t("send")}
         </Button>
       </SheetFooter>

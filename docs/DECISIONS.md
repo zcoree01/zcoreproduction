@@ -240,3 +240,13 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Leave balance:** rules in `attendance_settings` (base, extra days, every N years, maximum, first months), hire date and earlier service in `employee_work_info`, carry-over and an optional override per year in `employee_leave_years`; the entitlement is computed in `leave-rules.ts` (service counted up to 1 January; first months: one day per full month; year of hiring: proportional part, rounded). Used / requested days come from approved / requested vacation.
 - The board shows "Na odsustvu" instead of "Nije došao" for an approved absence; the bell lists requests the caller may decide.
   **Consequences:** Holidays (part C) will change working-day counts; per-employee weekends and turnus workers' leave days (counted on scheduled days instead of Monday–Friday) belong to part C as well. Absences are not shown in the schedule grid yet.
+
+## D-025 — Open sick leave, interrupting an absence, no rejection without a reason (2026-10-27)
+
+**Context:** Product owner review of part B2: a worker does not know how long sick leave lasts, so it is reported from its first day and closed later; a second sick leave must not be opened while one is open. A running multi-day absence needs an "interrupt" request for the head of production instead of a new request. Rejecting without a reason must not be possible (the app appeared to block).
+**Decision:**
+
+- **Open sick leave** (migration `20261027140000`): `absences.end_date` may be null for kind `sick` only. While open it counts days up to today, and in the overlap constraint it counts as its first day only (`20261027150000`), so planned absences after it stay possible. `close_sick_leave` sets the last day (not before the start, not after today; refused with `absence_overlaps` when the period would cover another absence). A second open sick leave is refused (`sick_leave_open`). On the phone the sick-leave button turns into "Zatvori bolovanje".
+- **Interruption** of an approved, running, non-sick absence: the worker asks with the last day of absence (`request_absence_interruption`), the request appears with the other approvals (same decision rules, `decide_absence_interruption`), and approval sets the new end date. On the phone "Zatraži odsustvo" turns into "Prekid odsustva" while such an absence runs.
+- **Rejecting needs a reason in the UI as well:** the reject button stays disabled until a reason is typed (the server already refused it).
+  **Consequences:** Views that count absence days treat an open sick leave as running until today (or the end of the viewed range).

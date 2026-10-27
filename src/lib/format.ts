@@ -22,3 +22,9 @@ export function formatLocalDateTime(local: string): string {
   const [, month, day] = date.split("-");
   return `${Number(day)}.${Number(month)}. ${time.slice(0, 5)}`;
 }
+
+/** "29.10.2026. – 2.11.2026.", one day as one date, an open end as `openLabel`. */
+export function formatPeriod(start: string, end: string | null, openLabel: string): string {
+  if (end === null) return `${formatDay(start)} – ${openLabel}`;
+  return end === start ? formatDay(start) : `${formatDay(start)} – ${formatDay(end)}`;
+}

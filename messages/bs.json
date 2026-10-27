@@ -2093,7 +2093,8 @@
       "paid_leave": "Plaćeno odsustvo",
       "unpaid_leave": "Neplaćeno odsustvo",
       "day_off": "Slobodan dan",
-      "correction": "Ispravka prisustva"
+      "correction": "Ispravka prisustva",
+      "interruption": "Prekid odsustva"
     }
   },
   "productionDay": {
@@ -2747,7 +2748,10 @@
       "hiredOn": "Datum zaposlenja",
       "priorServiceMonths": "Raniji staž (mjeseci)",
       "carriedOverDays": "Preneseno iz prošle godine (dana)",
-      "entitlementOverride": "Ručno pravo za godinu (dana)"
+      "entitlementOverride": "Ručno pravo za godinu (dana)",
+      "lastDay": "Zadnji dan",
+      "sickStart": "Prvi dan bolovanja",
+      "endDateOptional": "Do (prazno = u toku)"
     },
     "reasonHint": "Vide samo vi, direktor i kadrovska.",
     "takePhoto": "Fotografiši ili izaberi doznaku",
@@ -2776,7 +2780,25 @@
       "correction_overlaps": "Novo vrijeme se preklapa s drugim zapisom tog radnika.",
       "correction_pending": "Za ovaj zapis već postoji zahtjev za ispravku.",
       "reason_required": "Upišite razlog.",
-      "session_changed": "Zapis je u međuvremenu promijenjen. Osvježite stranicu."
-    }
+      "session_changed": "Zapis je u međuvremenu promijenjen. Osvježite stranicu.",
+      "sick_leave_open": "Već imate otvoreno bolovanje. Zatvorite ga kad ozdravite.",
+      "sick_leave_not_open": "Ovo bolovanje nije otvoreno.",
+      "absence_not_running": "Prekid je moguć samo za odobreno odsustvo koje je u toku.",
+      "interruption_pending": "Zahtjev za prekid već čeka odluku."
+    },
+    "openEnded": "u toku",
+    "sickOpenSince": "Bolovanje od {date} (u toku)",
+    "closeSick": "Zatvori bolovanje",
+    "closeSickTitle": "Zatvaranje bolovanja",
+    "closeSickDescription": "Upišite zadnji dan bolovanja. Doznaku možete priložiti i sada.",
+    "closedSickToast": "Bolovanje je zatvoreno.",
+    "interrupt": "Prekid odsustva",
+    "interruptTitle": "Prekid odsustva",
+    "interruptDescription": "Upišite zadnji dan odsustva; prvi radni dan je dan poslije. Prekid odobrava šef proizvodnje.",
+    "interruptSentToast": "Zahtjev za prekid je poslan.",
+    "interruptionStatus": "Prekid do {date}: {status}",
+    "interruption": "Prekid odsustva",
+    "interruptionDetail": "{period} → zadnji dan {lastDay}",
+    "rejectNeedsNote": "Za odbijanje upišite razlog."
   }
 }

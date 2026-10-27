@@ -8,27 +8,37 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatDay } from "@/lib/format";
+import { formatDay, formatPeriod } from "@/lib/format";
 import {
   absenceDocumentUrlAction,
   decideAbsenceAction,
   decideCorrectionAction,
+  decideInterruptionAction,
 } from "@/modules/attendance/absence-actions";
-import type { PendingAbsence, PendingCorrection } from "@/modules/attendance/absence-queries";
+import type {
+  PendingAbsence,
+  PendingCorrection,
+  PendingInterruption,
+} from "@/modules/attendance/absence-queries";
 import type { RequestActionResult } from "@/modules/attendance/absence-schemas";
 
 type Correction = PendingCorrection & { proposed: string; original: string | null };
 
-/** Requests waiting for the caller: approve, or reject with a note. */
+/**
+ * Requests waiting for the caller: approve, or reject with a reason (the
+ * reject button stays disabled until a reason is typed).
+ */
 export function PendingList({
   absences,
+  interruptions,
   corrections,
 }: {
   absences: PendingAbsence[];
+  interruptions: PendingInterruption[];
   corrections: Correction[];
 }) {
   const t = useTranslations("absences");
-  if (absences.length === 0 && corrections.length === 0) {
+  if (absences.length === 0 && interruptions.length === 0 && corrections.length === 0) {
     return (
       <EmptyState
         icon={<InboxIcon />}
@@ -44,10 +54,24 @@ export function PendingList({
           key={absence.id}
           testId="pending-absence"
           title={`${absence.employeeName} · ${t(`kinds.${absence.kind}`)}`}
-          detail={`${formatDay(absence.startDate)}${absence.endDate !== absence.startDate ? ` – ${formatDay(absence.endDate)}` : ""} · ${t("workingDays", { count: absence.workingDays })}`}
+          detail={`${formatPeriod(absence.startDate, absence.endDate, t("openEnded"))} · ${t("workingDays", { count: absence.workingDays })}`}
           note={absence.note}
           documentId={absence.hasDocument ? absence.id : null}
           decide={(approve, note) => decideAbsenceAction(absence.id, { approve, note })}
+        />
+      ))}
+      {interruptions.map((item) => (
+        <Decision
+          key={`interruption-${item.id}`}
+          testId="pending-interruption"
+          title={`${item.employeeName} · ${t("interruption")}`}
+          detail={t("interruptionDetail", {
+            period: `${t(`kinds.${item.kind}`)} ${formatPeriod(item.startDate, item.endDate, "")}`,
+            lastDay: formatDay(item.lastDay),
+          })}
+          note={item.note}
+          documentId={null}
+          decide={(approve, note) => decideInterruptionAction(item.id, { approve, note })}
         />
       ))}
       {corrections.map((correction) => (
@@ -88,6 +112,7 @@ function Decision({
   const router = useRouter();
   const [decisionNote, setDecisionNote] = useState("");
   const [pending, startTransition] = useTransition();
+  const hasNote = decisionNote.trim() !== "";
 
   const run = (approve: boolean) =>
     startTransition(async () => {
@@ -139,7 +164,12 @@ function Decision({
           <CheckIcon />
           {t("approve")}
         </Button>
-        <Button variant="outline" disabled={pending} onClick={() => run(false)}>
+        <Button
+          variant="outline"
+          disabled={pending || !hasNote}
+          title={hasNote ? undefined : t("rejectNeedsNote")}
+          onClick={() => run(false)}
+        >
           <XIcon />
           {t("reject")}
         </Button>
