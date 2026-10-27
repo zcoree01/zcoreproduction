@@ -107,6 +107,8 @@ test("a customer is offered from the directory and a change can be proposed", as
   await login(page, testAdmin(), TEST_TENANTS.b.slug);
   await expectPath(page, "/dashboard");
   await page.goto("/customers");
+  // A click before the (dev) page is hydrated would not open the form.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Dodaj kupca" }).click();
   await page.getByRole("dialog").getByLabel("Naziv").fill(name);
   await page.getByRole("dialog").getByLabel("ID / PDV broj").fill(jib("2"));
@@ -120,6 +122,8 @@ test("a customer is offered from the directory and a change can be proposed", as
   await login(page, testAdmin(), TEST_TENANTS.a.slug);
   await expectPath(page, "/dashboard");
   await page.goto("/customers");
+  // A click before the (dev) page is hydrated would not open the form.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Dodaj kupca" }).click();
   const sheet = page.getByRole("dialog");
   await sheet.getByLabel("Naziv").fill("E2");
@@ -135,6 +139,7 @@ test("a customer is offered from the directory and a change can be proposed", as
   // Detail: directory card and a proposal.
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   await expect(page.getByText("Podaci iz imenika firmi")).toBeVisible();
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Predloži izmjenu" }).click();
   await page.getByRole("dialog").getByLabel("Telefon").fill("033 777 888");
   await page.getByRole("dialog").getByLabel("Razlog", { exact: false }).fill("Novi broj");
