@@ -73,6 +73,10 @@ test("admin manages catalogs, machines and employees", async ({ page }) => {
 
   // Catalogs: add a machine type and a skill; duplicates are refused.
   await page.goto("/settings/catalogs?kind=machine_type");
+  // Empty name: Bosnian message next to the field (client validation).
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Dodaj", exact: true }).click();
+  await expect(page.getByText("Unesite naziv (do 100 znakova).")).toBeVisible();
   await page.getByLabel("Novi naziv").fill(type);
   await page.getByRole("button", { name: "Dodaj", exact: true }).click();
   await expect(page.getByRole("cell", { name: type })).toBeVisible();

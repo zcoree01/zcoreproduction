@@ -36,10 +36,12 @@ async function PlatformContent() {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 
-  const [organizations, support] = await Promise.all([
+  const [all, support] = await Promise.all([
     listPlatformOrganizations(),
     listPlatformSupportRequests(),
   ]);
+  // Active organizations first (newest first), archived ones at the end.
+  const organizations = [...all].sort((a, b) => Number(a.archived) - Number(b.archived));
 
   return (
     <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -30,7 +30,6 @@ export function ModuleEditor({
   // Modules added later show their key until they get a name.
   const label =
     module.key === "production" || module.key === "attendance" ? tModule(module.key) : module.key;
-  const format = useFormatter();
   const router = useRouter();
   const [enabled, setEnabled] = useState(module.enabled);
   const [until, setUntil] = useState(initialUntilDay);
@@ -76,14 +75,6 @@ export function ModuleEditor({
           aria-label={t("untilLabel", { module: label })}
         />
       </label>
-      {module.activeUntil ? (
-        <span className="text-xs text-muted-foreground">
-          {format.dateTime(new Date(module.activeUntil), {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </span>
-      ) : null}
       <Button
         size="sm"
         variant="outline"

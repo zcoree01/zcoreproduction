@@ -190,7 +190,13 @@ describe("company directory", () => {
       p_org_id: f.a.org.id,
       p_country: "BA",
       p_tax_id: tax,
-      p_fields: { name: `DBT Vlasnik ${RUN}`, address: "Glavna 1", city: "Sarajevo" },
+      // The short name is the organization's display name: keep the tenant's.
+      p_fields: {
+        name: `DBT Vlasnik ${RUN}`,
+        short_name: TEST_TENANTS.a.name,
+        address: "Glavna 1",
+        city: "Sarajevo",
+      },
       p_bank_accounts: [
         { bank_name: "Banka", account_number: "1290079401028494", is_primary: true },
       ],

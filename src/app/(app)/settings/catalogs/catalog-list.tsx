@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArchiveIcon, ListIcon, PencilIcon, RotateCcwIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFormState } from "react-hook-form";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -145,7 +145,8 @@ function AddItemForm({ kind }: { kind: CatalogKind }) {
     resolver: zodResolver(catalogItemNameSchema),
     defaultValues: { name: "" },
   });
-  const error = form.formState.errors.name;
+  // Subscribed (the React Compiler memoizes reads of form.formState).
+  const error = useFormState({ control: form.control, name: "name" }).errors.name;
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
@@ -174,7 +175,11 @@ function AddItemForm({ kind }: { kind: CatalogKind }) {
           autoComplete="off"
           aria-invalid={error ? true : undefined}
         />
-        {error ? <FieldError>{error.message ?? t("errors.invalid")}</FieldError> : null}
+        {error ? (
+          <FieldError>
+            {error.type === "server" && error.message ? error.message : t("errors.invalid")}
+          </FieldError>
+        ) : null}
       </Field>
       <Button type="submit" disabled={pending}>
         {t("add")}
@@ -191,7 +196,8 @@ function RenameForm({ item, onDone }: { item: CatalogItem; onDone: () => void })
     resolver: zodResolver(catalogItemNameSchema),
     defaultValues: { name: item.name },
   });
-  const error = form.formState.errors.name;
+  // Subscribed (the React Compiler memoizes reads of form.formState).
+  const error = useFormState({ control: form.control, name: "name" }).errors.name;
 
   const onSubmit = form.handleSubmit((values) => {
     startTransition(async () => {
@@ -217,7 +223,11 @@ function RenameForm({ item, onDone }: { item: CatalogItem; onDone: () => void })
           autoFocus
           aria-invalid={error ? true : undefined}
         />
-        {error ? <FieldError>{error.message ?? t("errors.invalid")}</FieldError> : null}
+        {error ? (
+          <FieldError>
+            {error.type === "server" && error.message ? error.message : t("errors.invalid")}
+          </FieldError>
+        ) : null}
       </Field>
       <Button type="submit" size="sm" disabled={pending}>
         {tCommon("save")}
