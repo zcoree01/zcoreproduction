@@ -12,7 +12,7 @@ import {
   ensureUser,
 } from "@/modules/organizations/provision";
 import { createAdminClient } from "./lib/admin-client";
-import { seedDemoAttendance } from "./lib/demo-attendance";
+import { seedDemoAttendance, seedDemoSchedule } from "./lib/demo-attendance";
 import { seedDemoOrders } from "./lib/demo-orders";
 import { seedDemoProduction } from "./lib/demo-production";
 import { seedDemoProducts } from "./lib/demo-products";
@@ -35,7 +35,10 @@ async function main() {
   await seedDemoProducts(admin, org);
   await seedDemoOrders(admin, org, password);
   await seedDemoAttendance(admin, org);
-  console.log("  production module, machines, employees, products, orders and shifts seeded");
+  await seedDemoSchedule(admin, org);
+  console.log(
+    "  production module, machines, employees, products, orders, shifts and schedule seeded",
+  );
 }
 
 main().catch((error: unknown) => {

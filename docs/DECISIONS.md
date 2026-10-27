@@ -212,3 +212,16 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Employee + account:** the employee is saved first (`save_employee`), then the account is created and linked; both `employees.manage` and `users.manage` are required. If the account fails, the employee stays saved and the form says so (the account can be created again from the edit form).
 - **Profile** (`/profile` in the app, `/floor/profile` on the floor): own data incl. the linked employee record, password change, theme (per device, next-themes) and text size (`profiles.preferences.text_size`, per user; `html:has([data-text-size=large])` raises the root font size), sign-out.
   **Consequences:** Forgotten passwords are handled by the administrator (hint on the login screen). A kiosk PIN (shifts module, part C) belongs in the profile as well. `is_session_active()` remains for compatibility and its tests.
+
+## D-023 — Shifts and working time, part B1: crews, rotations and the schedule (2026-10-27)
+
+**Context:** Part B of the shifts module (D-021) was split: B1 is the schedule (crews, rotations, calendar, copying a week); B2 absences, leave and corrections. Parts of the plant work differently (four crews on turnus, only the 1st shift, 1st/2nd/3rd shifts), so patterns must be data, not code.
+**Decision:**
+
+- **Crews** (`shift_crews`, `shift_crew_members`, migration `20261027100000`): an employee is in at most one crew (unique per organization); saving a crew moves members out of other crews.
+- **Rotations** (`shift_rotations`, `shift_rotation_days`): a cycle of 1–56 days with a shift per day; days without a row are days off. **Assignments** (`shift_rotation_assignments`): a crew _or_ one employee follows a rotation from a start date (day 1 of the cycle) to an optional end; four crews on the same rotation simply start on different dates. An employee's own assignment wins over the crew's.
+- **The schedule stays the single source** (`shift_schedule`, now with `source` `manual` / `rotation`). `apply_rotations` writes rotations for a visible range (max 62 days) and replaces only rotation rows; manual days (set in the grid or copied) are never overwritten. Ending an assignment removes its rotation days after the end. There is no background generation: the foreman applies rotations for the period shown (the grid makes this one click).
+- **Copying a week** copies Monday–Sunday as manual days to another week, replacing the target week of the employees concerned.
+- Planning rows are replaced or deleted (audited), not archived; attendance keeps its own snapshot, so changing the plan never changes recorded hours. Writes need `attendance.manage`, reads `attendance.read`; workers read only their own days (`my_schedule`).
+- Weekday arithmetic on calendar dates is done on UTC midnights (`schedule-rules.ts`), mirrored by the SQL (`date` arithmetic), so DST never shifts a day.
+  **Consequences:** Per-employee weekend days and the shift filter on the production overview move to part C (calculation). B2 adds absences and leave, which will show in the same grid.

@@ -1,4 +1,4 @@
-import { CalendarClockIcon, UserXIcon } from "lucide-react";
+import { CalendarClockIcon, CalendarDaysIcon, UserXIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -11,6 +11,8 @@ import { requireMember } from "@/lib/auth/session";
 import { formatDay } from "@/lib/format";
 import { utcToZonedLocal, zonedDate } from "@/lib/timezone";
 import { getMyAttendance } from "@/modules/attendance/queries";
+import { addDays, dateRange, isoWeekday } from "@/modules/attendance/schedule-rules";
+import { getMySchedule } from "@/modules/attendance/schedule-queries";
 import {
   formatMinutes,
   monthRange,
@@ -50,7 +52,11 @@ async function FloorAttendanceContent() {
   const now = new Date();
   const today = zonedDate(now, timeZone);
   const month = monthRange(today);
-  const mine = await getMyAttendance(member.organization.id, month.from, month.to);
+  const [mine, planned, tSchedule] = await Promise.all([
+    getMyAttendance(member.organization.id, month.from, month.to),
+    getMySchedule(member.organization.id, today, addDays(today, 13)),
+    getTranslations("schedule"),
+  ]);
   if (!mine) {
     return (
       <EmptyState
@@ -166,6 +172,45 @@ async function FloorAttendanceContent() {
             <Figure label={t("days")}>{totals.days}</Figure>
           </dl>
           <p className="mt-3 text-xs text-muted-foreground">{t("monthNote")}</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarDaysIcon className="size-4" aria-hidden />
+            {t("scheduleTitle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {planned.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("scheduleEmpty")}</p>
+          ) : (
+            <ul className="flex flex-col divide-y" data-testid="my-schedule">
+              {dateRange(today, addDays(today, 13)).map((day) => {
+                const entry = planned.find((item) => item.date === day);
+                return (
+                  <li key={day} className="flex items-center justify-between gap-2 py-2">
+                    <span className="tabular-nums">
+                      {tSchedule(`weekdays.${isoWeekday(day)}`)} {formatDay(day)}
+                    </span>
+                    {entry ? (
+                      <span className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono">
+                          {entry.code}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          {entry.startsAt}–{entry.endsAt}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">{tSchedule("dayOff")}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

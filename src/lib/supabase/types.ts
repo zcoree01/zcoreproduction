@@ -2358,6 +2358,220 @@ export type Database = {
           },
         ]
       }
+      shift_crew_members: {
+        Row: {
+          crew_id: string
+          employee_id: string
+          organization_id: string
+        }
+        Insert: {
+          crew_id: string
+          employee_id: string
+          organization_id: string
+        }
+        Update: {
+          crew_id?: string
+          employee_id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_crew_members_organization_id_crew_id_fkey"
+            columns: ["organization_id", "crew_id"]
+            isOneToOne: false
+            referencedRelation: "shift_crews"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_crew_members_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: true
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_crew_members_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      shift_crews: {
+        Row: {
+          archived_at: string | null
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_crews_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_rotation_assignments: {
+        Row: {
+          created_at: string
+          crew_id: string | null
+          employee_id: string | null
+          end_date: string | null
+          id: string
+          organization_id: string
+          rotation_id: string
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          crew_id?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          id?: string
+          organization_id: string
+          rotation_id: string
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          crew_id?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          id?: string
+          organization_id?: string
+          rotation_id?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_rotation_assignments_organization_id_crew_id_fkey"
+            columns: ["organization_id", "crew_id"]
+            isOneToOne: false
+            referencedRelation: "shift_crews"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_rotation_assignments_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_rotation_assignments_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_rotation_assignments_organization_id_rotation_id_fkey"
+            columns: ["organization_id", "rotation_id"]
+            isOneToOne: false
+            referencedRelation: "shift_rotations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      shift_rotation_days: {
+        Row: {
+          day_index: number
+          organization_id: string
+          rotation_id: string
+          shift_id: string
+        }
+        Insert: {
+          day_index: number
+          organization_id: string
+          rotation_id: string
+          shift_id: string
+        }
+        Update: {
+          day_index?: number
+          organization_id?: string
+          rotation_id?: string
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_rotation_days_organization_id_rotation_id_fkey"
+            columns: ["organization_id", "rotation_id"]
+            isOneToOne: false
+            referencedRelation: "shift_rotations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "shift_rotation_days_organization_id_shift_id_fkey"
+            columns: ["organization_id", "shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      shift_rotations: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          cycle_days: number
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          cycle_days: number
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          cycle_days?: number
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_rotations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_schedule: {
         Row: {
           created_at: string
@@ -2366,6 +2580,7 @@ export type Database = {
           id: string
           organization_id: string
           shift_id: string
+          source: string
           work_date: string
         }
         Insert: {
@@ -2375,6 +2590,7 @@ export type Database = {
           id?: string
           organization_id: string
           shift_id: string
+          source?: string
           work_date: string
         }
         Update: {
@@ -2384,6 +2600,7 @@ export type Database = {
           id?: string
           organization_id?: string
           shift_id?: string
+          source?: string
           work_date?: string
         }
         Relationships: [
@@ -2773,6 +2990,10 @@ export type Database = {
         Args: { p_operation: Json; p_order_id: string }
         Returns: string
       }
+      apply_rotations: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: number
+      }
       assign_order_operation: {
         Args: {
           p_employee_ids: string[]
@@ -2782,6 +3003,17 @@ export type Database = {
           p_planned_start: string
         }
         Returns: Json
+      }
+      assign_rotation: {
+        Args: {
+          p_crew_id: string
+          p_employee_id: string
+          p_end_date: string
+          p_org_id: string
+          p_rotation_id: string
+          p_start_date: string
+        }
+        Returns: string
       }
       attendance_board: {
         Args: { p_date: string; p_org_id: string }
@@ -2818,6 +3050,15 @@ export type Database = {
         Args: { p_order: Json; p_order_id: string }
         Returns: string
       }
+      copy_schedule_week: {
+        Args: {
+          p_employee_ids?: string[]
+          p_org_id: string
+          p_source_monday: string
+          p_target_monday: string
+        }
+        Returns: number
+      }
       create_product: {
         Args: { p_org_id: string; p_product: Json; p_revision: Json }
         Returns: string
@@ -2836,6 +3077,10 @@ export type Database = {
       }
       decide_order_close: {
         Args: { p_approve: boolean; p_note?: string; p_request_id: string }
+        Returns: undefined
+      }
+      end_rotation_assignment: {
+        Args: { p_assignment_id: string; p_end_date: string }
         Returns: undefined
       }
       finish_cutting: {
@@ -2897,6 +3142,17 @@ export type Database = {
       my_attendance: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
+      }
+      my_schedule: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: {
+          code: string
+          ends_at: string
+          name: string
+          shift_id: string
+          starts_at: string
+          work_date: string
+        }[]
       }
       order_file_path: { Args: { p_attachment_id: string }; Returns: string }
       order_operation_warnings: {
@@ -3096,6 +3352,16 @@ export type Database = {
         Returns: undefined
       }
       revoke_user_sessions: { Args: { p_user_id: string }; Returns: undefined }
+      save_crew: {
+        Args: {
+          p_color: string
+          p_employee_ids: string[]
+          p_id: string
+          p_name: string
+          p_org_id: string
+        }
+        Returns: string
+      }
       save_employee: {
         Args: {
           p_department_id?: string
@@ -3120,6 +3386,16 @@ export type Database = {
         }
         Returns: string
       }
+      save_rotation: {
+        Args: {
+          p_cycle_days: number
+          p_days: Json
+          p_id: string
+          p_name: string
+          p_org_id: string
+        }
+        Returns: string
+      }
       save_shift: {
         Args: {
           p_breaks: Json
@@ -3133,12 +3409,20 @@ export type Database = {
         }
         Returns: string
       }
+      schedule_range: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: Json
+      }
       session_status: {
         Args: never
         Returns: {
           active: boolean
           must_change_password: boolean
         }[]
+      }
+      set_crew_archived: {
+        Args: { p_archived: boolean; p_crew_id: string }
+        Returns: undefined
       }
       set_current_revision: {
         Args: { p_revision_id: string }
@@ -3159,6 +3443,14 @@ export type Database = {
       set_production_order_status: {
         Args: { p_order_id: string; p_reason?: string; p_status: string }
         Returns: undefined
+      }
+      set_rotation_archived: {
+        Args: { p_archived: boolean; p_rotation_id: string }
+        Returns: undefined
+      }
+      set_schedule_entries: {
+        Args: { p_entries: Json; p_org_id: string }
+        Returns: number
       }
       set_shift_archived: {
         Args: { p_archived: boolean; p_shift_id: string }

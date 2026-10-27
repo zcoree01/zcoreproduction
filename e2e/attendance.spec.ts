@@ -1,4 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { formatDay } from "@/lib/format";
+import { zonedDate } from "@/lib/timezone";
+import { addDays, mondayOf } from "@/modules/attendance/schedule-rules";
 import { DEMO_ORG, DEMO_USERS, demoPassword } from "../scripts/lib/demo-users";
 import { expectPath, login } from "./helpers";
 
@@ -92,4 +95,41 @@ test("admin defines a shift that keeps 8 working hours with an unpaid break", as
   await row.getByRole("button", { name: `Arhiviraj ${name}` }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Arhiviraj" }).click();
   await expect(page.getByText(`Smjena ${name} je arhivirana.`)).toBeVisible();
+});
+
+test("head of production plans a day by hand, applies rotations and sees crews", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const today = zonedDate(new Date(), "Europe/Sarajevo");
+  const saturday = addDays(mondayOf(today), 5);
+  await login(page, demoUser("head_of_production"), DEMO_ORG.slug);
+  await expectPath(page, "/dashboard");
+
+  await page.goto("/attendance/schedule");
+  await expect(page.getByRole("heading", { name: "Raspored" })).toBeVisible();
+  // Seeded rotation: the crews work the I or II shift on weekdays.
+  const omer = page.getByTestId("schedule-row").filter({ hasText: "Omer Operater" });
+  await expect(omer.getByText(/^(I|II)$/).first()).toBeVisible();
+
+  const cell = (shift: string) =>
+    page.getByRole("button", { name: `Kenan Kontrolor, ${formatDay(saturday)}: ${shift}` });
+  await cell("Slobodan dan").click();
+  await page.getByRole("menuitem", { name: /III smjena/ }).click();
+  await expect(page.getByText("Raspored je sačuvan.").first()).toBeVisible();
+  await expect(cell("III smjena")).toBeVisible();
+
+  await page.getByRole("button", { name: "Primijeni rotacije" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Primijeni" }).click();
+  await expect(page.getByText(/Rotacije su primijenjene/)).toBeVisible();
+  // The manual day survives the rotation.
+  await expect(cell("III smjena")).toBeVisible();
+  await cell("III smjena").click();
+  await page.getByRole("menuitem", { name: "Slobodan dan" }).click();
+  await expect(cell("Slobodan dan")).toBeVisible();
+
+  await page.getByRole("link", { name: "Ekipe i rotacije" }).first().click();
+  await expect(page.getByRole("heading", { name: "Ekipe i rotacije" })).toBeVisible();
+  await expect(page.getByText("Ekipa A").first()).toBeVisible();
+  await expect(page.getByText("Sedmična izmjena I/II").first()).toBeVisible();
 });

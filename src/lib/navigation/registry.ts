@@ -26,7 +26,9 @@ export type NavLabelKey =
   | "productionDay"
   | "attendance"
   | "shiftSettings"
-  | "floorAttendance";
+  | "floorAttendance"
+  | "schedule"
+  | "crews";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -40,7 +42,8 @@ export type NavIconKey =
   | "operation"
   | "settings"
   | "order"
-  | "clock";
+  | "clock"
+  | "calendar";
 
 export type NavItemDef = {
   id: string;
@@ -115,6 +118,26 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     href: "/attendance",
     label: "attendance",
     icon: "clock",
+    module: "attendance",
+    permission: "attendance.read",
+    surface: "app",
+    section: "production",
+  },
+  {
+    id: "schedule",
+    href: "/attendance/schedule",
+    label: "schedule",
+    icon: "calendar",
+    module: "attendance",
+    permission: "attendance.read",
+    surface: "app",
+    section: "production",
+  },
+  {
+    id: "crews",
+    href: "/attendance/crews",
+    label: "crews",
+    icon: "users",
     module: "attendance",
     permission: "attendance.read",
     surface: "app",
