@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArchiveIcon, PencilIcon, PlusIcon, RepeatIcon, RotateCcwIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -250,7 +250,8 @@ function RotationForm({
     });
   });
 
-  const daysError = form.formState.errors.days;
+  const { errors } = useFormState({ control: form.control });
+  const daysError = errors.days;
 
   return (
     <>

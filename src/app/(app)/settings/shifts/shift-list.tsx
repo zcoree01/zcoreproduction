@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useFormState, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -323,7 +323,8 @@ function ShiftForm({ item, onDone }: { item: ShiftRow | null; onDone: () => void
     });
   });
 
-  const breaksError = form.formState.errors.breaks;
+  const { errors } = useFormState({ control: form.control });
+  const breaksError = errors.breaks;
   const breaksMessage =
     breaksError?.message === "breaks_too_long" || breaksError?.message === "break_outside_shift"
       ? t(`errors.${breaksError.message}`)

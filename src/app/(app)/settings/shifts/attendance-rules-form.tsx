@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useFormState } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,9 @@ export function AttendanceRulesForm({ rules }: { rules: AttendanceRules }) {
       operationWithoutClockIn: rules.operationWithoutClockIn,
     },
   });
+
+  // Subscribed state (formState read during render is not reactive with the React Compiler).
+  const { isDirty } = useFormState({ control: form.control });
 
   const onSubmit = form.handleSubmit(() =>
     startTransition(async () => {
@@ -121,7 +124,7 @@ export function AttendanceRulesForm({ rules }: { rules: AttendanceRules }) {
               )}
             />
             <div>
-              <Button type="submit" disabled={pending || !form.formState.isDirty}>
+              <Button type="submit" disabled={pending || !isDirty}>
                 {pending ? t("saving") : t("save")}
               </Button>
             </div>

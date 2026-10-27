@@ -72,6 +72,19 @@ test("admin defines a shift that keeps 8 working hours with an unpaid break", as
   await expect(page.getByRole("cell", { name: "I smjena", exact: true })).toBeVisible();
   await expect(page.getByText("Pravila prisustva", { exact: true })).toBeVisible();
 
+  // The rules form enables saving once a value changes (and saves it).
+  const save = page.getByRole("button", { name: "Spremi pravila", exact: true });
+  const tolerance = page.getByLabel("Tolerancija kašnjenja (min)");
+  const original = await tolerance.inputValue();
+  await expect(save).toBeDisabled();
+  await tolerance.fill(original === "11" ? "12" : "11");
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(page.getByText("Pravila prisustva su spremljena.")).toBeVisible();
+  await tolerance.fill(original);
+  await save.click();
+  await expect(save).toBeDisabled();
+
   const name = `E2E smjena ${Date.now().toString(36)}`;
   await page.getByRole("button", { name: "Dodaj smjenu" }).click();
   const sheet = page.getByRole("dialog");
