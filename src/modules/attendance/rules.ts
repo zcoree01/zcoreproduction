@@ -235,6 +235,8 @@ export type BoardStatus =
   /** Scheduled, start (+ tolerance) not reached yet. */
   | "expected"
   /** Not scheduled and not here. */
+  /** Approved absence (vacation, sick leave, …) and not here. */
+  | "on_leave"
   | "off";
 
 export type BoardEmployee = {
@@ -244,6 +246,8 @@ export type BoardEmployee = {
   department: string | null;
   scheduled: { shiftId: string; code: string; name: string; scheduledStart: string } | null;
   sessions: AttendanceSession[];
+  /** Approved absence on the day (kind), if any. */
+  absence?: string | null;
 };
 
 export type BoardRules = { lateToleranceMin: number; absentAfterMin: number };
@@ -267,6 +271,7 @@ export function boardRow(employee: BoardEmployee, rules: BoardRules, now: Date):
 
   if (open) return { ...base, status: "present" };
   if (first) return { ...base, status: "left" };
+  if (employee.absence) return { ...base, status: "on_leave" };
   if (!employee.scheduled) return { ...base, status: "off" };
 
   const sinceStart = Math.floor((now.getTime() - ms(employee.scheduled.scheduledStart)) / MINUTE);
@@ -283,7 +288,8 @@ const STATUS_ORDER: Record<BoardStatus, number> = {
   present: 2,
   expected: 3,
   left: 4,
-  off: 5,
+  on_leave: 5,
+  off: 6,
 };
 
 export function boardRows(
@@ -303,6 +309,7 @@ export function boardCounts(rows: readonly BoardRow[]): Record<BoardStatus, numb
     late: 0,
     absent: 0,
     expected: 0,
+    on_leave: 0,
     off: 0,
   };
   for (const row of rows) counts[row.status] += 1;

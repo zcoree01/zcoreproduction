@@ -134,6 +134,7 @@ const boardSchema = z.object({
           scheduled_start: z.string(),
         })
         .nullable(),
+      absence: z.string().nullable().optional(),
       sessions: z.array(sessionSchema),
     }),
   ),
@@ -171,6 +172,7 @@ export async function getAttendanceBoard(
             scheduledStart: employee.scheduled.scheduled_start,
           }
         : null,
+      absence: employee.absence ?? null,
       sessions: employee.sessions,
     })),
     rules: {

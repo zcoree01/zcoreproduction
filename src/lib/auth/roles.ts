@@ -6,6 +6,7 @@ export const SYSTEM_ROLE_KEYS = [
   "warehouse",
   "operator",
   "quality_inspector",
+  "hr",
 ] as const;
 
 export type SystemRoleKey = (typeof SYSTEM_ROLE_KEYS)[number];

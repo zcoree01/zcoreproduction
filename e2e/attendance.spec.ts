@@ -101,16 +101,16 @@ test("head of production plans a day by hand, applies rotations and sees crews",
   page,
 }) => {
   test.setTimeout(120_000);
-  const today = zonedDate(new Date(), "Europe/Sarajevo");
-  const saturday = addDays(mondayOf(today), 5);
+  // A week before any rotation starts, so the demo data (also changed by
+  // hand) is not touched.
+  const saturday = addDays(mondayOf("2025-01-08"), 5);
   await login(page, demoUser("head_of_production"), DEMO_ORG.slug);
   await expectPath(page, "/dashboard");
 
-  await page.goto("/attendance/schedule");
+  await page.goto("/attendance/schedule?view=week&date=2025-01-08");
   await expect(page.getByRole("heading", { name: "Raspored" })).toBeVisible();
-  // Seeded rotation: the crews work the I or II shift on weekdays.
-  const omer = page.getByTestId("schedule-row").filter({ hasText: "Omer Operater" });
-  await expect(omer.getByText(/^(I|II)$/).first()).toBeVisible();
+  // The grid renders every active employee (the demo data may be changed by hand).
+  await expect(page.getByTestId("schedule-row").first()).toBeVisible();
 
   const cell = (shift: string) =>
     page.getByRole("button", { name: `Kenan Kontrolor, ${formatDay(saturday)}: ${shift}` });
@@ -132,4 +132,64 @@ test("head of production plans a day by hand, applies rotations and sees crews",
   await expect(page.getByRole("heading", { name: "Ekipe i rotacije" })).toBeVisible();
   await expect(page.getByText("Ekipa A").first()).toBeVisible();
   await expect(page.getByText("Sedmična izmjena I/II").first()).toBeVisible();
+});
+
+test("@mobile worker asks for leave and a correction; the head of production decides", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const today = zonedDate(new Date(), "Europe/Sarajevo");
+  const yesterday = addDays(today, -1);
+  // A Monday far ahead; the request is rejected at the end, so reruns never overlap.
+  const leaveDay = addDays(mondayOf(addDays(today, 400)), 0);
+
+  await login(page, demoUser("operator"), DEMO_ORG.slug);
+  await expectPath(page, "/floor");
+  await page.goto("/floor/attendance");
+  await expect(page.getByTestId("leave-balance")).toBeVisible();
+
+  await page.getByRole("button", { name: "Zatraži odsustvo" }).click();
+  let sheet = page.getByRole("dialog");
+  await sheet.getByLabel("Od", { exact: true }).fill(leaveDay);
+  await sheet.getByLabel("Do", { exact: true }).fill(leaveDay);
+  await sheet.getByLabel("Napomena (vidi šef)").fill("E2E godišnji");
+  await sheet.getByRole("button", { name: "Pošalji" }).click();
+  await expect(page.getByText("Zahtjev je poslan.")).toBeVisible();
+  await expect(page.getByTestId("my-requests")).toContainText("Na čekanju");
+
+  await page.getByRole("button", { name: "Zaboravio sam prijavu – dodaj" }).click();
+  sheet = page.getByRole("dialog");
+  await sheet.getByLabel("Dolazak").fill(`${yesterday}T05:00`);
+  await sheet.getByLabel("Odlazak").fill(`${yesterday}T05:30`);
+  await sheet.getByLabel("Razlog ispravke").fill("E2E ispravka");
+  await sheet.getByRole("button", { name: "Pošalji" }).click();
+  await expect(page.getByText("Zahtjev za ispravku je poslan.")).toBeVisible();
+
+  const managerContext = await browser.newContext();
+  const manager = await managerContext.newPage();
+  await login(manager, demoUser("head_of_production"), DEMO_ORG.slug);
+  await expectPath(manager, "/dashboard");
+  await manager.goto("/attendance/requests");
+  await expect(manager.getByRole("heading", { name: "Odsustva i zahtjevi" })).toBeVisible();
+  // Reject every E2E request (also ones left by an interrupted earlier run).
+  for (const testId of ["pending-absence", "pending-correction"]) {
+    const items = manager
+      .getByTestId(testId)
+      .filter({ hasText: "Omer Operater" })
+      .filter({ hasText: /E2E/ });
+    await expect(items.first()).toBeVisible();
+    for (let count = await items.count(); count > 0; count -= 1) {
+      const item = items.first();
+      await item.getByLabel("Napomena (obavezna kod odbijanja)").fill("E2E odbijeno");
+      await item.getByRole("button", { name: "Odbij" }).click();
+      await expect(items).toHaveCount(count - 1);
+    }
+  }
+  await expect(manager.getByTestId("leave-row").first()).toBeVisible();
+  await managerContext.close();
+
+  await page.reload();
+  await expect(page.getByTestId("my-requests")).toContainText("Odbijeno");
+  await expect(page.getByTestId("my-requests")).toContainText("Odgovor: E2E odbijeno");
 });

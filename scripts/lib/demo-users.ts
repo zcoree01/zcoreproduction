@@ -12,6 +12,7 @@ export const DEMO_USERS = [
   { username: "skladiste", fullName: "Selma Skladište", role: "warehouse" },
   { username: "operater", fullName: "Omer Operater", role: "operator" },
   { username: "kontrolor", fullName: "Kenan Kontrolor", role: "quality_inspector" },
+  { username: "kadrovska", fullName: "Hana Kadrovska", role: "hr" },
 ] as const;
 
 export function demoPassword(env: NodeJS.ProcessEnv = process.env): string {

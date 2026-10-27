@@ -22,7 +22,8 @@
     "head_of_production": "Šef proizvodnje",
     "warehouse": "Skladištar",
     "operator": "Operater",
-    "quality_inspector": "Kontrolor"
+    "quality_inspector": "Kontrolor",
+    "hr": "Kadrovska"
   },
   "auth": {
     "login": {
@@ -75,7 +76,8 @@
     "shiftSettings": "Smjene i radno vrijeme",
     "floorAttendance": "Dolazak",
     "schedule": "Raspored",
-    "crews": "Ekipe i rotacije"
+    "crews": "Ekipe i rotacije",
+    "absences": "Odsustva i zahtjevi"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -2082,6 +2084,16 @@
     "attendanceToast": {
       "auto_clock_out": "{name}: zaboravljena odjava. Provjerite s radnikom.",
       "auto_clock_in": "{name}: počeo rad bez prijave dolaska."
+    },
+    "approvalsTitle": "Zahtjevi za odobrenje",
+    "approvalToast": "Novi zahtjev: {name}",
+    "approvalKinds": {
+      "vacation": "Godišnji odmor",
+      "sick": "Bolovanje",
+      "paid_leave": "Plaćeno odsustvo",
+      "unpaid_leave": "Neplaćeno odsustvo",
+      "day_off": "Slobodan dan",
+      "correction": "Ispravka prisustva"
     }
   },
   "productionDay": {
@@ -2254,6 +2266,32 @@
         "denied": "Nemate dozvolu za podešavanje smjena.",
         "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
       }
+    },
+    "leave": {
+      "title": "Godišnji odmor",
+      "description": "Pravila za broj dana godišnjeg odmora. Datum zaposlenja i raniji staž radnika unosi kadrovska u „Odsustva i zahtjevi“.",
+      "fields": {
+        "leaveBaseDays": "Osnovni broj dana",
+        "leaveExtraDays": "Dodatni dani za staž",
+        "leaveExtraEveryYears": "Na svakih (godina staža)",
+        "leaveMaxDays": "Najviše dana",
+        "leaveProbationMonths": "Prvih mjeseci rada"
+      },
+      "hints": {
+        "leaveBaseDays": "Po Zakonu o radu FBiH najmanje 20 radnih dana.",
+        "leaveExtraDays": "Koliko dana se dodaje za staž.",
+        "leaveExtraEveryYears": "Npr. 5 = jedan dan više na svakih 5 godina staža (0 = bez dodatka).",
+        "leaveMaxDays": "Gornja granica (Zakon: najviše 30 radnih dana).",
+        "leaveProbationMonths": "Dok radnik ne odradi ovoliko mjeseci, ima 1 dan za svaki puni mjesec rada."
+      },
+      "save": "Spremi pravila godišnjeg",
+      "saving": "Spremam…",
+      "savedToast": "Pravila godišnjeg odmora su spremljena.",
+      "errors": {
+        "invalid": "Neispravan unos.",
+        "denied": "Nemate dozvolu za podešavanje.",
+        "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
+      }
     }
   },
   "attendance": {
@@ -2291,7 +2329,9 @@
       "not_clocked_in": "Dolazak nije prijavljen, pa nema odjave."
     },
     "scheduleTitle": "Moj raspored",
-    "scheduleEmpty": "Za narednih 14 dana još nema rasporeda."
+    "scheduleEmpty": "Za narednih 14 dana još nema rasporeda.",
+    "recentTitle": "Evidencija (zadnjih 7 dana)",
+    "recentEmpty": "Nema evidencije u zadnjih 7 dana."
   },
   "attendanceBoard": {
     "title": "Prisustvo",
@@ -2306,7 +2346,8 @@
       "absent": "Nije došao",
       "expected": "Očekuje se",
       "left": "Otišao",
-      "off": "Slobodan / bez rasporeda"
+      "off": "Slobodan / bez rasporeda",
+      "on_leave": "Na odsustvu"
     },
     "alertsTitle": "Za provjeru",
     "alertsDescription": "Automatske odjave i prijave. Provjerite usmeno s radnikom pa označite kao provjereno.",
@@ -2323,7 +2364,8 @@
       "out": "Odlazak",
       "present": "U firmi",
       "regular": "Radni sati",
-      "overtime": "Prekovremeno"
+      "overtime": "Prekovremeno",
+      "actions": "Radnje"
     },
     "minutes": "{minutes} min",
     "arrivedLate": "kasnio {minutes} min",
@@ -2595,6 +2637,146 @@
       "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
       "offline": "Nema veze sa serverom. Pokušajte ponovo.",
       "duplicate_name": "Već postoji s tim nazivom."
+    }
+  },
+  "absences": {
+    "title": "Odsustva i zahtjevi",
+    "description": "Zahtjevi za godišnji, bolovanje i ispravke, odsustva po mjesecima i stanje godišnjih odmora.",
+    "deniedDescription": "Za pregled odsustava potrebna je dozvola za odsustva.",
+    "kinds": {
+      "vacation": "Godišnji odmor",
+      "sick": "Bolovanje",
+      "paid_leave": "Plaćeno odsustvo",
+      "unpaid_leave": "Neplaćeno odsustvo",
+      "day_off": "Slobodan dan"
+    },
+    "statuses": {
+      "requested": "Na čekanju",
+      "approved": "Odobreno",
+      "rejected": "Odbijeno",
+      "cancelled": "Povučeno"
+    },
+    "pendingTitle": "Čeka vašu odluku",
+    "pendingEmptyTitle": "Nema zahtjeva",
+    "pendingEmptyDescription": "Svi zahtjevi su riješeni.",
+    "monthTitle": "Odsustva u mjesecu",
+    "month": "Mjesec",
+    "show": "Prikaži",
+    "thisMonth": "Ovaj mjesec",
+    "monthEmptyTitle": "Nema odsustava",
+    "monthEmptyDescription": "U ovom mjesecu nema odobrenih ni zatraženih odsustava.",
+    "leaveTitle": "Godišnji odmori {year}",
+    "leaveDescription": "Pravo se računa iz pravila firme, datuma zaposlenja i ranijeg staža. Iskorišteni dani su radni dani (pon–pet) odobrenog godišnjeg.",
+    "overrideNote": "* ručno postavljeno pravo za tu godinu",
+    "columns": {
+      "employee": "Radnik",
+      "kind": "Vrsta",
+      "period": "Period",
+      "days": "Radnih dana",
+      "status": "Status",
+      "note": "Napomena",
+      "actions": "Radnje",
+      "hiredOn": "Zaposlen od",
+      "entitlement": "Pravo",
+      "carried": "Preneseno",
+      "used": "Iskorišteno",
+      "pending": "Na čekanju",
+      "available": "Preostalo"
+    },
+    "workingDays": "{count, plural, one {# radni dan} few {# radna dana} other {# radnih dana}}",
+    "reasonLabel": "Razlog: {reason}",
+    "document": "Doznaka",
+    "openDocument": "Otvori doznaku",
+    "documentAttached": "doznaka priložena",
+    "cancel": "Otkaži",
+    "approve": "Odobri",
+    "reject": "Odbij",
+    "decisionPlaceholder": "Napomena (obavezna kod odbijanja)",
+    "decisionNote": "Odgovor: {note}",
+    "approvedToast": "Zahtjev je odobren.",
+    "rejectedToast": "Zahtjev je odbijen.",
+    "cancelledToast": "Povučeno.",
+    "enterAbsence": "Unesi odsustvo",
+    "enterDescription": "Odsustvo drugog radnika je odmah odobreno. Vaše vlastito odsustvo odobrava admin ili direktor.",
+    "enteredToast": "Odsustvo je uneseno.",
+    "choose": "Izaberite…",
+    "save": "Spremi",
+    "send": "Pošalji",
+    "sending": "Šaljem…",
+    "editLeave": "Godišnji: {name}",
+    "editLeaveDescription": "Podaci za obračun godišnjeg odmora za {year}.",
+    "leaveSavedToast": "Podaci o godišnjem za {name} su spremljeni.",
+    "priorHint": "Staž prije ove firme, u mjesecima (za dodatne dane).",
+    "overrideHint": "Prazno = računa se po pravilima.",
+    "correction": "Ispravka prisustva",
+    "correctionChange": "{from} → {to}",
+    "correctionAdd": "Dodati: {to}",
+    "correctFor": "Ispravi prisustvo: {name}",
+    "correctDescription": "Ispravka drugog radnika se odmah primjenjuje; originalni zapis ostaje sačuvan. Vaše vlastito prisustvo odobrava admin ili direktor.",
+    "correctHint": "Razlog je obavezan i ostaje u historiji.",
+    "correctionSavedToast": "Prisustvo radnika {name} je ispravljeno.",
+    "newSession": "Novi zapis (zaboravljeni dolazak)",
+    "balanceTitle": "Godišnji odmor {year}",
+    "entitlement": "Pravo",
+    "used": "Iskorišteno",
+    "available": "Preostalo",
+    "balanceNote": "Uključeno preneseno: {carried} dana · na čekanju: {pending} dana",
+    "requestLeave": "Zatraži odsustvo",
+    "reportSick": "Prijavi bolovanje",
+    "myRequestsTitle": "Moji zahtjevi",
+    "myRequestsEmpty": "Nemate zahtjeva.",
+    "withdraw": "Povuci zahtjev",
+    "sickTitle": "Prijava bolovanja",
+    "sickDescription": "Pošaljite prijavu i fotografiju doznake; ne morate dolaziti u firmu dok ste bolesni. Razlog vide samo direktor i kadrovska.",
+    "leaveRequestTitle": "Zahtjev za odsustvo",
+    "leaveRequestDescription": "Godišnji odmor, plaćeno ili neplaćeno odsustvo ili slobodan dan. Odobrava šef proizvodnje.",
+    "leaveSentToast": "Zahtjev je poslan.",
+    "sickSentToast": "Bolovanje je prijavljeno.",
+    "fields": {
+      "kind": "Vrsta",
+      "startDate": "Od",
+      "endDate": "Do",
+      "note": "Napomena (vidi šef)",
+      "reason": "Razlog bolovanja (opcionalno)",
+      "document": "Fotografija doznake",
+      "employee": "Radnik",
+      "clockIn": "Dolazak",
+      "clockOut": "Odlazak",
+      "correctionReason": "Razlog ispravke",
+      "session": "Zapis",
+      "hiredOn": "Datum zaposlenja",
+      "priorServiceMonths": "Raniji staž (mjeseci)",
+      "carriedOverDays": "Preneseno iz prošle godine (dana)",
+      "entitlementOverride": "Ručno pravo za godinu (dana)"
+    },
+    "reasonHint": "Vide samo vi, direktor i kadrovska.",
+    "takePhoto": "Fotografiši ili izaberi doznaku",
+    "documentHint": "Slika ili PDF, do 10 MB. Možete je dodati i kasnije.",
+    "fixSession": "Zatraži ispravku",
+    "addMissing": "Zaboravio sam prijavu – dodaj",
+    "correctionTitle": "Zahtjev za ispravku",
+    "addMissingTitle": "Zaboravljena prijava dolaska",
+    "correctionDescription": "Upišite tačno vrijeme dolaska i odlaska i razlog. Ispravku odobrava šef; originalni zapis ostaje sačuvan.",
+    "correctionSentToast": "Zahtjev za ispravku je poslan.",
+    "errors": {
+      "invalid": "Neispravan unos.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "not_found": "Zahtjev više ne postoji.",
+      "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo.",
+      "offline": "Nema veze sa serverom. Pokušajte ponovo; neće se poslati dvaput.",
+      "upload_failed": "Slanje doznake nije uspjelo. Pokušajte ponovo.",
+      "document_invalid": "Doznaka mora biti slika ili PDF do 10 MB.",
+      "document_hidden": "Doznaku ne možete otvoriti.",
+      "not_an_employee": "Vaš korisnički račun nije povezan s profilom radnika.",
+      "absence_overlaps": "Za te dane već postoji odsustvo ili zahtjev.",
+      "invalid_period": "Provjerite datume / vremena.",
+      "already_decided": "O zahtjevu je već odlučeno.",
+      "reject_note_required": "Kod odbijanja upišite napomenu.",
+      "correction_in_future": "Ispravka ne može biti u budućnosti.",
+      "correction_overlaps": "Novo vrijeme se preklapa s drugim zapisom tog radnika.",
+      "correction_pending": "Za ovaj zapis već postoji zahtjev za ispravku.",
+      "reason_required": "Upišite razlog.",
+      "session_changed": "Zapis je u međuvremenu promijenjen. Osvježite stranicu."
     }
   }
 }

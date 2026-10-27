@@ -28,7 +28,8 @@ export type NavLabelKey =
   | "shiftSettings"
   | "floorAttendance"
   | "schedule"
-  | "crews";
+  | "crews"
+  | "absences";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -140,6 +141,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "users",
     module: "attendance",
     permission: "attendance.read",
+    surface: "app",
+    section: "production",
+  },
+  {
+    id: "absences",
+    href: "/attendance/requests",
+    label: "absences",
+    icon: "calendar",
+    module: "attendance",
+    permission: ["absences.read", "attendance.manage"],
     surface: "app",
     section: "production",
   },

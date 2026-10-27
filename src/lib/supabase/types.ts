@@ -39,6 +39,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      absence_details: {
+        Row: {
+          absence_id: string
+          document_name: string | null
+          document_path: string | null
+          document_size: number | null
+          document_type: string | null
+          organization_id: string
+          reason: string | null
+        }
+        Insert: {
+          absence_id: string
+          document_name?: string | null
+          document_path?: string | null
+          document_size?: number | null
+          document_type?: string | null
+          organization_id: string
+          reason?: string | null
+        }
+        Update: {
+          absence_id?: string
+          document_name?: string | null
+          document_path?: string | null
+          document_size?: number | null
+          document_type?: string | null
+          organization_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_details_organization_id_absence_id_fkey"
+            columns: ["organization_id", "absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      absences: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          employee_id: string
+          end_date: string
+          id: string
+          idempotency_key: string | null
+          kind: string
+          note: string | null
+          organization_id: string
+          requested_at: string
+          requested_by: string | null
+          start_date: string
+          status: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id: string
+          end_date: string
+          id?: string
+          idempotency_key?: string | null
+          kind: string
+          note?: string | null
+          organization_id: string
+          requested_at?: string
+          requested_by?: string | null
+          start_date: string
+          status: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          idempotency_key?: string | null
+          kind?: string
+          note?: string | null
+          organization_id?: string
+          requested_at?: string
+          requested_by?: string | null
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absences_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "absences_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       attendance_alerts: {
         Row: {
           created_at: string
@@ -90,6 +194,89 @@ export type Database = {
           },
           {
             foreignKeyName: "attendance_alerts_organization_id_session_id_fkey"
+            columns: ["organization_id", "session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      attendance_corrections: {
+        Row: {
+          clock_in_at: string
+          clock_out_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          employee_id: string
+          id: string
+          idempotency_key: string | null
+          new_session_id: string | null
+          organization_id: string
+          reason: string
+          requested_at: string
+          requested_by: string | null
+          session_id: string | null
+          status: string
+        }
+        Insert: {
+          clock_in_at: string
+          clock_out_at: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id: string
+          id?: string
+          idempotency_key?: string | null
+          new_session_id?: string | null
+          organization_id: string
+          reason: string
+          requested_at?: string
+          requested_by?: string | null
+          session_id?: string | null
+          status: string
+        }
+        Update: {
+          clock_in_at?: string
+          clock_out_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id?: string
+          id?: string
+          idempotency_key?: string | null
+          new_session_id?: string | null
+          organization_id?: string
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          session_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_corrections_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "attendance_corrections_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "attendance_corrections_organization_id_new_session_id_fkey"
+            columns: ["organization_id", "new_session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "attendance_corrections_organization_id_session_id_fkey"
             columns: ["organization_id", "session_id"]
             isOneToOne: false
             referencedRelation: "attendance_sessions"
@@ -188,6 +375,11 @@ export type Database = {
           auto_close_after_hours: number
           early_window_min: number
           late_tolerance_min: number
+          leave_base_days: number
+          leave_extra_days: number
+          leave_extra_every_years: number
+          leave_max_days: number
+          leave_probation_months: number
           operation_without_clock_in: string
           organization_id: string
           updated_at: string
@@ -197,6 +389,11 @@ export type Database = {
           auto_close_after_hours?: number
           early_window_min?: number
           late_tolerance_min?: number
+          leave_base_days?: number
+          leave_extra_days?: number
+          leave_extra_every_years?: number
+          leave_max_days?: number
+          leave_probation_months?: number
           operation_without_clock_in?: string
           organization_id: string
           updated_at?: string
@@ -206,6 +403,11 @@ export type Database = {
           auto_close_after_hours?: number
           early_window_min?: number
           late_tolerance_min?: number
+          leave_base_days?: number
+          leave_extra_days?: number
+          leave_extra_every_years?: number
+          leave_max_days?: number
+          leave_probation_months?: number
           operation_without_clock_in?: string
           organization_id?: string
           updated_at?: string
@@ -364,6 +566,48 @@ export type Database = {
           },
         ]
       }
+      employee_leave_years: {
+        Row: {
+          carried_over_days: number
+          employee_id: string
+          entitlement_override: number | null
+          organization_id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          carried_over_days?: number
+          employee_id: string
+          entitlement_override?: number | null
+          organization_id: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          carried_over_days?: number
+          employee_id?: string
+          entitlement_override?: number | null
+          organization_id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_leave_years_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_leave_years_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       employee_machines: {
         Row: {
           created_at: string
@@ -469,6 +713,45 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_items"
             referencedColumns: ["organization_id", "kind", "id"]
+          },
+        ]
+      }
+      employee_work_info: {
+        Row: {
+          employee_id: string
+          hired_on: string | null
+          organization_id: string
+          prior_service_months: number
+          updated_at: string
+        }
+        Insert: {
+          employee_id: string
+          hired_on?: string | null
+          organization_id: string
+          prior_service_months?: number
+          updated_at?: string
+        }
+        Update: {
+          employee_id?: string
+          hired_on?: string | null
+          organization_id?: string
+          prior_service_months?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_work_info_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_work_info_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
           },
         ]
       }
@@ -2986,6 +3269,10 @@ export type Database = {
       }
     }
     Functions: {
+      absences_range: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: Json
+      }
       add_order_operation: {
         Args: { p_operation: Json; p_order_id: string }
         Returns: string
@@ -3015,6 +3302,16 @@ export type Database = {
         }
         Returns: string
       }
+      attach_absence_document: {
+        Args: {
+          p_absence_id: string
+          p_name: string
+          p_path: string
+          p_size: number
+          p_type: string
+        }
+        Returns: undefined
+      }
       attendance_board: {
         Args: { p_date: string; p_org_id: string }
         Returns: Json
@@ -3028,6 +3325,14 @@ export type Database = {
           shift_id: string
           work_date: string
         }[]
+      }
+      cancel_absence: {
+        Args: { p_absence_id: string; p_note?: string }
+        Returns: undefined
+      }
+      cancel_correction: {
+        Args: { p_correction_id: string }
+        Returns: undefined
       }
       clock_in: {
         Args: { p_idempotency_key: string; p_org_id: string }
@@ -3075,6 +3380,14 @@ export type Database = {
         Args: { p_order: Json; p_org_id: string }
         Returns: string
       }
+      decide_absence: {
+        Args: { p_absence_id: string; p_approve: boolean; p_note?: string }
+        Returns: undefined
+      }
+      decide_correction: {
+        Args: { p_approve: boolean; p_correction_id: string; p_note?: string }
+        Returns: undefined
+      }
       decide_order_close: {
         Args: { p_approve: boolean; p_note?: string; p_request_id: string }
         Returns: undefined
@@ -3082,6 +3395,31 @@ export type Database = {
       end_rotation_assignment: {
         Args: { p_assignment_id: string; p_end_date: string }
         Returns: undefined
+      }
+      enter_absence: {
+        Args: {
+          p_employee_id: string
+          p_end: string
+          p_idempotency_key: string
+          p_kind: string
+          p_note: string
+          p_org_id: string
+          p_reason: string
+          p_start: string
+        }
+        Returns: string
+      }
+      enter_correction: {
+        Args: {
+          p_clock_in_at: string
+          p_clock_out_at: string
+          p_employee_id: string
+          p_idempotency_key: string
+          p_org_id: string
+          p_reason: string
+          p_session_id: string
+        }
+        Returns: string
       }
       finish_cutting: {
         Args: {
@@ -3139,10 +3477,15 @@ export type Database = {
         Returns: boolean
       }
       is_session_active: { Args: never; Returns: boolean }
+      leave_overview: {
+        Args: { p_org_id: string; p_year: number }
+        Returns: Json
+      }
       my_attendance: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
       }
+      my_requests: { Args: { p_org_id: string; p_year: number }; Returns: Json }
       my_schedule: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: {
@@ -3190,6 +3533,7 @@ export type Database = {
           unit: string
         }[]
       }
+      pending_requests: { Args: { p_org_id: string }; Returns: Json }
       product_history: {
         Args: { p_limit?: number; p_product_id: string }
         Returns: {
@@ -3343,6 +3687,29 @@ export type Database = {
         }
         Returns: Json
       }
+      request_absence: {
+        Args: {
+          p_end: string
+          p_idempotency_key: string
+          p_kind: string
+          p_note: string
+          p_org_id: string
+          p_reason: string
+          p_start: string
+        }
+        Returns: string
+      }
+      request_correction: {
+        Args: {
+          p_clock_in_at: string
+          p_clock_out_at: string
+          p_idempotency_key: string
+          p_org_id: string
+          p_reason: string
+          p_session_id: string
+        }
+        Returns: string
+      }
       request_order_close: {
         Args: { p_order_id: string; p_reason: string }
         Returns: string
@@ -3377,6 +3744,17 @@ export type Database = {
           p_user_id?: string
         }
         Returns: string
+      }
+      save_leave_data: {
+        Args: {
+          p_carried_over_days: number
+          p_employee_id: string
+          p_entitlement_override: number
+          p_hired_on: string
+          p_prior_service_months: number
+          p_year: number
+        }
+        Returns: undefined
       }
       save_product_operation: {
         Args: {

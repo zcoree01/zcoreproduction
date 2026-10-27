@@ -35,6 +35,7 @@ import {
 } from "@/modules/attendance/rules";
 import { LiveRefresh } from "../production/live-refresh";
 import { AlertList } from "./alert-list";
+import { CorrectionEntry } from "./correction-entry";
 
 // The foreman's attendance board for one day: who is in now, who is late or
 // absent, who has left, plus alerts (automatic clock-outs and clock-ins) to
@@ -55,6 +56,7 @@ const STATUS_TONES: Record<BoardStatus, StatusTone> = {
   late: "warning",
   absent: "danger",
   expected: "info",
+  on_leave: "info",
   off: "neutral",
 };
 
@@ -103,6 +105,8 @@ async function AttendanceContent({ searchParams }: { searchParams: Promise<Searc
   const counts = boardCounts(rows);
   const shown = showOff ? rows : rows.filter((row) => row.status !== "off");
   const time = (iso: string) => utcToZonedLocal(iso, timeZone).slice(11);
+  const local = (iso: string) => utcToZonedLocal(iso, timeZone);
+  const canCorrect = access.permissions.has("attendance.manage");
 
   return (
     <>
@@ -128,12 +132,14 @@ async function AttendanceContent({ searchParams }: { searchParams: Promise<Searc
         ) : null}
       </form>
 
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        {(["present", "late", "absent", "expected", "left", "off"] as const).map((status) => (
-          <Stat key={status} label={t(`status.${status}`)}>
-            {counts[status]}
-          </Stat>
-        ))}
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        {(["present", "late", "absent", "expected", "left", "on_leave", "off"] as const).map(
+          (status) => (
+            <Stat key={status} label={t(`status.${status}`)}>
+              {counts[status]}
+            </Stat>
+          ),
+        )}
       </dl>
 
       {alerts.length > 0 ? (
@@ -181,6 +187,11 @@ async function AttendanceContent({ searchParams }: { searchParams: Promise<Searc
                   <TableHead className="text-right">{t("columns.present")}</TableHead>
                   <TableHead className="text-right">{t("columns.regular")}</TableHead>
                   <TableHead className="text-right">{t("columns.overtime")}</TableHead>
+                  {canCorrect ? (
+                    <TableHead>
+                      <span className="sr-only">{t("columns.actions")}</span>
+                    </TableHead>
+                  ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -247,6 +258,23 @@ async function AttendanceContent({ searchParams }: { searchParams: Promise<Searc
                       <TableCell className="text-right tabular-nums">
                         {row.sessions.length > 0 ? formatMinutes(sum("overtimeMinutes")) : "—"}
                       </TableCell>
+                      {canCorrect ? (
+                        <TableCell>
+                          <CorrectionEntry
+                            employeeId={row.id}
+                            employeeName={row.name}
+                            defaultDay={date}
+                            sessions={row.sessions.map((session) => ({
+                              id: session.id,
+                              clockIn: local(session.clockInAt),
+                              clockOut: session.clockOutAt ? local(session.clockOutAt) : null,
+                              label: `${time(session.clockInAt)} – ${
+                                session.clockOutAt ? time(session.clockOutAt) : t("stillIn")
+                              }`,
+                            }))}
+                          />
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   );
                 })}

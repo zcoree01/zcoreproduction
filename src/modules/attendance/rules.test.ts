@@ -287,6 +287,17 @@ describe("board", () => {
     );
   });
 
+  it("shows an approved absence instead of absent", () => {
+    const t = new Date(at("2026-10-26T09:00"));
+    expect(boardRow(employee({ scheduled, absence: "vacation" }), rules, t).status).toBe(
+      "on_leave",
+    );
+    // Clocked in anyway: present wins.
+    expect(
+      boardRow(employee({ scheduled, absence: "vacation", sessions: [today] }), rules, t).status,
+    ).toBe("present");
+  });
+
   it("marks arrivals after the tolerance as late", () => {
     const t = new Date(at("2026-10-26T07:00"));
     expect(boardRow(employee({ sessions: [today] }), rules, t).arrivedLate).toBe(false);

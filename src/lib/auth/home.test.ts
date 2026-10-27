@@ -12,6 +12,7 @@ describe("homePathFor", () => {
       warehouse: "/dashboard",
       operator: "/floor",
       quality_inspector: "/dashboard",
+      hr: "/dashboard",
     });
   });
 

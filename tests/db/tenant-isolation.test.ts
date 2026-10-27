@@ -245,13 +245,14 @@ describe("integrity guarantees", () => {
     );
   });
 
-  it("every organization has the six system roles", async () => {
+  it("every organization has the seven system roles", async () => {
     const { data } = await fx.a.admin.from("roles").select("key").eq("is_system", true);
     expect((data ?? []).map((r) => r.key).sort()).toEqual(
       [
         "admin",
         "director",
         "head_of_production",
+        "hr",
         "operator",
         "quality_inspector",
         "warehouse",

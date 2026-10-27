@@ -16,6 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDecimal } from "@/lib/decimal";
+import { pendingRequestsAction } from "@/modules/attendance/absence-actions";
+import type { PendingRequests } from "@/modules/attendance/absence-queries";
 import { pendingAttendanceAlertsAction } from "@/modules/attendance/actions";
 import type { AttendanceAlert } from "@/modules/attendance/queries";
 import { pendingCloseRequestsAction } from "@/modules/production-reporting/actions";
@@ -25,20 +27,25 @@ const POLL_MS = 30_000;
 
 /**
  * Notification bell: requests to close an order with a shortage (approvers)
- * and attendance alerts (automatic clock-out / clock-in, attendance.manage).
+ * attendance alerts (automatic clock-out / clock-in, attendance.manage) and
+ * leave / sick-leave / correction requests waiting for the caller's decision.
  * Refreshed every 30 s, on navigation and when the window gets focus; a new
  * item also shows a toast with a link.
  */
 export function CloseRequestBell({
   initial,
   initialAlerts,
+  initialApprovals,
   closes,
   attendance,
+  approvals: approver,
 }: {
   initial: PendingCloseRequest[];
   initialAlerts: AttendanceAlert[];
+  initialApprovals: PendingRequests;
   closes: boolean;
   attendance: boolean;
+  approvals: boolean;
 }) {
   const t = useTranslations("notifications");
   const tUnits = useTranslations("productUnits");
@@ -46,12 +53,24 @@ export function CloseRequestBell({
   const router = useRouter();
   const [requests, setRequests] = useState(initial);
   const [alerts, setAlerts] = useState(initialAlerts);
+  const [approvals, setApprovals] = useState(initialApprovals);
   const seen = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     let active = true;
-    const announce = (list: PendingCloseRequest[], alertList: AttendanceAlert[]) => {
+    const announce = (
+      list: PendingCloseRequest[],
+      alertList: AttendanceAlert[],
+      approvalList: PendingRequests,
+    ) => {
       const known = seen.current ?? new Set<string>();
+      for (const item of [...approvalList.absences, ...approvalList.corrections]) {
+        if (known.has(item.id)) continue;
+        toast.info(t("approvalToast", { name: item.employeeName }), {
+          id: item.id,
+          action: { label: t("open"), onClick: () => router.push("/attendance/requests") },
+        });
+      }
       for (const alert of alertList) {
         if (known.has(alert.id)) continue;
         toast.warning(t(`attendanceToast.${alert.kind}`, { name: alert.employeeName }), {
@@ -72,23 +91,27 @@ export function CloseRequestBell({
       seen.current = new Set([
         ...list.map((request) => request.requestId),
         ...alertList.map((alert) => alert.id),
+        ...approvalList.absences.map((item) => item.id),
+        ...approvalList.corrections.map((item) => item.id),
       ]);
     };
     const refresh = async () => {
       try {
-        const [list, alertList] = await Promise.all([
+        const [list, alertList, approvalList] = await Promise.all([
           closes ? pendingCloseRequestsAction() : Promise.resolve([]),
           attendance ? pendingAttendanceAlertsAction() : Promise.resolve([]),
+          approver ? pendingRequestsAction() : Promise.resolve({ absences: [], corrections: [] }),
         ]);
         if (!active) return;
         setRequests(list);
         setAlerts(alertList);
-        announce(list, alertList);
+        setApprovals(approvalList);
+        announce(list, alertList, approvalList);
       } catch {
         // Offline or signed out: keep the last list; the next poll retries.
       }
     };
-    if (seen.current === null) announce(initial, initialAlerts);
+    if (seen.current === null) announce(initial, initialAlerts, initialApprovals);
     void refresh();
     const timer = window.setInterval(refresh, POLL_MS);
     window.addEventListener("focus", refresh);
@@ -97,9 +120,21 @@ export function CloseRequestBell({
       window.clearInterval(timer);
       window.removeEventListener("focus", refresh);
     };
-  }, [pathname, initial, initialAlerts, closes, attendance, router, t]);
+  }, [pathname, initial, initialAlerts, initialApprovals, closes, attendance, approver, router, t]);
 
-  const count = requests.length + alerts.length;
+  const approvalItems = [
+    ...approvals.absences.map((item) => ({
+      id: item.id,
+      name: item.employeeName,
+      label: t(`approvalKinds.${item.kind}`),
+    })),
+    ...approvals.corrections.map((item) => ({
+      id: item.id,
+      name: item.employeeName,
+      label: t("approvalKinds.correction"),
+    })),
+  ];
+  const count = requests.length + alerts.length + approvalItems.length;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -125,6 +160,21 @@ export function CloseRequestBell({
           <DropdownMenuGroup>
             <DropdownMenuLabel>{t("label")}</DropdownMenuLabel>
             <p className="px-2 py-3 text-sm text-muted-foreground">{t("empty")}</p>
+          </DropdownMenuGroup>
+        ) : null}
+        {approvalItems.length > 0 ? (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{t("approvalsTitle")}</DropdownMenuLabel>
+            {approvalItems.map((item) => (
+              <DropdownMenuItem
+                key={item.id}
+                render={<Link href="/attendance/requests" />}
+                className="flex flex-col items-start gap-0.5"
+              >
+                <span className="font-medium">{item.name}</span>
+                <span className="text-xs text-muted-foreground">{item.label}</span>
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuGroup>
         ) : null}
         {alerts.length > 0 ? (

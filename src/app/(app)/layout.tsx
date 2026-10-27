@@ -11,6 +11,7 @@ import { CHANGE_PASSWORD_PATH } from "@/lib/auth/route-guard";
 import { isSystemRoleKey } from "@/lib/auth/roles";
 import { requireMember } from "@/lib/auth/session";
 import { getNavigation } from "@/lib/navigation/server";
+import { listPendingRequests } from "@/modules/attendance/absence-queries";
 import { listAttendanceAlerts } from "@/modules/attendance/queries";
 import { listPendingCloseRequests } from "@/modules/production-reporting/queries";
 import { AppSidebar } from "./app-sidebar";
@@ -47,15 +48,22 @@ async function AppShell({ children }: { children: ReactNode }) {
     cookies(),
     getMemberAccess(member),
   ]);
-  // Notification bell: requests to close with a shortage (approvers) and
-  // attendance alerts (attendance.manage).
+  // Notification bell: requests to close with a shortage (approvers),
+  // attendance alerts (attendance.manage) and requests to decide (leave,
+  // sick leave, corrections).
   const approver =
     access.modules.has("production") && access.permissions.has("orders.close.approve");
   const attendanceManager =
     access.modules.has("attendance") && access.permissions.has("attendance.manage");
-  const [pendingCloses, attendanceAlerts] = await Promise.all([
+  const decider =
+    access.modules.has("attendance") &&
+    (access.permissions.has("absences.manage") || access.permissions.has("attendance.manage"));
+  const [pendingCloses, attendanceAlerts, approvals] = await Promise.all([
     approver ? listPendingCloseRequests(member.organization.id) : Promise.resolve([]),
     attendanceManager ? listAttendanceAlerts(member.organization.id) : Promise.resolve([]),
+    decider
+      ? listPendingRequests(member.organization.id)
+      : Promise.resolve({ absences: [], corrections: [] }),
   ]);
   const roleLabel = isSystemRoleKey(member.role.key)
     ? t(`roles.${member.role.key}`)
@@ -87,12 +95,14 @@ async function AppShell({ children }: { children: ReactNode }) {
           organizationName={member.organization.name}
           groups={groups}
           actions={
-            approver || attendanceManager ? (
+            approver || attendanceManager || decider ? (
               <CloseRequestBell
                 initial={pendingCloses}
                 initialAlerts={attendanceAlerts}
+                initialApprovals={approvals}
                 closes={approver}
                 attendance={attendanceManager}
+                approvals={decider}
               />
             ) : null
           }

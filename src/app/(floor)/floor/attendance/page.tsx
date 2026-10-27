@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
-import { formatDay } from "@/lib/format";
+import { formatDay, formatLocalDateTime } from "@/lib/format";
 import { utcToZonedLocal, zonedDate } from "@/lib/timezone";
+import { getMyRequests } from "@/modules/attendance/absence-queries";
+import { leaveBalance } from "@/modules/attendance/leave-rules";
 import { getMyAttendance } from "@/modules/attendance/queries";
 import { addDays, dateRange, isoWeekday } from "@/modules/attendance/schedule-rules";
 import { getMySchedule } from "@/modules/attendance/schedule-queries";
@@ -21,6 +23,7 @@ import {
   type AttendanceSession,
 } from "@/modules/attendance/rules";
 import { ClockButton } from "./clock-button";
+import { CorrectionButton, RequestsPanel } from "./requests-panel";
 
 // The worker's attendance on the phone: one big clock-in / clock-out button,
 // today's shift and sessions, and this month's hours. The server records the
@@ -52,12 +55,15 @@ async function FloorAttendanceContent() {
   const now = new Date();
   const today = zonedDate(now, timeZone);
   const month = monthRange(today);
-  const [mine, planned, tSchedule] = await Promise.all([
-    getMyAttendance(member.organization.id, month.from, month.to),
+  const year = Number(today.slice(0, 4));
+  const weekAgo = addDays(today, -7);
+  const [mine, planned, tSchedule, requests] = await Promise.all([
+    getMyAttendance(member.organization.id, weekAgo < month.from ? weekAgo : month.from, month.to),
     getMySchedule(member.organization.id, today, addDays(today, 13)),
     getTranslations("schedule"),
+    getMyRequests(member.organization.id, year),
   ]);
-  if (!mine) {
+  if (!mine || !requests) {
     return (
       <EmptyState
         icon={<UserXIcon />}
@@ -68,11 +74,16 @@ async function FloorAttendanceContent() {
   }
 
   const time = (iso: string) => utcToZonedLocal(iso, timeZone).slice(11);
+  const local = (iso: string) => utcToZonedLocal(iso, timeZone);
   const open = mine.open;
-  const todaySessions = mine.sessions.filter(
-    (session) => session.workDate === today || session.id === open?.id,
+  // The last 7 days, newest first: each closed session can be corrected.
+  const recentSessions = mine.sessions
+    .filter((session) => session.workDate >= weekAgo || session.id === open?.id)
+    .reverse();
+  const totals = totalTime(
+    mine.sessions.filter((session) => session.workDate >= month.from),
+    now,
   );
-  const totals = totalTime(mine.sessions, now);
   const shift = open?.shiftCode
     ? {
         code: open.shiftCode,
@@ -143,18 +154,41 @@ async function FloorAttendanceContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t("todayTitle")}</CardTitle>
+          <CardTitle className="text-base">{t("recentTitle")}</CardTitle>
         </CardHeader>
-        <CardContent>
-          {todaySessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("todayEmpty")}</p>
+        <CardContent className="flex flex-col gap-3">
+          {recentSessions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("recentEmpty")}</p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {todaySessions.map((session) => (
-                <SessionLine key={session.id} session={session} now={now} time={time} t={t} />
+              {recentSessions.map((session) => (
+                <SessionLine
+                  key={session.id}
+                  session={session}
+                  now={now}
+                  time={time}
+                  t={t}
+                  day={session.workDate === today ? null : formatDay(session.workDate)}
+                  correction={
+                    session.clockOutAt ? (
+                      <CorrectionButton
+                        label="fix"
+                        target={{
+                          sessionId: session.id,
+                          clockIn: local(session.clockInAt),
+                          clockOut: local(session.clockOutAt),
+                        }}
+                      />
+                    ) : null
+                  }
+                />
               ))}
             </ul>
           )}
+          <CorrectionButton
+            label="add"
+            target={{ sessionId: null, clockIn: `${today}T06:00`, clockOut: `${today}T14:00` }}
+          />
         </CardContent>
       </Card>
 
@@ -174,6 +208,18 @@ async function FloorAttendanceContent() {
           <p className="mt-3 text-xs text-muted-foreground">{t("monthNote")}</p>
         </CardContent>
       </Card>
+
+      <RequestsPanel
+        today={today}
+        year={year}
+        balance={leaveBalance(year, requests.leave.rules, requests.leave.data)}
+        absences={requests.absences}
+        corrections={requests.corrections.map((correction) => ({
+          ...correction,
+          clockIn: formatLocalDateTime(local(correction.clockInAt)),
+          clockOut: formatLocalDateTime(local(correction.clockOutAt)),
+        }))}
+      />
 
       <Card>
         <CardHeader>
@@ -222,16 +268,22 @@ function SessionLine({
   now,
   time,
   t,
+  day,
+  correction,
 }: {
   session: AttendanceSession;
   now: Date;
   time: (iso: string) => string;
   t: Awaited<ReturnType<typeof getTranslations<"attendance">>>;
+  /** Shown for days other than today. */
+  day: string | null;
+  correction: ReactNode;
 }) {
   const worked = sessionTime(session, now);
   return (
     <li className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
-      <span className="flex items-center gap-2 tabular-nums">
+      <span className="flex flex-wrap items-center gap-2 tabular-nums">
+        {day ? <span className="text-sm text-muted-foreground">{day}</span> : null}
         {session.shiftCode ? (
           <Badge variant="outline" className="font-mono">
             {session.shiftCode}
@@ -244,6 +296,7 @@ function SessionLine({
           <Badge variant="secondary">{t("autoClosed")}</Badge>
         ) : null}
         <span className="font-medium tabular-nums">{formatMinutes(worked.regularMinutes)}</span>
+        {correction}
       </span>
     </li>
   );

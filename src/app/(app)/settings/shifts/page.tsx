@@ -5,8 +5,10 @@ import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
+import { getLeaveRules } from "@/modules/attendance/absence-queries";
 import { getAttendanceRules, listShifts } from "@/modules/attendance/queries";
 import { AttendanceRulesForm } from "./attendance-rules-form";
+import { LeaveRulesForm } from "./leave-rules-form";
 import { ShiftList } from "./shift-list";
 
 export default function ShiftSettingsPage() {
@@ -26,15 +28,17 @@ async function ShiftSettingsContent() {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 
-  const [shifts, rules] = await Promise.all([
+  const [shifts, rules, leaveRules] = await Promise.all([
     listShifts(member.organization.id),
     getAttendanceRules(member.organization.id),
+    getLeaveRules(member.organization.id),
   ]);
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
       <ShiftList items={shifts} />
       <AttendanceRulesForm rules={rules} />
+      <LeaveRulesForm rules={leaveRules} />
     </>
   );
 }
