@@ -36,7 +36,8 @@ export type NavLabelKey =
   | "platformRequests"
   | "platformSettings"
   | "monthly"
-  | "holidays";
+  | "holidays"
+  | "kiosk";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -315,6 +316,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "calendar",
     module: "attendance",
     permission: "shifts.manage",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "kiosk",
+    href: "/settings/kiosk",
+    label: "kiosk",
+    icon: "clock",
+    module: "attendance",
+    permission: "kiosk.manage",
     surface: "app",
     section: "administration",
   },

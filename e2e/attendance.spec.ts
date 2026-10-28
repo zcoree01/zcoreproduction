@@ -51,8 +51,12 @@ test("@mobile operator clocks in and out; the head of production sees the presen
   await expectPath(manager, "/dashboard");
   await manager.goto("/attendance");
   await expect(manager.getByRole("heading", { name: "Prisustvo" })).toBeVisible();
-  // Employee #1 (another employee may share the name).
-  const row = manager.getByTestId("attendance-row").filter({ hasText: /Omer Operater\s*#1 ·/ });
+  // Employee #1 (another employee may share the name); the board refreshes
+  // itself every 30 s, so a re-render can briefly show the row twice.
+  const row = manager
+    .getByTestId("attendance-row")
+    .filter({ hasText: /Omer Operater\s*#1 ·/ })
+    .first();
   await expect(row).toContainText("U firmi");
   await expect(row).toContainText("još u firmi");
   await managerContext.close();
@@ -285,4 +289,62 @@ test("monthly overview, exports, specification, holidays and pay settings by HR"
   await hr.getByRole("button", { name: "Spremi uvećanja" }).click();
   await expect(hr.getByText("Uvećanja i satnica su spremljeni.")).toBeVisible();
   await hrContext.close();
+});
+
+test("@mobile kiosk: activate a tablet with a code, then clock in and out by name and PIN", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const tablet = `E2E tablet ${Date.now().toString(36)}`;
+  await login(page, demoUser("admin"), DEMO_ORG.slug);
+  await expectPath(page, "/dashboard");
+  await page.goto("/settings/kiosk");
+  await expect(page.getByRole("heading", { name: "Kiosk" })).toBeVisible();
+  await page.getByLabel("Naziv tableta (npr. Ulaz hala 1)").fill(tablet);
+  await page.getByRole("button", { name: "Dodaj tablet" }).click();
+  const code = (await page.getByTestId("kiosk-code").textContent())?.trim() ?? "";
+  expect(code).toMatch(/^[A-Z2-9]{8}$/);
+  // Kenan Kontrolor gets the PIN 7305.
+  const kenan = page.getByTestId("credential-row").filter({ hasText: "Kenan Kontrolor" });
+  await kenan.getByRole("button", { name: "PIN", exact: true }).click();
+  await kenan.getByLabel("Novi PIN (4 cifre)").fill("7305");
+  await kenan.getByRole("button", { name: "Spremi" }).click();
+  await expect(page.getByText("PIN je postavljen.")).toBeVisible();
+
+  // The tablet: no user login.
+  const kioskContext = await browser.newContext();
+  const kiosk = await kioskContext.newPage();
+  await kiosk.goto(`/kiosk?org=${DEMO_ORG.slug}`);
+  await expect(kiosk.getByRole("heading", { name: "Aktivacija kioska" })).toBeVisible();
+  await kiosk.getByLabel("Aktivacijski kod").fill(code);
+  await kiosk.getByRole("button", { name: "Aktiviraj tablet" }).click();
+  await expect(kiosk.getByRole("heading", { name: "Prijava dolaska i odlaska" })).toBeVisible();
+
+  const byPin = async () => {
+    await kiosk.getByRole("button", { name: "Prijava imenom i PIN-om" }).click();
+    await kiosk.getByLabel("Traži svoje ime").fill("Kenan");
+    await kiosk.getByRole("button", { name: /Kenan Kontrolor/ }).click();
+    for (const digit of ["7", "3", "0", "5"]) {
+      await kiosk.getByRole("button", { name: digit, exact: true }).click();
+    }
+  };
+  await byPin();
+  const result = kiosk.getByTestId("kiosk-result");
+  const first = (await result.textContent()) ?? "";
+  expect(first).toMatch(/Dobro došli, Kenan Kontrolor|Doviđenja, Kenan Kontrolor/);
+  await kiosk.getByRole("button", { name: "Sljedeći" }).click();
+  await byPin();
+  // The second scan does the opposite of the first.
+  await expect(result).toContainText(
+    first.includes("Dobro došli") ? "Doviđenja, Kenan Kontrolor" : "Dobro došli, Kenan Kontrolor",
+  );
+  await kioskContext.close();
+
+  // Clean up: switch the tablet off.
+  await page.reload();
+  const row = page.getByRole("row").filter({ hasText: tablet });
+  await row.getByRole("button", { name: "Ugasi" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Ugasi" }).click();
+  await expect(page.getByText("Tablet je ugašen.")).toBeVisible();
 });

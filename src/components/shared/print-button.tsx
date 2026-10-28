@@ -3,7 +3,8 @@
 import { PrinterIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function SpecificationPrintButton({ label }: { label: string }) {
+/** Prints the current page (print layouts). */
+export function PrintButton({ label }: { label: string }) {
   return (
     <Button onClick={() => window.print()}>
       <PrinterIcon />

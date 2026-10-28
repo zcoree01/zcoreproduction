@@ -22,6 +22,15 @@ describe("decideRoute", () => {
     });
   });
 
+  it("opens the kiosk tablet page without a user login, but not its subpaths", () => {
+    expect(decideRoute({ path: "/kiosk", signedInHere: false, sessionActive: false })).toEqual({
+      action: "next",
+    });
+    expect(
+      decideRoute({ path: "/kiosk/anything", signedInHere: false, sessionActive: false }),
+    ).toEqual({ action: "redirect", to: "/login" });
+  });
+
   it("signs out a session replaced by a sign-in on another device, on any path", () => {
     for (const path of ["/floor", "/login", "/machines"]) {
       expect(decideRoute({ path, signedInHere: true, sessionActive: false })).toEqual({

@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** nearly done (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs, customers, materials, products/parts and **production orders with operations, assignments and status tracking** are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. **Phase 3 — shop-floor reporting** is implemented (start / pause / finish, good and scrap in parts, inspections by the inspector, automatic completion, closing with a shortage, downtime and tool changes, foreman's day overview). **Shifts and working time** are in progress: part A (shifts, breaks, clock-in / clock-out, forgotten clock-outs, attendance board) part B (crews, rotations, schedule grid; absences, leave, corrections) and part C1 (calculation, holidays, net pay, monthly overview, exports) are done; part C2 (kiosk) and C (overtime / night / holiday calculation, monthly overview, payroll export, kiosk) follow (see "Next step").
+**Phase 1 — Foundation** mostly done; **Phase 2 — Manufacturing foundation** nearly done (see `ZCORE_CONTEXT.md` §14): machines, employees, catalogs, customers, materials, products/parts and **production orders with operations, assignments and status tracking** are implemented. Remaining Phase 1: complete user management, full org settings screen, Vercel deploy. **Phase 3 — shop-floor reporting** is implemented (start / pause / finish, good and scrap in parts, inspections by the inspector, automatic completion, closing with a shortage, downtime and tool changes, foreman's day overview). **Shifts and working time** are in progress: part A (shifts, breaks, clock-in / clock-out, forgotten clock-outs, attendance board) part B (crews, rotations, schedule grid; absences, leave, corrections) part C1 (calculation, holidays, net pay, monthly overview, exports) and part C2 (kiosk) are done; the module is complete and C (overtime / night / holiday calculation, monthly overview, payroll export, kiosk) follow (see "Next step").
 
 ## Implemented
 
@@ -88,6 +88,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - RPCs `save_crew`, `set_crew_archived`, `save_rotation`, `set_rotation_archived`, `assign_rotation`, `end_rotation_assignment`, `apply_rotations` (range ≤ 62 days; manual days stay; own rotation beats the crew's), `set_schedule_entries`, `copy_schedule_week`, `schedule_range`, `my_schedule`.
   - Screens: `/attendance/schedule` "Raspored" (week / month grid, crew filter, click a day → shift or day off, "Primijeni rotacije", "Kopiraj na sljedeću sedmicu", manual days marked), `/attendance/crews` "Ekipe i rotacije" (crews with members, rotations with a day-by-day pattern, assignments with end); the worker sees "Moj raspored" (next 14 days) on `/floor/attendance`.
   - Demo: crews A (Omer Operater) and B (Benjamin Bravar) on "Sedmična izmjena I/II", a week apart, written for six weeks.
+- **Attendance part C2 — kiosk** (`20261028110000_attendance_kiosk`, D-029): permission `kiosk.manage`; `/settings/kiosk` (tablets with one-time activation codes, revoke; workers' PINs and badges), `/settings/kiosk/badges` (printable QR badges), `/kiosk` (public, device cookie: badge via camera QR / NFC / keyboard scanner, or name + PIN; toggles clock-in / out), "Kiosk PIN" on `/floor/attendance`.
 - **Attendance part C1 — calculation, holidays, net pay, monthly overview** (`20261028090000_attendance_payroll`, D-027):
   - Settings: overtime daily / weekly (40 h, warning above 10 h overtime a week), rounding always up (15 min), night 22–06, weekend days; premiums 30 / 30 / 30 / 50 % and the default net hourly rate (director, HR); own rates per employee valid from a date. Permissions `payroll.read`, `payroll.manage`.
   - Holidays: platform list FBiH 2026–2028 copied per organization (Bajram dates to verify), `/settings/holidays` (dates, own holidays, non-working for nobody / everybody / selected employees, import a year).
@@ -179,7 +180,7 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 
 ## Next step
 
-0. **Shifts and working time, part C2:** kiosk (admin activates a tablet with a one-time code; QR / NFC badge or name + 4-digit PIN without an account; printable QR badges). Then: shift filter on the production overview and work hours per day for priorities from the shift plan.
+0. **Shifts and working time — follow-ups:** review with the product owner (verify Bajram dates, the 10 h weekly overtime warning), then: shift filter on the production overview and work hours per day for priorities from the shift plan.
 1. **Complete user management** (`/admin/users`): edit full name and role, deactivate / reactivate (archive membership, with `ConfirmDialog`). Audit entries for every action, server-side `users.manage`, RLS already allows it; unit + e2e tests. (Password reset and forced change on first login are done, D-022.)
 2. **Org settings** (`org.settings.manage`): timezone and other organization-wide settings (company data are done, D-026).
 3. **Deploy:** connect the GitHub repo to Vercel (production from `main`, preview per PR), set env vars there, wildcard subdomain `*.zcore.ba`.
@@ -187,6 +188,11 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 5. **Reports and analytics:** productivity per machine / worker / order over periods (good per hour, actual vs planned time, downtime by reason, scrap by reason), export; builds on sessions, run time, downtime and reports.
 
 ## Log
+
+### 2026-10-28 — Shifts and working time, part C2 (kiosk)
+
+- Kiosk as a device with a one-time code and a cookie, service-role functions behind the device check, badges (QR / NFC) and PINs with lock-out. Migration `20261028110000_attendance_kiosk` (applied; pushed to main early so the other session's permission test stays green), types regenerated, D-029. `/kiosk` added to the proxy's public paths (exact match).
+- Verified: `npm run check` (360; new: badge payloads, weak PINs, device cookie, activation / clock schemas, `/kiosk` public but not its subpaths), `npm run test:db` (206; new: activation needs kiosk.manage, single-use and tenant-bound code, device functions not callable by signed-in users, unknown secret / other tenant refused, badge toggle in / out idempotent with source kiosk, PIN check and 5-attempt lock, revoke, tenant isolation), `npm run e2e` (full run: 5 failures late in the run when the dev server was slow (kiosk desktop, clock-in mobile, orders, production, products), all 25 tests of those files passed when rerun; new: admin activates a tablet, sets a PIN, the tablet clocks Kenan in and out by name and PIN, the tablet is switched off), `npm run build`, `npm run format:check`.
 
 ### 2026-10-28 — Support sessions: dialog, countdown, back to Zcore
 

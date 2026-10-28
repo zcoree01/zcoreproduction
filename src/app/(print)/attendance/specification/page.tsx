@@ -3,13 +3,13 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { z } from "zod";
 import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { PrintButton } from "@/components/shared/print-button";
 import { buttonVariants } from "@/components/ui/button";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { formatDay } from "@/lib/format";
 import { zonedDate } from "@/lib/timezone";
 import { getMonthOverview } from "@/modules/attendance/month-overview";
-import { SpecificationPrintButton } from "./print-button";
 
 // "Specifikacija uz isplatu plaće" (FBiH) for a month, prepared for the
 // accountant: the employer, the period and the number of employees are
@@ -100,7 +100,7 @@ async function SpecificationContent({
         >
           {t("back")}
         </Link>
-        <SpecificationPrintButton label={t("print")} />
+        <PrintButton label={t("print")} />
       </div>
       <p className="rounded border border-amber-500 bg-amber-50 p-2 text-xs print:hidden">
         {t("netNote")}

@@ -15,6 +15,7 @@ import { leaveBalance } from "@/modules/attendance/leave-rules";
 import { effectiveRates, formatMoney, hoursLabel } from "@/modules/attendance/month-rules";
 import { monthTotals } from "@/modules/attendance/pay-rules";
 import { getCalcSettings, getMyPayInputs } from "@/modules/attendance/payroll-queries";
+import { myPinIsSet } from "@/modules/attendance/kiosk-queries";
 import { getMyAttendance } from "@/modules/attendance/queries";
 import { addDays, dateRange, isoWeekday, mondayOf } from "@/modules/attendance/schedule-rules";
 import { getMySchedule } from "@/modules/attendance/schedule-queries";
@@ -26,6 +27,7 @@ import {
   type AttendanceSession,
 } from "@/modules/attendance/rules";
 import { ClockButton } from "./clock-button";
+import { KioskPinCard } from "./kiosk-pin";
 import { CorrectionButton, RequestsPanel } from "./requests-panel";
 
 // The worker's attendance on the phone: one big clock-in / clock-out button,
@@ -62,13 +64,14 @@ async function FloorAttendanceContent() {
   const weekAgo = addDays(today, -7);
   // Weekly overtime needs the whole first week of the month.
   const firstWeek = mondayOf(month.from);
-  const [mine, planned, tSchedule, requests, calc, payInputs] = await Promise.all([
+  const [mine, planned, tSchedule, requests, calc, payInputs, pinSet] = await Promise.all([
     getMyAttendance(member.organization.id, weekAgo < firstWeek ? weekAgo : firstWeek, month.to),
     getMySchedule(member.organization.id, today, addDays(today, 13)),
     getTranslations("schedule"),
     getMyRequests(member.organization.id, year),
     getCalcSettings(member.organization.id),
     getMyPayInputs(member.organization.id, firstWeek, month.to),
+    myPinIsSet(member.organization.id),
   ]);
   if (!mine || !requests) {
     return (
@@ -296,6 +299,7 @@ async function FloorAttendanceContent() {
           )}
         </CardContent>
       </Card>
+      <KioskPinCard pinSet={pinSet} />
     </div>
   );
 }

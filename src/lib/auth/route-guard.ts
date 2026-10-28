@@ -6,7 +6,8 @@
 
 // /support/enter redeems a one-time support token and /support/exit ends a
 // support session (D-026, D-028); /registracija is the public company
-// registration.
+// registration; /kiosk is the attendance tablet, which authenticates with
+// its own device cookie (D-029).
 export const SUPPORT_EXIT_PATH = "/support/exit";
 /** Polled by the support banner; answers without redirects. */
 export const SUPPORT_STATUS_PATH = "/support/status";
@@ -16,6 +17,7 @@ export const PUBLIC_PATHS: ReadonlySet<string> = new Set([
   SUPPORT_EXIT_PATH,
   SUPPORT_STATUS_PATH,
   "/registracija",
+  "/kiosk",
 ]);
 
 export const CHANGE_PASSWORD_PATH = "/change-password";
