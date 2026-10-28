@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { requestHost, resolveTenant, tenantUrl } from "./resolve";
 
 describe("requestHost", () => {
@@ -62,6 +62,29 @@ describe("resolveTenant", () => {
     expect(resolve("127.0.0.1:3000", "demo").slug).toBe("demo");
     expect(resolve("[::1]:3000", "demo").slug).toBe("demo");
     expect(resolve("zcore-git-main.vercel.app", "demo").slug).toBe("demo");
+  });
+
+  it("accepts ?org on local-network IP addresses only in development", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    try {
+      expect(resolve("192.168.1.7:3000", "demo")).toEqual({
+        slug: "demo",
+        source: "query",
+        persist: true,
+      });
+      expect(resolve("10.0.0.5:3000", "demo").slug).toBe("demo");
+      expect(resolve("172.20.1.1:3000", "demo").slug).toBe("demo");
+      expect(resolve("172.40.1.1:3000", "demo").slug).toBeNull();
+      expect(resolve("8.8.8.8", "demo").slug).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      expect(resolve("192.168.1.7:3000", "demo").slug).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("falls back to the remembered cookie on dev hosts", () => {

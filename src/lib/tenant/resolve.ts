@@ -51,20 +51,41 @@ function subdomainSlug(hostname: string, parentDomain: string): string | null {
   return validSlug(label);
 }
 
+/** IPv4 address of a private network (10/8, 172.16/12, 192.168/16). */
+export function isPrivateNetworkHost(hostname: string): boolean {
+  const parts = hostname.split(".").map(Number);
+  if (
+    parts.length !== 4 ||
+    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  ) {
+    return false;
+  }
+  const [a = 0, b = 0] = parts;
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
+
+// The dev server opened from another device on the local network (a phone or
+// the kiosk tablet at http://192.168.x.x:3000) has no tenant subdomain either.
+function developmentLanHost(hostname: string): boolean {
+  return process.env.NODE_ENV === "development" && isPrivateNetworkHost(hostname);
+}
+
 // Hosts where ?org=<slug> may select the tenant (no per-tenant subdomain available).
 function allowsOrgOverride(hostname: string): boolean {
   return (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
     hostname === "[::1]" ||
-    hostname.endsWith(".vercel.app")
+    hostname.endsWith(".vercel.app") ||
+    developmentLanHost(hostname)
   );
 }
 
 /**
- * Tenant = subdomain (`<slug>.zcore.ba`, `<slug>.localhost`). On localhost and
- * Vercel preview hosts, `?org=<slug>` (then the remembered cookie) is used
- * instead. Production hosts never accept ?org. The result only selects which
+ * Tenant = subdomain (`<slug>.zcore.ba`, `<slug>.localhost`). On localhost,
+ * Vercel preview hosts and (development only) local-network IP addresses,
+ * `?org=<slug>` (then the remembered cookie) is used instead. Production hosts
+ * never accept ?org. The result only selects which
  * organization to sign into; access is always enforced by membership + RLS.
  */
 export function resolveTenant(input: {
@@ -102,7 +123,8 @@ export function tenantUrl(input: {
   path: string;
 }): string {
   const hostname = hostnameOf(input.host);
-  const local = hostname === "localhost" || hostname.endsWith(".localhost");
+  const local =
+    hostname === "localhost" || hostname.endsWith(".localhost") || developmentLanHost(hostname);
   const protocol = input.protocol === "http" || input.protocol === "https" ? input.protocol : null;
   const origin = `${protocol ?? (local ? "http" : "https")}://${input.host.trim().toLowerCase()}`;
   const url = new URL(input.path, origin);
