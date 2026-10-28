@@ -45,11 +45,13 @@ async function saveCustomer(
   orgId: string,
   data: Record<string, string>,
   companyId?: string,
+  customerId?: string,
 ) {
   const { data: result, error } = await client.rpc("save_customer", {
     p_org_id: orgId,
     p_customer: data,
     p_company_id: companyId,
+    p_customer_id: customerId,
   });
   if (error) throw error;
   return result as {
@@ -211,7 +213,23 @@ describe("company directory", () => {
     });
     expect(operatorDenied.error?.code).toBe("42501");
 
-    const linked = await saveCustomer(f.b.admin, f.b.org.id, customer("ignored", { tax_id: tax }));
+    // Tenant A's own entry is the same row in every run: B reuses its customer for it.
+    const own = await f.a.admin.rpc("organization_profile", { p_org_id: f.a.org.id });
+    const ownCompanyId = (own.data as { company: { id: string } }).company.id;
+    const previous = await f.b.admin
+      .from("customers")
+      .select("id")
+      .eq("company_id", ownCompanyId)
+      .is("archived_at", null)
+      .limit(1)
+      .maybeSingle();
+    const linked = await saveCustomer(
+      f.b.admin,
+      f.b.org.id,
+      customer("ignored", { tax_id: tax }),
+      undefined,
+      previous.data?.id,
+    );
     const proposal = await f.b.admin.rpc("request_company_change", {
       p_org_id: f.b.org.id,
       p_company_id: linked.company_id ?? "",
@@ -376,7 +394,18 @@ describe("support access", () => {
 
     // Not approved yet: no access at all.
     expect((await support.from("machines").select("id").limit(1)).data).toEqual([]);
-    expect((await support.rpc("session_status").single()).data?.active).toBe(false);
+    // The session exists, but it is reported as ended support (proxy → /support/exit).
+    expect((await support.rpc("session_status").single()).data).toMatchObject({
+      active: true,
+      support_ended: true,
+    });
+    // Approvers see the open request (dialog); others do not.
+    const open = await f.a.admin.rpc("pending_support_requests", { p_org_id: f.a.org.id });
+    expect(open.data?.map((r) => r.id)).toContain(requestId);
+    const notApprover = await f.a.operator.rpc("pending_support_requests", {
+      p_org_id: f.a.org.id,
+    });
+    expect(notApprover.data).toEqual([]);
 
     await f.a.admin.rpc("decide_support_request", {
       p_org_id: f.a.org.id,
@@ -388,7 +417,10 @@ describe("support access", () => {
       .rpc("platform_begin_support", { p_request_id: requestId })
       .single();
     expect(begun.data?.slug).toBe(f.a.org.slug);
-    expect((await support.rpc("session_status").single()).data?.active).toBe(true);
+    expect((await support.rpc("session_status").single()).data).toMatchObject({
+      active: true,
+      support_ended: false,
+    });
     const members = await support
       .from("memberships")
       .select("id")
@@ -401,7 +433,7 @@ describe("support access", () => {
     expect(
       (await support.from("memberships").select("id").eq("organization_id", f.a.org.id)).data,
     ).toEqual([]);
-    expect((await support.rpc("session_status").single()).data?.active).toBe(false);
+    expect((await support.rpc("session_status").single()).data?.support_ended).toBe(true);
     await f.service
       .from("memberships")
       .update({ archived_at: new Date().toISOString() })

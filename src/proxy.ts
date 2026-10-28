@@ -66,6 +66,7 @@ export async function proxy(request: NextRequest) {
     signedInHere,
     sessionActive: status?.active ?? false,
     mustChangePassword: status?.mustChangePassword ?? false,
+    supportEnded: status?.supportEnded ?? false,
   });
 
   let result = response;
@@ -99,9 +100,13 @@ async function sessionStatus(supabase: SupabaseClient<Database>) {
   const { data, error } = await supabase.rpc("session_status").maybeSingle();
   if (error || !data) {
     console.error("session_status failed", error);
-    return { active: true, mustChangePassword: false };
+    return { active: true, mustChangePassword: false, supportEnded: false };
   }
-  return { active: data.active, mustChangePassword: data.must_change_password };
+  return {
+    active: data.active,
+    mustChangePassword: data.must_change_password,
+    supportEnded: data.support_ended,
+  };
 }
 
 function redirectKeepingCookies(

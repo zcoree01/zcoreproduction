@@ -2,7 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { dbErrorKind } from "@/lib/actions/result";
 import { requireMember } from "@/lib/auth/session";
@@ -10,9 +10,11 @@ import { toAuthEmail } from "@/lib/auth/username";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requestHost, ROOT_DOMAIN } from "@/lib/tenant/resolve";
+import { listPendingSupportRequests, type PendingSupportRequest } from "./queries";
 import {
   decideSupportSchema,
   requestSupportSchema,
+  SUPPORT_RETURN_COOKIE,
   SUPPORT_USERNAME,
   supportEntryUrl,
 } from "./schemas";
@@ -128,16 +130,29 @@ export async function enterSupportAction(requestId: unknown): Promise<Result<{ u
     const requestHeaders = await headers();
     const host = requestHost(requestHeaders) ?? "localhost:3000";
     const protocol = requestHeaders.get("x-forwarded-proto") === "https" ? "https:" : "http:";
-    return {
-      ok: true,
-      url: supportEntryUrl({
-        protocol,
-        host,
-        slug: begun.slug,
-        tokenHash: link.data.properties.hashed_token,
-        rootDomain: ROOT_DOMAIN,
-      }),
-    };
+    const url = supportEntryUrl({
+      protocol,
+      host,
+      slug: begun.slug,
+      tokenHash: link.data.properties.hashed_token,
+      rootDomain: ROOT_DOMAIN,
+    });
+    // One host (local dev): keep the way back to the platform admin's session.
+    if (new URL(url).host === host) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        (await cookies()).set(SUPPORT_RETURN_COOKIE, session.refresh_token, {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          secure: protocol === "https:",
+          maxAge: 60 * 60 * 9,
+        });
+      }
+    }
+    return { ok: true, url };
   } catch (enterError) {
     console.error("enterSupportAction failed", enterError);
     return { ok: false, error: "unexpected" };
@@ -188,4 +203,15 @@ export async function endSupportAction(requestId: unknown): Promise<Result> {
   revalidatePath("/settings/support");
   revalidatePath("/platform");
   return { ok: true };
+}
+
+/** Polled by the approval prompt of admins / directors (D-028). */
+export async function pendingSupportRequestsAction(): Promise<PendingSupportRequest[]> {
+  const member = await requireMember();
+  try {
+    return await listPendingSupportRequests(member.organization.id);
+  } catch (error) {
+    console.error("pendingSupportRequestsAction failed", error);
+    return [];
+  }
 }

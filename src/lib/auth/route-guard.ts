@@ -4,11 +4,17 @@
 // notice. A user with a temporary password (set by an administrator) is kept
 // on /change-password until they choose their own.
 
-// /support/enter redeems a one-time support token (D-026); /registracija is
-// the public company registration.
+// /support/enter redeems a one-time support token and /support/exit ends a
+// support session (D-026, D-028); /registracija is the public company
+// registration.
+export const SUPPORT_EXIT_PATH = "/support/exit";
+/** Polled by the support banner; answers without redirects. */
+export const SUPPORT_STATUS_PATH = "/support/status";
 export const PUBLIC_PATHS: ReadonlySet<string> = new Set([
   "/login",
   "/support/enter",
+  SUPPORT_EXIT_PATH,
+  SUPPORT_STATUS_PATH,
   "/registracija",
 ]);
 
@@ -19,7 +25,10 @@ export const SESSION_REPLACED_PARAM = { name: "session", value: "replaced" } as 
 
 export type RouteDecision =
   | { action: "next" }
-  | { action: "redirect"; to: "/login" | "/" | typeof CHANGE_PASSWORD_PATH }
+  | {
+      action: "redirect";
+      to: "/login" | "/" | typeof CHANGE_PASSWORD_PATH | typeof SUPPORT_EXIT_PATH;
+    }
   | { action: "sign_out"; to: "/login" };
 
 export function decideRoute({
@@ -27,6 +36,7 @@ export function decideRoute({
   signedInHere,
   sessionActive,
   mustChangePassword = false,
+  supportEnded = false,
 }: {
   path: string;
   /** JWT is valid and belongs to the tenant of this host. */
@@ -35,7 +45,14 @@ export function decideRoute({
   sessionActive: boolean;
   /** The user still has a temporary password (only meaningful when signedInHere). */
   mustChangePassword?: boolean;
+  /** A support account whose approved session ended (only meaningful when signedInHere). */
+  supportEnded?: boolean;
 }): RouteDecision {
+  // Ending a support session is handled by these two routes themselves, also
+  // when its session was already revoked (D-028).
+  if (path === SUPPORT_EXIT_PATH || path === SUPPORT_STATUS_PATH) return { action: "next" };
+  // Back to the platform admin's own Zcore session, not the generic sign-out.
+  if (signedInHere && supportEnded) return { action: "redirect", to: SUPPORT_EXIT_PATH };
   if (signedInHere && !sessionActive) return { action: "sign_out", to: "/login" };
   if (!signedInHere && !PUBLIC_PATHS.has(path)) return { action: "redirect", to: "/login" };
   if (signedInHere && mustChangePassword && path !== CHANGE_PASSWORD_PATH) {

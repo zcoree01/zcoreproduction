@@ -63,4 +63,45 @@ describe("decideRoute", () => {
       decideRoute({ path: "/change-password", signedInHere: false, sessionActive: false }),
     ).toEqual({ action: "redirect", to: "/login" });
   });
+
+  it("sends an ended support session to /support/exit even after its session was revoked", () => {
+    expect(
+      decideRoute({
+        path: "/dashboard",
+        signedInHere: true,
+        sessionActive: false,
+        supportEnded: true,
+      }),
+    ).toEqual({ action: "redirect", to: "/support/exit" });
+    expect(
+      decideRoute({ path: "/support/status", signedInHere: true, sessionActive: false }),
+    ).toEqual({ action: "next" });
+  });
+
+  it("sends an ended support session to /support/exit", () => {
+    for (const path of ["/dashboard", "/orders", "/login"]) {
+      expect(
+        decideRoute({ path, signedInHere: true, sessionActive: true, supportEnded: true }),
+      ).toEqual({ action: "redirect", to: "/support/exit" });
+    }
+    expect(
+      decideRoute({
+        path: "/support/exit",
+        signedInHere: true,
+        sessionActive: true,
+        supportEnded: true,
+      }),
+    ).toEqual({ action: "next" });
+    expect(
+      decideRoute({ path: "/support/exit", signedInHere: false, sessionActive: false }),
+    ).toEqual({ action: "next" });
+    expect(
+      decideRoute({
+        path: "/support/status",
+        signedInHere: true,
+        sessionActive: true,
+        supportEnded: true,
+      }),
+    ).toEqual({ action: "next" });
+  });
 });

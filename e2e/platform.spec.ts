@@ -2,12 +2,14 @@ import { expect, test } from "@playwright/test";
 import { ensureOrganization, ensureUser } from "../src/modules/organizations/provision";
 import { createAdminClient } from "../scripts/lib/admin-client";
 import { TEST_TENANTS, testTenantPassword } from "../tests/shared/test-tenants";
-import { expectPath, login, signOutFromApp } from "./helpers";
+import { expectPath, login } from "./helpers";
 
-// Zcore platform admin and support access (D-026). Uses the platform test
-// user db.platform (also used by test:db), active only during the run.
+// Zcore platform admin and support access (D-026, D-028). Uses the platform
+// test user db.platform (also used by test:db), active only during the run.
+// Two browsers: the platform admin and the organization's admin.
 
 const PLATFORM_USER = { username: "db.platform", password: testTenantPassword() };
+const TENANT_ADMIN = { username: "admin", password: testTenantPassword() };
 let platformUserId = "";
 
 test.beforeAll(async () => {
@@ -39,12 +41,20 @@ test.afterAll(async () => {
     .eq("user_id", platformUserId);
 });
 
-test("platform admin gets support access only after the organization approves it", async ({
+test("support access: dialog for the organization, countdown, ended by the organization, back to Zcore", async ({
   page,
+  browser,
 }) => {
-  // The platform admin sees organizations and modules, not their data.
+  // The organization's admin is signed in in another browser.
+  const orgContext = await browser.newContext();
+  const org = await orgContext.newPage();
+  await login(org, TENANT_ADMIN, TEST_TENANTS.a.slug);
+  await expectPath(org, "/dashboard");
+
+  // The platform admin sees organizations and modules only; no company settings of its own.
   await login(page, PLATFORM_USER, "zcore");
   await expectPath(page, "/dashboard");
+  await expect(page.getByRole("link", { name: "Podaci o firmi" })).toHaveCount(0);
   await page.getByRole("link", { name: "Firme" }).click();
   await expectPath(page, "/platform");
   await page.waitForLoadState("networkidle");
@@ -54,40 +64,34 @@ test("platform admin gets support access only after the organization approves it
   await card.getByLabel("Razlog (vidi ga firma)").fill("E2E provjera podrške");
   await card.getByRole("button", { name: "Pošalji zahtjev" }).click();
   await expect(card.getByText("Čeka odobrenje firme")).toBeVisible();
-  await expect(card.getByRole("button", { name: "Uđi u firmu" })).toHaveCount(0);
-  await signOutFromApp(page, "DB Platform");
 
-  // The organization's admin approves for 30 minutes.
-  await login(page, { username: "admin", password: testTenantPassword() }, TEST_TENANTS.a.slug);
-  await expectPath(page, "/dashboard");
-  await page.getByRole("link", { name: "Zcore podrška" }).click();
-  await expect(page.getByText("E2E provjera podrške").first()).toBeVisible();
-  await page.getByLabel("Trajanje pristupa").selectOption({ label: "30 minuta" });
-  await page.getByRole("button", { name: "Odobri pristup" }).click();
-  await expect(page.getByText("Pristup je odobren.")).toBeVisible();
-  await signOutFromApp(page, `${TEST_TENANTS.a.name} Admin`);
+  // The request pops up for the organization's admin without opening any page.
+  const prompt = org.getByRole("alertdialog", { name: "Zcore podrška traži pristup" });
+  await expect(prompt).toBeVisible({ timeout: 30_000 });
+  await expect(prompt.getByText("E2E provjera podrške")).toBeVisible();
+  await prompt.getByLabel("Trajanje pristupa").selectOption({ label: "30 minuta" });
+  await prompt.getByRole("button", { name: "Odobri pristup" }).click();
+  await expect(org.getByText("Pristup je odobren na 30 minuta.")).toBeVisible();
 
-  // The platform admin enters: banner inside the organization, then ends it.
-  await login(page, PLATFORM_USER, "zcore");
-  await expectPath(page, "/dashboard");
-  await page.goto("/platform");
-  // Clicking before the (dev) page is hydrated would do nothing.
-  await page.waitForLoadState("networkidle");
-  await page
-    .locator("[data-slot=card]")
-    .filter({ hasText: TEST_TENANTS.a.name })
-    .getByRole("button", { name: "Uđi u firmu" })
-    .click();
+  // The platform admin's page shows the answer by itself and enters.
+  const enter = card.getByRole("button", { name: "Uđi u firmu" });
+  await expect(enter).toBeVisible({ timeout: 30_000 });
+  await enter.click();
   await expectPath(page, "/dashboard");
   await expect(
     page.getByText("Zcore podrška (DB Platform) je prijavljena", { exact: false }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Završi podršku" }).click();
-  await expectPath(page, "/login");
+  await expect(page.getByText(/Preostalo: (29|30):\d\d/)).toBeVisible();
 
-  // Access is gone: the organization sees the session as ended.
-  await login(page, { username: "admin", password: testTenantPassword() }, TEST_TENANTS.a.slug);
-  await expectPath(page, "/dashboard");
-  await page.goto("/settings/support");
-  await expect(page.getByText("Završeno").first()).toBeVisible();
+  // The organization ends it: the platform admin is back in Zcore with a notice, no new sign-in.
+  await org.goto("/settings/support");
+  await org.waitForLoadState("networkidle");
+  await org.getByRole("button", { name: "Završi pristup odmah" }).click();
+  await expect(org.getByText("Pristup podrške je završen.")).toBeVisible();
+
+  await expectPath(page, "/platform");
+  await expect(page.getByText("Sesija podrške je završena. Vraćeni ste u Zcore.")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Registrovane firme" })).toBeVisible();
+
+  await orgContext.close();
 });

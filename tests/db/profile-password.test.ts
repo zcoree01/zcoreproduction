@@ -97,12 +97,13 @@ describe("must_change_password", () => {
     const temp = await signedIn(TEMP_USER);
     const { data, error } = await temp.rpc("session_status").single();
     expect(error).toBeNull();
-    expect(data).toEqual({ active: true, must_change_password: true });
+    expect(data).toEqual({ active: true, must_change_password: true, support_ended: false });
 
     const plain = await signedIn(PLAIN_USER);
     expect((await plain.rpc("session_status").single()).data).toEqual({
       active: true,
       must_change_password: false,
+      support_ended: false,
     });
   });
 

@@ -75,3 +75,27 @@ export async function getCurrentSupportSession(
     ? { id: data.id, approvedUntil: data.approved_until, requesterName: data.requester_name }
     : null;
 }
+
+export type PendingSupportRequest = {
+  id: string;
+  requesterName: string;
+  reason: string;
+  createdAt: string;
+};
+
+/** Open requests the organization's approvers must answer (support.approve in the RPC). */
+export async function listPendingSupportRequests(
+  organizationId: string,
+): Promise<PendingSupportRequest[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("pending_support_requests", {
+    p_org_id: organizationId,
+  });
+  if (error) throw error;
+  return data.map((row) => ({
+    id: row.id,
+    requesterName: row.requester_name,
+    reason: row.reason,
+    createdAt: row.created_at,
+  }));
+}

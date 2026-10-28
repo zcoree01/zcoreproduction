@@ -10,21 +10,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { countryName } from "@/lib/countries";
+import { firstParam, type SearchParamsRecord } from "@/lib/data-table/params";
 import { zonedDate } from "@/lib/timezone";
 import { listPlatformOrganizations } from "@/modules/platform/queries";
 import { listPlatformSupportRequests } from "@/modules/support/queries";
 import { ModuleEditor } from "./module-editor";
+import { SupportEndedNotice } from "./support-ended-notice";
 import { SupportControl } from "./support-control";
 
-export default function PlatformPage() {
+export default function PlatformPage({ searchParams }: PageProps<"/platform">) {
   return (
     <PageSuspense>
-      <PlatformContent />
+      <PlatformContent searchParams={searchParams} />
     </PageSuspense>
   );
 }
 
-async function PlatformContent() {
+async function PlatformContent({ searchParams }: { searchParams: Promise<SearchParamsRecord> }) {
   const member = await requireMember();
   const [t, format, access] = await Promise.all([
     getTranslations("platform"),
@@ -45,6 +47,7 @@ async function PlatformContent() {
 
   return (
     <>
+      {firstParam((await searchParams).support) === "ended" ? <SupportEndedNotice /> : null}
       <PageHeader title={t("organizationsTitle")} description={t("organizationsDescription")} />
       {organizations.length === 0 ? (
         <EmptyState

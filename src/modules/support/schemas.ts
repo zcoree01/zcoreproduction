@@ -64,3 +64,26 @@ export function supportEntryUrl(input: {
   params.set("org", input.slug);
   return `${input.protocol}//${input.host}/support/enter?${params}`;
 }
+
+/** Slug of the Zcore organization (platform admins). */
+export const PLATFORM_SLUG = "zcore";
+
+/**
+ * On a single host (local dev, previews) entering support replaces the
+ * platform admin's session cookies; their refresh token is kept in this
+ * httpOnly cookie so /support/exit can restore it (D-028).
+ */
+export const SUPPORT_RETURN_COOKIE = "zcore_support_return";
+
+/** Where /support/exit sends the platform admin back to. */
+export function platformReturnUrl(input: {
+  protocol: string;
+  host: string;
+  rootDomain: string;
+}): string {
+  const hostname = input.host.split(":")[0] ?? input.host;
+  if (hostname === input.rootDomain || hostname.endsWith(`.${input.rootDomain}`)) {
+    return `${input.protocol}//${PLATFORM_SLUG}.${input.rootDomain}/platform?support=ended`;
+  }
+  return `${input.protocol}//${input.host}/platform?org=${PLATFORM_SLUG}&support=ended`;
+}

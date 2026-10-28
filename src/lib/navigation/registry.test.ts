@@ -122,6 +122,15 @@ describe("buildNavigation", () => {
       ["platform-organizations", "platform-requests", "platform-settings"],
     ]);
     expect(withPlatform([], ["platform.manage"])).toBeUndefined();
+    // The Zcore organization needs no company data or support settings of its own.
+    const zcoreAdmin = ids(
+      buildNavigation("app", {
+        modules: new Set(["core", "platform"]),
+        permissions: new Set(["org.settings.manage", "support.approve", "platform.manage"]),
+      }),
+    );
+    expect(zcoreAdmin.flatMap(([, items]) => items)).not.toContain("company-settings");
+    expect(zcoreAdmin.flatMap(([, items]) => items)).not.toContain("support-settings");
     expect(withPlatform(["platform"], [])).toBeUndefined();
   });
 

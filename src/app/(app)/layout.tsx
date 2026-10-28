@@ -14,11 +14,12 @@ import { getNavigation } from "@/lib/navigation/server";
 import { listPendingRequests } from "@/modules/attendance/absence-queries";
 import { listAttendanceAlerts } from "@/modules/attendance/queries";
 import { listPendingCloseRequests } from "@/modules/production-reporting/queries";
-import { getCurrentSupportSession } from "@/modules/support/queries";
+import { getCurrentSupportSession, listPendingSupportRequests } from "@/modules/support/queries";
 import { AppSidebar } from "./app-sidebar";
 import { CloseRequestBell } from "./close-request-bell";
 import { SiteHeader } from "./site-header";
 import { SupportBanner } from "./support-banner";
+import { SupportRequestPrompt } from "./support-request-prompt";
 
 // Management app (desktop-first). Session-dependent UI streams behind Suspense.
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -71,6 +72,14 @@ async function AppShell({ children }: { children: ReactNode }) {
   const supportSession = member.isSupport
     ? await getCurrentSupportSession(member.organization.id)
     : null;
+  // Admins / directors answer Zcore support requests in a dialog (D-028).
+  const supportApprover =
+    !member.isSupport &&
+    !access.modules.has("platform") &&
+    access.permissions.has("support.approve");
+  const pendingSupport = supportApprover
+    ? await listPendingSupportRequests(member.organization.id)
+    : [];
   const roleLabel = isSystemRoleKey(member.role.key)
     ? t(`roles.${member.role.key}`)
     : member.role.name;
@@ -97,6 +106,7 @@ async function AppShell({ children }: { children: ReactNode }) {
         }}
       />
       <SidebarInset>
+        {supportApprover ? <SupportRequestPrompt initial={pendingSupport} /> : null}
         {supportSession ? (
           <SupportBanner
             requestId={supportSession.id}

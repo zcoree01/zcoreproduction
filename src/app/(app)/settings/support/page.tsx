@@ -21,6 +21,10 @@ export default function SupportSettingsPage() {
 async function SupportSettingsContent() {
   const member = await requireMember();
   const [t, access] = await Promise.all([getTranslations("support"), getMemberAccess(member)]);
+  // The Zcore organization itself has no company data or support access (D-028).
+  if (access.modules.has("platform")) {
+    return <PermissionDenied description={t("notForPlatform")} />;
+  }
   if (!access.permissions.has("support.approve")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

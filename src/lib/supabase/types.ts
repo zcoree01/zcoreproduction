@@ -308,6 +308,56 @@ export type Database = {
           },
         ]
       }
+      attendance_kiosks: {
+        Row: {
+          activated_at: string | null
+          activation_code_hash: string | null
+          activation_expires_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          last_seen_at: string | null
+          name: string
+          organization_id: string
+          revoked_at: string | null
+          secret_hash: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activation_code_hash?: string | null
+          activation_expires_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_seen_at?: string | null
+          name: string
+          organization_id: string
+          revoked_at?: string | null
+          secret_hash?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activation_code_hash?: string | null
+          activation_expires_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          organization_id?: string
+          revoked_at?: string | null
+          secret_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_kiosks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_sessions: {
         Row: {
           archived_at: string | null
@@ -904,6 +954,54 @@ export type Database = {
           },
           {
             foreignKeyName: "employee_hourly_rates_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      employee_kiosk_credentials: {
+        Row: {
+          badge_issued_at: string | null
+          badge_token: string | null
+          employee_id: string
+          failed_attempts: number
+          locked_until: string | null
+          organization_id: string
+          pin_hash: string | null
+          pin_set_at: string | null
+        }
+        Insert: {
+          badge_issued_at?: string | null
+          badge_token?: string | null
+          employee_id: string
+          failed_attempts?: number
+          locked_until?: string | null
+          organization_id: string
+          pin_hash?: string | null
+          pin_set_at?: string | null
+        }
+        Update: {
+          badge_issued_at?: string | null
+          badge_token?: string | null
+          employee_id?: string
+          failed_attempts?: number
+          locked_until?: string | null
+          organization_id?: string
+          pin_hash?: string | null
+          pin_set_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_kiosk_credentials_organization_id_employee_id_fkey"
+            columns: ["organization_id", "employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "employee_kiosk_credentials_organization_id_employee_id_fkey"
             columns: ["organization_id", "employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
@@ -3982,6 +4080,14 @@ export type Database = {
         }
         Returns: number
       }
+      create_kiosk_activation: {
+        Args: { p_kiosk_id: string; p_name: string; p_org_id: string }
+        Returns: {
+          code: string
+          expires_at: string
+          kiosk_id: string
+        }[]
+      }
       create_product: {
         Args: { p_org_id: string; p_product: Json; p_revision: Json }
         Returns: string
@@ -4132,9 +4238,56 @@ export type Database = {
         Returns: number
       }
       is_session_active: { Args: never; Returns: boolean }
+      issue_badge: { Args: { p_employee_id: string }; Returns: string }
+      kiosk_activate: {
+        Args: { p_code: string; p_org_slug: string }
+        Returns: {
+          kiosk_id: string
+          kiosk_name: string
+          secret: string
+        }[]
+      }
+      kiosk_clock: {
+        Args: {
+          p_badge: string
+          p_employee_id: string
+          p_idempotency_key: string
+          p_kiosk_id: string
+          p_org_slug: string
+          p_pin: string
+          p_secret: string
+        }
+        Returns: Json
+      }
+      kiosk_credentials: {
+        Args: { p_org_id: string }
+        Returns: {
+          badge_token: string
+          employee_id: string
+          employee_number: number
+          has_pin: boolean
+          locked_until: string
+          name: string
+        }[]
+      }
+      kiosk_session: {
+        Args: { p_kiosk_id: string; p_org_slug: string; p_secret: string }
+        Returns: Json
+      }
       leave_overview: {
         Args: { p_org_id: string; p_year: number }
         Returns: Json
+      }
+      list_kiosks: {
+        Args: { p_org_id: string }
+        Returns: {
+          activated_at: string
+          activation_expires_at: string
+          id: string
+          last_seen_at: string
+          name: string
+          status: string
+        }[]
       }
       my_attendance: {
         Args: { p_from: string; p_org_id: string; p_to: string }
@@ -4153,6 +4306,7 @@ export type Database = {
           status: string
         }[]
       }
+      my_kiosk_pin_set: { Args: { p_org_id: string }; Returns: boolean }
       my_pay_inputs: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
@@ -4207,6 +4361,15 @@ export type Database = {
         }[]
       }
       pending_requests: { Args: { p_org_id: string }; Returns: Json }
+      pending_support_requests: {
+        Args: { p_org_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          reason: string
+          requester_name: string
+        }[]
+      }
       platform_begin_support: {
         Args: { p_request_id: string }
         Returns: {
@@ -4471,6 +4634,7 @@ export type Database = {
         Args: { p_alert_id: string; p_note?: string }
         Returns: undefined
       }
+      revoke_kiosk: { Args: { p_kiosk_id: string }; Returns: undefined }
       revoke_user_sessions: { Args: { p_user_id: string }; Returns: undefined }
       save_crew: {
         Args: {
@@ -4607,6 +4771,7 @@ export type Database = {
         Returns: {
           active: boolean
           must_change_password: boolean
+          support_ended: boolean
         }[]
       }
       set_crew_archived: {
@@ -4615,6 +4780,10 @@ export type Database = {
       }
       set_current_revision: {
         Args: { p_revision_id: string }
+        Returns: undefined
+      }
+      set_employee_pin: {
+        Args: { p_employee_id: string; p_pin: string }
         Returns: undefined
       }
       set_holiday_scope: {
@@ -4631,6 +4800,10 @@ export type Database = {
       }
       set_order_operation_status: {
         Args: { p_operation_id: string; p_status: string }
+        Returns: undefined
+      }
+      set_own_pin: {
+        Args: { p_org_id: string; p_pin: string }
         Returns: undefined
       }
       set_product_operation_archived: {

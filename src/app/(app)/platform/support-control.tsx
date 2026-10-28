@@ -3,7 +3,7 @@
 import { LogInIcon, LogOutIcon, ShieldQuestionIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,19 @@ export function SupportControl({
 
   const status = request?.status;
   const open = status === "pending" || status === "approved" || status === "active";
+
+  // While the organization decides, refresh to show its answer at once (D-028).
+  useEffect(() => {
+    if (status !== "pending") return;
+    const timer = window.setInterval(() => router.refresh(), 10_000);
+    return () => window.clearInterval(timer);
+  }, [status, router]);
+  const previous = useRef(status);
+  useEffect(() => {
+    if (previous.current === "pending" && status === "approved") toast.success(t("approvedToast"));
+    if (previous.current === "pending" && status === "rejected") toast.error(t("rejectedToast"));
+    previous.current = status;
+  }, [status, t]);
 
   const done = (result: { ok: boolean; error?: string }, success: string) => {
     if (result.ok) {

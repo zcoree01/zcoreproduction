@@ -40,6 +40,10 @@ async function CompanySettingsContent() {
     getFormatter(),
     getMemberAccess(member),
   ]);
+  // The Zcore organization itself has no company data or support access (D-028).
+  if (access.modules.has("platform")) {
+    return <PermissionDenied description={t("notForPlatform")} />;
+  }
   if (!access.permissions.has("org.settings.manage")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

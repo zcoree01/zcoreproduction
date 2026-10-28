@@ -63,6 +63,8 @@ export type NavItemDef = {
   icon: NavIconKey;
   /** modules.key that must be enabled in org_modules. */
   module: string;
+  /** Hidden while this module is enabled (e.g. company settings in the Zcore organization). */
+  hiddenForModule?: string;
   /** Required permission; with a list, any one of them is enough. */
   permission?: PermissionKey | readonly PermissionKey[];
   surface: NavSurface;
@@ -210,6 +212,7 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "companySettings",
     icon: "building",
     module: "core",
+    hiddenForModule: "platform",
     permission: "org.settings.manage",
     surface: "app",
     section: "administration",
@@ -220,6 +223,7 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "supportSettings",
     icon: "shield",
     module: "core",
+    hiddenForModule: "platform",
     permission: "support.approve",
     surface: "app",
     section: "administration",
@@ -389,6 +393,7 @@ export function buildNavigation(
     (item) =>
       item.surface === surface &&
       access.modules.has(item.module) &&
+      !(item.hiddenForModule && access.modules.has(item.hiddenForModule)) &&
       hasAnyPermission(access.permissions, item.permission),
   );
   return NAV_SECTIONS[surface]

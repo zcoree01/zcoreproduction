@@ -3034,7 +3034,8 @@
       "approved": "Odobren",
       "rejected": "Odbijen",
       "withdrawn": "Povučen"
-    }
+    },
+    "notForPlatform": "Zcore organizacija nema svoje podatke o firmi ovdje; registrovane firme vidite na stranici Firme."
   },
   "changeRequests": {
     "kind": {
@@ -3131,7 +3132,10 @@
         "not_found": "Zahtjev više nije otvoren.",
         "open_request": "Već postoji otvoren zahtjev za ovu firmu.",
         "unexpected": "Akcija nije uspjela zbog greške."
-      }
+      },
+      "approvedToast": "Firma je odobrila pristup. Možete ući.",
+      "rejectedToast": "Firma je odbila zahtjev za pristup.",
+      "endedNotice": "Sesija podrške je završena. Vraćeni ste u Zcore."
     }
   },
   "support": {
@@ -3168,8 +3172,17 @@
       "unexpected": "Akcija nije uspjela zbog greške. Pokušajte ponovo."
     },
     "banner": {
-      "text": "Zcore podrška ({name}) je prijavljena u vašu firmu do {time}. Sve promjene se bilježe.",
+      "text": "Zcore podrška ({name}) je prijavljena u ovu firmu. Sve promjene se bilježe.",
+      "remaining": "Preostalo: {time}",
+      "remainingLabel": "Preostalo vrijeme pristupa",
       "end": "Završi podršku"
+    },
+    "notForPlatform": "Pristup podrške se odobrava u firmama klijentima, ne u Zcore organizaciji.",
+    "prompt": {
+      "title": "Zcore podrška traži pristup",
+      "description": "{name} iz Zcore-a traži privremeni pristup vašoj firmi da riješi problem. Odaberite koliko dugo smije ostati.",
+      "later": "Kasnije",
+      "approvedToast": "Pristup je odobren na {minutes, select, 30 {30 minuta} 60 {1 sat} 120 {2 sata} 240 {4 sata} 480 {8 sati} other {{minutes} minuta}}."
     }
   },
   "registration": {
