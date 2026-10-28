@@ -72,6 +72,27 @@ function clock(
 
 let device: Device;
 
+/** Moves the employee's attendance a minute back (past the 10-second repeat guard). */
+async function age(employeeId: string) {
+  const { data } = await fx.service
+    .from("attendance_sessions")
+    .select("id, clock_in_at, clock_out_at")
+    .eq("employee_id", employeeId)
+    .order("clock_in_at")
+    .throwOnError();
+  const minute = (iso: string) => new Date(Date.parse(iso) - 60_000).toISOString();
+  for (const row of data) {
+    await fx.service
+      .from("attendance_sessions")
+      .update({
+        clock_in_at: minute(row.clock_in_at),
+        clock_out_at: row.clock_out_at ? minute(row.clock_out_at) : null,
+      })
+      .eq("id", row.id)
+      .throwOnError();
+  }
+}
+
 beforeAll(async () => {
   fx = await setupFixture();
   await cleanup(fx.service, [fx.a.org.id, fx.b.org.id]);
@@ -175,8 +196,11 @@ describe("clocking on the kiosk", () => {
     expect(first.error).toBeNull();
     expect(first.data).toMatchObject({ direction: "in", employee_name: `${MARK} Radnik Kiosk` });
     expect((await clock(device, { badge, key: scan })).data).toMatchObject({ direction: "in" });
+    // The card read again right away (held at the reader): nothing changes.
+    expect((await clock(device, { badge })).data).toMatchObject({ direction: "in", repeat: true });
+    await age(ids.worker);
     const out = await clock(device, { badge });
-    expect(out.data).toMatchObject({ direction: "out" });
+    expect(out.data).toMatchObject({ direction: "out", repeat: false });
 
     const { data: sessions } = await fx.service
       .from("attendance_sessions")
@@ -196,6 +220,7 @@ describe("clocking on the kiosk", () => {
     expect(
       (await fx.a.operator.rpc("set_own_pin", { p_org_id: fx.a.org.id, p_pin: "4821" })).error,
     ).toBeNull();
+    await age(ids.worker);
     const ok = await clock(device, { employee: ids.worker, pin: "4821" });
     expect(ok.data).toMatchObject({ direction: "in" });
     await clock(device, { employee: ids.worker, pin: "4821" });

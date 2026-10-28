@@ -56,6 +56,8 @@ export type KioskClockResult =
       direction: "in" | "out";
       at: string;
       shiftCode: string | null;
+      /** Same worker again within seconds: the last result, nothing changed. */
+      repeat: boolean;
     }
   | { ok: false; error: KioskError };
 
@@ -66,6 +68,7 @@ const resultSchema = z.union([
     direction: z.enum(["in", "out"]),
     at: z.string(),
     shift_code: z.string().nullable(),
+    repeat: z.boolean().optional(),
   }),
 ]);
 
@@ -100,6 +103,7 @@ export async function kioskClockAction(input: unknown): Promise<KioskClockResult
     direction: row.direction,
     at: row.at,
     shiftCode: row.shift_code,
+    repeat: row.repeat ?? false,
   };
 }
 

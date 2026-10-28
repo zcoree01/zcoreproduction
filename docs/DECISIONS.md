@@ -300,3 +300,15 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Identification:** a badge carries a random 24-hex token (`zcore-kiosk:<token>` as QR, or written to an NFC tag; keyboard-like scanners work too), issued by `kiosk.manage` (a new badge invalidates the old one), printable on `/settings/kiosk/badges`. Or the worker picks their name and enters a 4-digit PIN (bcrypt via pgcrypto, easy PINs refused in the app, locked for 5 minutes after 5 wrong attempts); the worker sets it on `/floor/attendance` or `kiosk.manage` sets it.
 - **Clocking:** each identification toggles clock-in / clock-out (source `kiosk`) through the same functions as the phone, with an idempotency key per scan; the result (name, direction, time, shift) stays on screen for a few seconds.
   **Consequences:** Only workers with a PIN appear in the name list. Secrets, PIN hashes and badge tokens are never readable through the API (badge tokens only for printing with `kiosk.manage`); the audit log records changes without them.
+
+## D-030 — Kiosk NFC: one reader, 3-second pause, repeat guard; LAN access in development (2026-10-28)
+
+**Context:** Testing on a phone, the product owner found that an NFC card was read several times (each read toggled clock-in / clock-out, so the result looked random) and that after one read the person's card "no longer worked". The kiosk could not be opened from a phone on the local network at all (the activation button stayed disabled).
+**Decision:**
+
+- **NFC reader:** the kiosk turns NFC on once ("Uključi NFC čitač", the browser asks for permission) and keeps one reader running while the page is open; before, each tap started a reader that stopped after the first read, so the next card went to Android instead. Text records are decoded with their encoding.
+- **3-second pause** after an accepted badge scan (NFC, camera QR, keyboard scanner) in the tablet (`acceptScan`, `SCAN_COOLDOWN_MS`).
+- **Repeat guard in the database** (`20261028130000_kiosk_repeat_guard`): when the same worker is identified again within 10 seconds (held card, second tablet, double tap, resend), `kiosk_clock` returns the last result with `repeat: true` instead of toggling; the tablet shows "Već zabilježeno".
+- **Putting badges on NFC cards:** in `/settings/kiosk` "Kopiraj za NFC" copies `zcore-kiosk:<token>` (or shows it for copying when the clipboard is unavailable over plain HTTP) for an app such as NFC Tools (Text record); "Upiši na NFC" writes the card directly with Web NFC (Chrome on Android over HTTPS; hidden elsewhere).
+- **Development on the local network:** `next.config.ts` allows this computer's local IPv4 addresses as dev origins (otherwise the dev server does not serve its scripts to http://192.168.x.x and pages never hydrate), and `?org=` is accepted on private-network IPv4 hosts in development only (never in production). `npm run dev:https` runs the dev server with HTTPS, which the camera and NFC need on devices other than localhost.
+  **Consequences:** A worker who really wants to clock out right after clocking in waits 10 seconds. NFC and camera on the kiosk need HTTPS (production has it).

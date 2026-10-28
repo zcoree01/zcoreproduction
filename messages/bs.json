@@ -3473,7 +3473,6 @@
     "welcome": "Prijava dolaska i odlaska",
     "instructions": "Prinesite karticu ili izaberite svoje ime i upišite PIN.",
     "scanQr": "Skeniraj karticu (kamera)",
-    "scanNfc": "Prinesi NFC karticu",
     "byName": "Prijava imenom i PIN-om",
     "scannerHint": "Čitač kartica priključen na tablet radi odmah, bez dugmeta.",
     "back": "Nazad",
@@ -3504,7 +3503,11 @@
       "pin_locked": "Previše pogrešnih pokušaja. Pokušajte za 5 minuta.",
       "module_disabled": "Evidencija radnog vremena nije uključena.",
       "not_an_employee": "Radnik nije aktivan."
-    }
+    },
+    "startNfc": "Uključi NFC čitač",
+    "nfcOn": "NFC čitač je uključen – prinesite karticu",
+    "nfcFailed": "NFC nije moguće uključiti. Provjerite da je NFC uključen na tabletu i dozvolite pristup.",
+    "alreadyRecorded": "Već zabilježeno maloprije – ništa nije promijenjeno."
   },
   "kioskSettings": {
     "title": "Kiosk",
@@ -3543,7 +3546,7 @@
     "revokeDescription": "Tablet se odmah odjavljuje i više ne može bilježiti dolaske dok ne dobije novi kod.",
     "revokedToast": "Tablet je ugašen.",
     "credentialsTitle": "PIN i kartice radnika",
-    "credentialsDescription": "Radnik može sam postaviti PIN na mobitelu. Nova kartica poništava staru.",
+    "credentialsDescription": "Radnik može sam postaviti PIN na mobitelu. Nova kartica poništava staru (i QR i NFC). NFC karticu upisujete ovdje na Android telefonu u Chromeu (HTTPS) ili kopirate tekst u aplikaciju poput NFC Tools.",
     "pinSet": "Postavljen",
     "pinMissing": "Nema",
     "locked": "zaključan 5 min",
@@ -3565,7 +3568,14 @@
       "not_found": "Zapis više ne postoji.",
       "weak_pin": "PIN je prelagan (npr. 1111 ili 1234). Izaberite drugi.",
       "unexpected": "Nije sačuvano zbog greške. Pokušajte ponovo."
-    }
+    },
+    "copyNfc": "Kopiraj za NFC",
+    "writeNfc": "Upiši na NFC",
+    "copiedToast": "Tekst za NFC karticu je kopiran. U aplikaciji (npr. NFC Tools) upišite ga kao Text zapis.",
+    "nfcText": "Tekst za NFC karticu (Text zapis)",
+    "nfcHoldCard": "Prislonite NFC karticu za {name} uz telefon…",
+    "nfcWrittenToast": "NFC kartica za {name} je upisana.",
+    "nfcWriteFailed": "Upis na NFC karticu nije uspio. Pokušajte ponovo i držite karticu mirno."
   },
   "kioskPin": {
     "title": "Kiosk PIN",

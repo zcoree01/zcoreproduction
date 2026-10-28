@@ -1,9 +1,9 @@
 "use client";
 
-import { IdCardIcon, KeyRoundIcon, LockIcon } from "lucide-react";
+import { CopyIcon, IdCardIcon, KeyRoundIcon, LockIcon, NfcIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -22,14 +22,66 @@ import {
   type KioskAdminResult,
 } from "@/modules/attendance/kiosk-admin";
 import type { CredentialRow } from "@/modules/attendance/kiosk-queries";
+import { badgePayload } from "@/modules/attendance/kiosk-rules";
 
-/** Workers' kiosk credentials: set / remove a PIN, issue a (new) badge. */
+type NdefWriter = {
+  write(message: { records: { recordType: "text"; data: string }[] }): Promise<void>;
+};
+type NdefWriterConstructor = new () => NdefWriter;
+
+function ndefWriter(): NdefWriterConstructor | null {
+  const value: unknown = Reflect.get(globalThis, "NDEFReader");
+  return typeof value === "function" ? (value as NdefWriterConstructor) : null;
+}
+
+function subscribeNever() {
+  return () => {};
+}
+
+/**
+ * Workers' kiosk credentials: set / remove a PIN, issue a (new) badge, and
+ * put the badge on an NFC card: copy the text for an NFC app, or write it
+ * directly (Chrome on Android over HTTPS).
+ */
 export function CredentialList({ credentials }: { credentials: CredentialRow[] }) {
   const t = useTranslations("kioskSettings");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [pin, setPin] = useState("");
+  const canWriteNfc = useSyncExternalStore(
+    subscribeNever,
+    () => ndefWriter() !== null,
+    () => false,
+  );
+  // Shown for copying by hand when the clipboard is not available (plain HTTP).
+  const [shown, setShown] = useState<string | null>(null);
+
+  const copy = async (row: CredentialRow) => {
+    if (!row.badgeToken) return;
+    const text = badgePayload(row.badgeToken);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(t("copiedToast"));
+      setShown(null);
+    } catch {
+      setShown(row.employeeId);
+    }
+  };
+
+  const writeNfc = async (row: CredentialRow) => {
+    const Writer = ndefWriter();
+    if (!Writer || !row.badgeToken) return;
+    const waiting = toast.loading(t("nfcHoldCard", { name: row.name }));
+    try {
+      await new Writer().write({
+        records: [{ recordType: "text", data: badgePayload(row.badgeToken) }],
+      });
+      toast.success(t("nfcWrittenToast", { name: row.name }), { id: waiting });
+    } catch {
+      toast.error(t("nfcWriteFailed"), { id: waiting });
+    }
+  };
 
   const run = (action: () => Promise<KioskAdminResult>, success: string) =>
     startTransition(async () => {
@@ -85,9 +137,36 @@ export function CredentialList({ credentials }: { credentials: CredentialRow[] }
                   </div>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge tone={row.badgeToken ? "success" : "neutral"}>
-                    {row.badgeToken ? t("badgeIssued") : t("badgeMissing")}
-                  </StatusBadge>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <StatusBadge tone={row.badgeToken ? "success" : "neutral"}>
+                      {row.badgeToken ? t("badgeIssued") : t("badgeMissing")}
+                    </StatusBadge>
+                    {row.badgeToken ? (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => void copy(row)}>
+                          <CopyIcon />
+                          {t("copyNfc")}
+                        </Button>
+                        {canWriteNfc ? (
+                          <Button variant="ghost" size="sm" onClick={() => void writeNfc(row)}>
+                            <NfcIcon />
+                            {t("writeNfc")}
+                          </Button>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                  {shown === row.employeeId && row.badgeToken ? (
+                    <Input
+                      readOnly
+                      aria-label={t("nfcText")}
+                      value={badgePayload(row.badgeToken)}
+                      onFocus={(event) => event.currentTarget.select()}
+                      autoFocus
+                      className="mt-1 font-mono text-xs"
+                      data-testid="nfc-text"
+                    />
+                  ) : null}
                 </TableCell>
                 <TableCell>
                   {editing === row.employeeId ? (

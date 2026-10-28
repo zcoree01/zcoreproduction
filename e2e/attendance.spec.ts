@@ -178,6 +178,17 @@ test("@mobile worker asks for leave and a correction; the head of production dec
   await expect(page.getByTestId("my-requests")).toContainText("Na čekanju");
 
   // Sick leave is reported with its first day only; while open it can only be closed.
+  // An open request left by an interrupted earlier run is withdrawn first.
+  const leftover = page
+    .getByTestId("my-requests")
+    .getByRole("listitem")
+    .filter({ hasText: "Bolovanje" })
+    .filter({ hasText: "u toku" })
+    .filter({ hasText: "Na čekanju" });
+  if ((await leftover.count()) > 0) {
+    await leftover.first().getByRole("button", { name: "Povuci zahtjev" }).click();
+    await expect(page.getByRole("button", { name: "Prijavi bolovanje" })).toBeVisible();
+  }
   await page.getByRole("button", { name: "Prijavi bolovanje" }).click();
   sheet = page.getByRole("dialog");
   await expect(sheet.getByLabel("Do", { exact: true })).toBeHidden();
@@ -311,6 +322,13 @@ test("@mobile kiosk: activate a tablet with a code, then clock in and out by nam
   await kenan.getByLabel("Novi PIN (4 cifre)").fill("7305");
   await kenan.getByRole("button", { name: "Spremi" }).click();
   await expect(page.getByText("PIN je postavljen.")).toBeVisible();
+  // A badge: its text can be copied for an NFC card (clipboard or shown for copying).
+  await kenan.getByRole("button", { name: /Izdaj karticu|Nova kartica/ }).click();
+  await expect(page.getByText("Kartica je izdana. Odštampajte je.")).toBeVisible();
+  await kenan.getByRole("button", { name: "Kopiraj za NFC" }).click();
+  await expect(
+    page.getByText(/Tekst za NFC karticu je kopiran/).or(page.getByTestId("nfc-text")),
+  ).toBeVisible();
 
   // The tablet: no user login.
   const kioskContext = await browser.newContext();
@@ -334,8 +352,13 @@ test("@mobile kiosk: activate a tablet with a code, then clock in and out by nam
   const first = (await result.textContent()) ?? "";
   expect(first).toMatch(/Dobro došli, Kenan Kontrolor|Doviđenja, Kenan Kontrolor/);
   await kiosk.getByRole("button", { name: "Sljedeći" }).click();
+  // Again within 10 seconds (e.g. a card held at the reader): nothing changes.
   await byPin();
-  // The second scan does the opposite of the first.
+  await expect(result).toContainText("Već zabilježeno");
+  await kiosk.getByRole("button", { name: "Sljedeći" }).click();
+  // Later, the next identification does the opposite of the first.
+  await kiosk.waitForTimeout(10_500);
+  await byPin();
   await expect(result).toContainText(
     first.includes("Dobro došli") ? "Doviđenja, Kenan Kontrolor" : "Dobro došli, Kenan Kontrolor",
   );

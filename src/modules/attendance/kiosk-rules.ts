@@ -78,3 +78,15 @@ export const KIOSK_ERRORS = [
   "not_an_employee",
 ] as const;
 export type KioskError = (typeof KIOSK_ERRORS)[number] | "invalid" | "unexpected";
+
+/** Pause after a badge scan: further scans are ignored for this long. */
+export const SCAN_COOLDOWN_MS = 3000;
+
+/** Whether a scan at `now` is accepted after the last accepted one (ms timestamps). */
+export function acceptScan(
+  now: number,
+  lastAccepted: number | null,
+  cooldownMs = SCAN_COOLDOWN_MS,
+): boolean {
+  return lastAccepted === null || now - lastAccepted >= cooldownMs || now < lastAccepted;
+}

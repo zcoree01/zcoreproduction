@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  acceptScan,
   activationSchema,
   badgePayload,
   decodeDevice,
@@ -57,5 +58,16 @@ describe("schemas", () => {
       }).success,
     ).toBe(true);
     expect(kioskClockSchema.safeParse({ method: "pin", pin: "1234" }).success).toBe(false);
+  });
+});
+
+describe("acceptScan", () => {
+  it("ignores scans for 3 seconds after an accepted one", () => {
+    expect(acceptScan(10_000, null)).toBe(true);
+    expect(acceptScan(10_500, 10_000)).toBe(false);
+    expect(acceptScan(12_999, 10_000)).toBe(false);
+    expect(acceptScan(13_000, 10_000)).toBe(true);
+    // A clock set back never blocks scanning.
+    expect(acceptScan(5_000, 10_000)).toBe(true);
   });
 });

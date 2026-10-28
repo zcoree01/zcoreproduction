@@ -88,6 +88,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - RPCs `save_crew`, `set_crew_archived`, `save_rotation`, `set_rotation_archived`, `assign_rotation`, `end_rotation_assignment`, `apply_rotations` (range ≤ 62 days; manual days stay; own rotation beats the crew's), `set_schedule_entries`, `copy_schedule_week`, `schedule_range`, `my_schedule`.
   - Screens: `/attendance/schedule` "Raspored" (week / month grid, crew filter, click a day → shift or day off, "Primijeni rotacije", "Kopiraj na sljedeću sedmicu", manual days marked), `/attendance/crews` "Ekipe i rotacije" (crews with members, rotations with a day-by-day pattern, assignments with end); the worker sees "Moj raspored" (next 14 days) on `/floor/attendance`.
   - Demo: crews A (Omer Operater) and B (Benjamin Bravar) on "Sedmična izmjena I/II", a week apart, written for six weeks.
+- **Kiosk NFC review** (`20261028130000_kiosk_repeat_guard`, D-030): NFC reader stays on after "Uključi NFC čitač", 3-second pause after a badge scan, same worker within 10 s repeats the last result ("Već zabilježeno"); "Kopiraj za NFC" / "Upiši na NFC" in `/settings/kiosk`. Development: the app opens from other devices on the local network (`http://<computer IP>:3000/...?org=<slug>`), `npm run dev:https` for camera / NFC.
 - **Attendance part C2 — kiosk** (`20261028110000_attendance_kiosk`, D-029): permission `kiosk.manage`; `/settings/kiosk` (tablets with one-time activation codes, revoke; workers' PINs and badges), `/settings/kiosk/badges` (printable QR badges), `/kiosk` (public, device cookie: badge via camera QR / NFC / keyboard scanner, or name + PIN; toggles clock-in / out), "Kiosk PIN" on `/floor/attendance`.
 - **Attendance part C1 — calculation, holidays, net pay, monthly overview** (`20261028090000_attendance_payroll`, D-027):
   - Settings: overtime daily / weekly (40 h, warning above 10 h overtime a week), rounding always up (15 min), night 22–06, weekend days; premiums 30 / 30 / 30 / 50 % and the default net hourly rate (director, HR); own rates per employee valid from a date. Permissions `payroll.read`, `payroll.manage`.
@@ -188,6 +189,11 @@ Permanent test tenants (`tests/shared/test-tenants.ts`): `test-tenant-a`, `test-
 5. **Reports and analytics:** productivity per machine / worker / order over periods (good per hour, actual vs planned time, downtime by reason, scrap by reason), export; builds on sessions, run time, downtime and reports.
 
 ## Log
+
+### 2026-10-28 — Kiosk NFC and local-network development
+
+- Product owner tested on a phone: the kiosk did not activate over http://192.168.1.7:3000 (dev server blocked its scripts for that origin, ?org ignored on IP hosts) and NFC cards were read repeatedly / stopped working after one read. Fixed as in D-030; migration `20261028130000_kiosk_repeat_guard` applied.
+- Verified: `npm run check` (362; new: scan pause, private-network hosts accepted for ?org in development only), `npm run test:db` (206; kiosk test now covers the 10-second repeat), `npm run e2e` (full run 57 passed, 2 failed: the leave test met an open sick-leave request left by an interrupted run, it now withdraws it first and passed on rerun; kiosk test now checks "Već zabilježeno" and "Kopiraj za NFC"), `npm run build`, `npm run format:check`; kiosk activation checked with a real browser over http://192.168.1.7:3000. NFC reading / writing itself needs a phone with NFC (not testable in Playwright).
 
 ### 2026-10-28 — Shifts and working time, part C2 (kiosk)
 

@@ -24,12 +24,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { kioskClockAction, type KioskClockResult } from "@/modules/attendance/kiosk-actions";
 import type { KioskEmployee } from "@/modules/attendance/kiosk-device";
+import { acceptScan } from "@/modules/attendance/kiosk-rules";
 
 // Browser APIs not (yet) in the TypeScript DOM library.
 type DetectedBarcode = { rawValue: string };
 type BarcodeDetectorLike = { detect(source: HTMLVideoElement): Promise<DetectedBarcode[]> };
 type BarcodeDetectorConstructor = new (options: { formats: string[] }) => BarcodeDetectorLike;
-type NdefRecord = { recordType: string; data?: DataView };
+type NdefRecord = { recordType: string; encoding?: string; data?: DataView };
 type NdefReaderLike = {
   scan(options?: { signal?: AbortSignal }): Promise<void>;
   addEventListener(
@@ -100,6 +101,10 @@ export function KioskScreen(props: {
   const hasCamera = useSyncExternalStore(subscribeNever, cameraAvailable, () => false);
   const hasNfc = useSyncExternalStore(subscribeNever, nfcAvailable, () => false);
   const typed = useRef({ text: "", at: 0 });
+  // Last accepted badge scan: a card held at the reader is read many times.
+  const lastScan = useRef<number | null>(null);
+  const nfc = useRef<NdefReaderLike | null>(null);
+  const [nfcState, setNfcState] = useState<"off" | "on" | "failed">("off");
 
   useEffect(() => {
     if (view.name !== "result") return;
@@ -118,8 +123,12 @@ export function KioskScreen(props: {
       setView({ name: "result", result });
     });
 
-  const sendBadge = (badge: string) =>
+  const sendBadge = (badge: string) => {
+    const at = Date.now();
+    if (pending || !acceptScan(at, lastScan.current)) return;
+    lastScan.current = at;
     send({ method: "badge", badge, idempotencyKey: crypto.randomUUID() });
+  };
 
   // Keyboard-like badge scanners type the token and Enter.
   const onScannerKey = useEffectEvent((event: KeyboardEvent) => {
@@ -140,26 +149,30 @@ export function KioskScreen(props: {
     return () => window.removeEventListener("keydown", onKey);
   }, [view.name]);
 
-  const scanNfc = async () => {
+  // NFC: one reader stays on while the kiosk page is open (scanning only
+  // after a tap per card would hand later cards to Android instead).
+  const onNfcReading = useEffectEvent((records: NdefRecord[]) => {
+    const record = records.find((item) => item.recordType === "text" || item.recordType === "url");
+    if (record?.data) sendBadge(new TextDecoder(record.encoding ?? "utf-8").decode(record.data));
+  });
+  // Turned on by a tap (the browser asks for permission once), then kept on.
+  const [nfcRequested, setNfcRequested] = useState(false);
+  useEffect(() => {
     const Reader = ndefReader();
-    if (!Reader) return;
+    if (!nfcRequested || !Reader || nfc.current) return;
     const reader = new Reader();
-    const controller = new AbortController();
-    reader.addEventListener("reading", (event) => {
-      const record = event.message.records.find(
-        (item) => item.recordType === "text" || item.recordType === "url",
-      );
-      if (record?.data) {
-        controller.abort();
-        sendBadge(new TextDecoder().decode(record.data));
-      }
-    });
-    try {
-      await reader.scan({ signal: controller.signal });
-    } catch {
-      setView({ name: "result", result: { ok: false, error: "unexpected" } });
-    }
-  };
+    reader.addEventListener("reading", (event) => onNfcReading(event.message.records));
+    reader
+      .scan()
+      .then(() => {
+        nfc.current = reader;
+        setNfcState("on");
+      })
+      .catch(() => {
+        setNfcRequested(false);
+        setNfcState("failed");
+      });
+  }, [nfcRequested]);
 
   const clock = now
     ? new Intl.DateTimeFormat("bs", {
@@ -198,16 +211,25 @@ export function KioskScreen(props: {
                 {t("scanQr")}
               </Button>
             ) : null}
-            {hasNfc ? (
+            {hasNfc && nfcState !== "on" ? (
               <Button
                 size="lg"
                 variant="outline"
                 className="h-20 text-lg"
-                onClick={() => void scanNfc()}
+                onClick={() => setNfcRequested(true)}
               >
                 <NfcIcon className="size-6" />
-                {t("scanNfc")}
+                {t("startNfc")}
               </Button>
+            ) : null}
+            {nfcState === "on" ? (
+              <p
+                className="flex h-20 items-center justify-center gap-2 rounded-lg border border-emerald-500 text-lg"
+                data-testid="nfc-on"
+              >
+                <NfcIcon className="size-6 text-emerald-600" aria-hidden />
+                {t("nfcOn")}
+              </p>
             ) : null}
             <Button
               size="lg"
@@ -218,6 +240,9 @@ export function KioskScreen(props: {
               {t("byName")}
             </Button>
           </div>
+          {nfcState === "failed" ? (
+            <p className="text-sm text-destructive">{t("nfcFailed")}</p>
+          ) : null}
           <p className="text-sm text-muted-foreground">{t("scannerHint")}</p>
         </section>
       ) : null}
@@ -505,6 +530,9 @@ function ResultView({
           ? t("hello", { name: result.employeeName })
           : t("goodbye", { name: result.employeeName })}
       </p>
+      {result.repeat ? (
+        <p className="text-lg text-muted-foreground">{t("alreadyRecorded")}</p>
+      ) : null}
       <p className="text-2xl">
         {arriving ? t("clockedIn", { time }) : t("clockedOut", { time })}
         {arriving && result.shiftCode ? ` · ${t("shift", { code: result.shiftCode })}` : ""}
