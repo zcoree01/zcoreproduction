@@ -2018,6 +2018,7 @@ export type Database = {
           organization_id: string
           product_id: string
           revision: string | null
+          stock_item_id: string | null
           updated_at: string
         }
         Insert: {
@@ -2038,6 +2039,7 @@ export type Database = {
           organization_id: string
           product_id: string
           revision?: string | null
+          stock_item_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -2058,6 +2060,7 @@ export type Database = {
           organization_id?: string
           product_id?: string
           revision?: string | null
+          stock_item_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2080,6 +2083,13 @@ export type Database = {
             columns: ["organization_id", "product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "product_revisions_stock_item_fkey"
+            columns: ["organization_id", "stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
             referencedColumns: ["organization_id", "id"]
           },
         ]
@@ -3585,6 +3595,523 @@ export type Database = {
           },
         ]
       }
+      stock_adjustment_lines: {
+        Row: {
+          document_id: string
+          id: string
+          item_id: string
+          length_mm: number | null
+          line_no: number
+          location_id: string
+          lot_id: string | null
+          organization_id: string
+          pieces: number | null
+          quantity: number | null
+          width_mm: number | null
+        }
+        Insert: {
+          document_id: string
+          id?: string
+          item_id: string
+          length_mm?: number | null
+          line_no: number
+          location_id: string
+          lot_id?: string | null
+          organization_id: string
+          pieces?: number | null
+          quantity?: number | null
+          width_mm?: number | null
+        }
+        Update: {
+          document_id?: string
+          id?: string
+          item_id?: string
+          length_mm?: number | null
+          line_no?: number
+          location_id?: string
+          lot_id?: string | null
+          organization_id?: string
+          pieces?: number | null
+          quantity?: number | null
+          width_mm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_adjustment_lines_organization_id_document_id_fkey"
+            columns: ["organization_id", "document_id"]
+            isOneToOne: false
+            referencedRelation: "stock_documents"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_lines_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_lines_organization_id_item_id_lot_id_fkey"
+            columns: ["organization_id", "item_id", "lot_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lots"
+            referencedColumns: ["organization_id", "item_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_adjustment_lines_organization_id_location_id_fkey"
+            columns: ["organization_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          delivery_note: string | null
+          document_date: string
+          id: string
+          idempotency_key: string
+          kind: string
+          notes: string | null
+          number: string
+          organization_id: string
+          reason: string | null
+          status: string
+          supplier: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          delivery_note?: string | null
+          document_date: string
+          id?: string
+          idempotency_key: string
+          kind: string
+          notes?: string | null
+          number: string
+          organization_id: string
+          reason?: string | null
+          status: string
+          supplier?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          delivery_note?: string | null
+          document_date?: string
+          id?: string
+          idempotency_key?: string
+          kind?: string
+          notes?: string | null
+          number?: string
+          organization_id?: string
+          reason?: string | null
+          status?: string
+          supplier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_items: {
+        Row: {
+          archived_at: string | null
+          base_unit: string
+          code: string
+          created_at: string
+          default_location_id: string | null
+          diameter_mm: number | null
+          id: string
+          mass_per_m_kg: number | null
+          material_id: string | null
+          min_stock: number | null
+          name: string
+          notes: string | null
+          organization_id: string
+          profile_label: string | null
+          shape: string
+          standard_length_mm: number | null
+          standard_width_mm: number | null
+          supplier: string | null
+          thickness_mm: number | null
+          updated_at: string
+          width_mm: number | null
+        }
+        Insert: {
+          archived_at?: string | null
+          base_unit: string
+          code: string
+          created_at?: string
+          default_location_id?: string | null
+          diameter_mm?: number | null
+          id?: string
+          mass_per_m_kg?: number | null
+          material_id?: string | null
+          min_stock?: number | null
+          name: string
+          notes?: string | null
+          organization_id: string
+          profile_label?: string | null
+          shape: string
+          standard_length_mm?: number | null
+          standard_width_mm?: number | null
+          supplier?: string | null
+          thickness_mm?: number | null
+          updated_at?: string
+          width_mm?: number | null
+        }
+        Update: {
+          archived_at?: string | null
+          base_unit?: string
+          code?: string
+          created_at?: string
+          default_location_id?: string | null
+          diameter_mm?: number | null
+          id?: string
+          mass_per_m_kg?: number | null
+          material_id?: string | null
+          min_stock?: number | null
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          profile_label?: string | null
+          shape?: string
+          standard_length_mm?: number | null
+          standard_width_mm?: number | null
+          supplier?: string | null
+          thickness_mm?: number | null
+          updated_at?: string
+          width_mm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_items_organization_id_default_location_id_fkey"
+            columns: ["organization_id", "default_location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_organization_id_material_id_fkey"
+            columns: ["organization_id", "material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_locations: {
+        Row: {
+          archived_at: string | null
+          code: string
+          created_at: string
+          id: string
+          kind: string
+          machine_id: string | null
+          name: string
+          organization_id: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          kind: string
+          machine_id?: string | null
+          name: string
+          organization_id: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          machine_id?: string | null
+          name?: string
+          organization_id?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_locations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_locations_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_locations_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_locations_organization_id_parent_id_fkey"
+            columns: ["organization_id", "parent_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_lot_certificates: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          lot_id: string
+          mime_type: string
+          organization_id: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          lot_id: string
+          mime_type: string
+          organization_id: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          lot_id?: string
+          mime_type?: string
+          organization_id?: string
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_lot_certificates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_lot_certificates_organization_id_lot_id_fkey"
+            columns: ["organization_id", "lot_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lots"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_lots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delivery_note: string | null
+          heat_number: string | null
+          id: string
+          item_id: string
+          lot_number: string
+          organization_id: string
+          owner_customer_id: string | null
+          received_at: string
+          supplier: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delivery_note?: string | null
+          heat_number?: string | null
+          id?: string
+          item_id: string
+          lot_number: string
+          organization_id: string
+          owner_customer_id?: string | null
+          received_at?: string
+          supplier?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delivery_note?: string | null
+          heat_number?: string | null
+          id?: string
+          item_id?: string
+          lot_number?: string
+          organization_id?: string
+          owner_customer_id?: string | null
+          received_at?: string
+          supplier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_lots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_lots_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_lots_organization_id_owner_customer_id_fkey"
+            columns: ["organization_id", "owner_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_id: string
+          id: string
+          idempotency_key: string
+          invoice_kg: number | null
+          item_id: string
+          kind: string
+          length_mm: number | null
+          line_no: number
+          location_id: string
+          lot_id: string
+          mass_kg: number | null
+          organization_id: string
+          pieces: number | null
+          price_includes_vat: boolean | null
+          price_unit: string | null
+          quantity: number
+          unit_price: number | null
+          value: number
+          width_mm: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          id?: string
+          idempotency_key: string
+          invoice_kg?: number | null
+          item_id: string
+          kind: string
+          length_mm?: number | null
+          line_no: number
+          location_id: string
+          lot_id: string
+          mass_kg?: number | null
+          organization_id: string
+          pieces?: number | null
+          price_includes_vat?: boolean | null
+          price_unit?: string | null
+          quantity: number
+          unit_price?: number | null
+          value?: number
+          width_mm?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          idempotency_key?: string
+          invoice_kg?: number | null
+          item_id?: string
+          kind?: string
+          length_mm?: number | null
+          line_no?: number
+          location_id?: string
+          lot_id?: string
+          mass_kg?: number | null
+          organization_id?: string
+          pieces?: number | null
+          price_includes_vat?: boolean | null
+          price_unit?: string | null
+          quantity?: number
+          unit_price?: number | null
+          value?: number
+          width_mm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_organization_id_document_id_fkey"
+            columns: ["organization_id", "document_id"]
+            isOneToOne: false
+            referencedRelation: "stock_documents"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_organization_id_item_id_lot_id_fkey"
+            columns: ["organization_id", "item_id", "lot_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lots"
+            referencedColumns: ["organization_id", "item_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_movements_organization_id_location_id_fkey"
+            columns: ["organization_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       support_access_requests: {
         Row: {
           approved_until: string | null
@@ -3957,6 +4484,63 @@ export type Database = {
           },
         ]
       }
+      stock_balances: {
+        Row: {
+          item_id: string | null
+          length_mm: number | null
+          location_id: string | null
+          lot_id: string | null
+          mass_kg: number | null
+          organization_id: string | null
+          pieces: number | null
+          quantity: number | null
+          value: number | null
+          width_mm: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_organization_id_item_id_lot_id_fkey"
+            columns: ["organization_id", "item_id", "lot_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lots"
+            referencedColumns: ["organization_id", "item_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_movements_organization_id_location_id_fkey"
+            columns: ["organization_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_item_totals: {
+        Row: {
+          item_id: string | null
+          mass_kg: number | null
+          organization_id: string | null
+          own_mass_kg: number | null
+          own_quantity: number | null
+          own_value: number | null
+          quantity: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       absences_range: {
@@ -4135,6 +4719,10 @@ export type Database = {
       }
       decide_order_close: {
         Args: { p_approve: boolean; p_note?: string; p_request_id: string }
+        Returns: undefined
+      }
+      decide_stock_adjustment: {
+        Args: { p_approve: boolean; p_document_id: string; p_note?: string }
         Returns: undefined
       }
       decide_support_request: {
@@ -4421,6 +5009,24 @@ export type Database = {
           status: string
         }[]
       }
+      post_stock_receipt: {
+        Args: {
+          p_header: Json
+          p_idempotency_key: string
+          p_lines: Json
+          p_org_id: string
+        }
+        Returns: string
+      }
+      post_stock_transfer: {
+        Args: {
+          p_idempotency_key: string
+          p_lines: Json
+          p_notes?: string
+          p_org_id: string
+        }
+        Returns: string
+      }
       product_history: {
         Args: { p_limit?: number; p_product_id: string }
         Returns: {
@@ -4628,6 +5234,16 @@ export type Database = {
       }
       request_order_close: {
         Args: { p_order_id: string; p_reason: string }
+        Returns: string
+      }
+      request_stock_adjustment: {
+        Args: {
+          p_idempotency_key: string
+          p_lines: Json
+          p_org_id: string
+          p_post?: boolean
+          p_reason: string
+        }
         Returns: string
       }
       resolve_attendance_alert: {

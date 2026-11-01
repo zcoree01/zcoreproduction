@@ -33,6 +33,10 @@ export const PERMISSION_KEYS = [
   "payroll.read",
   "payroll.manage",
   "kiosk.manage",
+  "inventory.read",
+  "inventory.items.manage",
+  "inventory.move",
+  "inventory.adjust.approve",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

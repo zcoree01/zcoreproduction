@@ -6,7 +6,8 @@ import type { PermissionKey } from "@/lib/auth/permissions";
 // page and action enforces access on the server.
 
 export type NavSurface = "app" | "floor";
-export type NavSectionKey = "overview" | "production" | "administration" | "platform" | "work";
+export type NavSectionKey =
+  "overview" | "production" | "inventory" | "administration" | "platform" | "work";
 export type NavLabelKey =
   | "dashboard"
   | "users"
@@ -37,7 +38,13 @@ export type NavLabelKey =
   | "platformSettings"
   | "monthly"
   | "holidays"
-  | "kiosk";
+  | "kiosk"
+  | "stock"
+  | "stockReceipts"
+  | "stockAdjustments"
+  | "stockLocations"
+  | "stockPairing"
+  | "inventorySettings";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -55,7 +62,11 @@ export type NavIconKey =
   | "calendar"
   | "building"
   | "inbox"
-  | "shield";
+  | "shield"
+  | "warehouse"
+  | "receipt"
+  | "location"
+  | "link";
 
 export type NavItemDef = {
   id: string;
@@ -73,7 +84,7 @@ export type NavItemDef = {
 };
 
 export const NAV_SECTIONS: Record<NavSurface, readonly NavSectionKey[]> = {
-  app: ["overview", "production", "administration", "platform"],
+  app: ["overview", "production", "inventory", "administration", "platform"],
   floor: ["work"],
 };
 
@@ -196,6 +207,66 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     permission: "customers.read",
     surface: "app",
     section: "production",
+  },
+  {
+    id: "stock",
+    href: "/inventory",
+    label: "stock",
+    icon: "warehouse",
+    module: "inventory",
+    permission: "inventory.read",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "stock-receipts",
+    href: "/inventory/receipts",
+    label: "stockReceipts",
+    icon: "receipt",
+    module: "inventory",
+    permission: "inventory.read",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "stock-adjustments",
+    href: "/inventory/adjustments",
+    label: "stockAdjustments",
+    icon: "inbox",
+    module: "inventory",
+    permission: "inventory.read",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "stock-locations",
+    href: "/inventory/locations",
+    label: "stockLocations",
+    icon: "location",
+    module: "inventory",
+    permission: "inventory.items.manage",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "stock-pairing",
+    href: "/inventory/pairing",
+    label: "stockPairing",
+    icon: "link",
+    module: "inventory",
+    permission: "products.manage",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "inventory-settings",
+    href: "/settings/inventory",
+    label: "inventorySettings",
+    icon: "settings",
+    module: "inventory",
+    permission: "org.settings.manage",
+    surface: "app",
+    section: "administration",
   },
   {
     id: "users",

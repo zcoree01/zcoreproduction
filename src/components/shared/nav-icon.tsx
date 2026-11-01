@@ -9,11 +9,15 @@ import {
   InboxIcon,
   LayersIcon,
   LayoutDashboardIcon,
+  Link2Icon,
   ListIcon,
+  MapPinIcon,
   PackageIcon,
+  ReceiptIcon,
   SettingsIcon,
   ShieldCheckIcon,
   UsersIcon,
+  WarehouseIcon,
   WorkflowIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -38,6 +42,10 @@ const ICONS: Record<NavIconKey, LucideIcon> = {
   building: BuildingIcon,
   inbox: InboxIcon,
   shield: ShieldCheckIcon,
+  warehouse: WarehouseIcon,
+  receipt: ReceiptIcon,
+  location: MapPinIcon,
+  link: Link2Icon,
 };
 
 export function NavIcon({ icon, className }: { icon: NavIconKey; className?: string }) {
