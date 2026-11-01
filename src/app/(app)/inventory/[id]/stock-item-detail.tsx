@@ -7,6 +7,7 @@ import {
   HistoryIcon,
   PencilIcon,
   PlusIcon,
+  QrCodeIcon,
   RotateCcwIcon,
   ScaleIcon,
   WarehouseIcon,
@@ -120,33 +121,43 @@ export function StockItemDetailView({
                 .join(" · ")}
             </p>
           </div>
-          {permissions.canManage ? (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setDialog({ kind: "edit" })}>
-                <PencilIcon />
-                {t("detail.edit")}
-              </Button>
-              {item.archived ? (
-                <Button variant="outline" disabled={pending} onClick={() => setArchived(false)}>
-                  <RotateCcwIcon />
-                  {t("detail.restore")}
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/inventory/labels?item=${item.id}`}
+              target="_blank"
+              className={cn(buttonVariants({ variant: "outline" }))}
+            >
+              <QrCodeIcon />
+              {t("labelsButton")}
+            </Link>
+            {permissions.canManage ? (
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setDialog({ kind: "edit" })}>
+                  <PencilIcon />
+                  {t("detail.edit")}
                 </Button>
-              ) : (
-                <ConfirmDialog
-                  trigger={
-                    <Button variant="outline" disabled={pending}>
-                      <ArchiveIcon />
-                      {t("detail.archive")}
-                    </Button>
-                  }
-                  title={t("detail.archiveTitle")}
-                  description={t("detail.archiveDescription")}
-                  confirmLabel={t("detail.archive")}
-                  onConfirm={() => setArchived(true)}
-                />
-              )}
-            </div>
-          ) : null}
+                {item.archived ? (
+                  <Button variant="outline" disabled={pending} onClick={() => setArchived(false)}>
+                    <RotateCcwIcon />
+                    {t("detail.restore")}
+                  </Button>
+                ) : (
+                  <ConfirmDialog
+                    trigger={
+                      <Button variant="outline" disabled={pending}>
+                        <ArchiveIcon />
+                        {t("detail.archive")}
+                      </Button>
+                    }
+                    title={t("detail.archiveTitle")}
+                    description={t("detail.archiveDescription")}
+                    confirmLabel={t("detail.archive")}
+                    onConfirm={() => setArchived(true)}
+                  />
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 

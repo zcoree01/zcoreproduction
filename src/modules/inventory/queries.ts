@@ -948,3 +948,331 @@ export async function getFloorOrderMaterial(
     })),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Stock counts (D-033)
+// ---------------------------------------------------------------------------
+
+export type StockCountStatus = "open" | "submitted" | "posted" | "cancelled";
+
+export type StockCountRow = {
+  id: string;
+  number: string;
+  status: StockCountStatus;
+  location: string;
+  itemLabel: string | null;
+  createdAt: string;
+  lines: number;
+  counted: number;
+};
+
+export async function listStockCounts(organizationId: string): Promise<StockCountRow[]> {
+  const supabase = await createClient();
+  const [counts, locations] = await Promise.all([
+    supabase
+      .from("stock_counts")
+      .select(
+        "id, number, status, location_id, created_at, item:stock_items(code, name), stock_count_lines(counted_quantity)",
+      )
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    listStockLocations(organizationId),
+  ]);
+  if (counts.error) throw counts.error;
+  const locationLabel = new Map(locations.map((l) => [l.id, l.label]));
+  return counts.data.map((c) => ({
+    id: c.id,
+    number: c.number,
+    status: c.status as StockCountStatus,
+    location: locationLabel.get(c.location_id) ?? "",
+    itemLabel: c.item ? `${c.item.code} · ${c.item.name}` : null,
+    createdAt: c.created_at,
+    lines: c.stock_count_lines.length,
+    counted: c.stock_count_lines.filter((l) => l.counted_quantity !== null).length,
+  }));
+}
+
+export type StockCountLine = {
+  id: string;
+  itemId: string;
+  itemCode: string;
+  itemName: string;
+  baseUnit: BaseUnit;
+  lotNumber: string | null;
+  heatNumber: string | null;
+  location: string;
+  length: string | null;
+  width: string | null;
+  expectedPieces: number | null;
+  expectedQuantity: string;
+  countedPieces: number | null;
+  countedQuantity: string | null;
+  found: boolean;
+};
+
+export type StockCountDetail = {
+  id: string;
+  number: string;
+  status: StockCountStatus;
+  locationId: string;
+  location: string;
+  itemId: string | null;
+  notes: string | null;
+  decisionNote: string | null;
+  adjustmentDocumentId: string | null;
+  createdAt: string;
+  lines: StockCountLine[];
+  /** Locations of the count (the location and its shelves) for found lines. */
+  locations: StockLocation[];
+};
+
+export async function getStockCount(
+  organizationId: string,
+  countId: string,
+): Promise<StockCountDetail | null> {
+  const supabase = await createClient();
+  const [count, locations] = await Promise.all([
+    supabase
+      .from("stock_counts")
+      .select(
+        "id, number, status, location_id, item_id, notes, decision_note, adjustment_document_id, created_at, stock_count_lines(id, item_id, location_id, length_mm, width_mm, expected_pieces, expected_quantity, counted_pieces, counted_quantity, found, item:stock_items(code, name, base_unit), lot:stock_lots(lot_number, heat_number))",
+      )
+      .eq("organization_id", organizationId)
+      .eq("id", countId)
+      .maybeSingle(),
+    listStockLocations(organizationId),
+  ]);
+  if (count.error) throw count.error;
+  if (!count.data) return null;
+  const c = count.data;
+  const locationLabel = new Map(locations.map((l) => [l.id, l.label]));
+  return {
+    id: c.id,
+    number: c.number,
+    status: c.status as StockCountStatus,
+    locationId: c.location_id,
+    location: locationLabel.get(c.location_id) ?? "",
+    itemId: c.item_id,
+    notes: c.notes,
+    decisionNote: c.decision_note,
+    adjustmentDocumentId: c.adjustment_document_id,
+    createdAt: c.created_at,
+    locations: locations.filter(
+      (l) => !l.archived && (l.id === c.location_id || l.parentId === c.location_id),
+    ),
+    lines: c.stock_count_lines
+      .map((l) => ({
+        id: l.id,
+        itemId: l.item_id,
+        itemCode: l.item?.code ?? "",
+        itemName: l.item?.name ?? "",
+        baseUnit: (l.item?.base_unit ?? "kg") as BaseUnit,
+        lotNumber: l.lot?.lot_number ?? null,
+        heatNumber: l.lot?.heat_number ?? null,
+        location: locationLabel.get(l.location_id) ?? "",
+        length: decimalFromDb(l.length_mm),
+        width: decimalFromDb(l.width_mm),
+        expectedPieces: l.expected_pieces,
+        expectedQuantity: dec(l.expected_quantity),
+        countedPieces: l.counted_pieces,
+        countedQuantity: decimalFromDb(l.counted_quantity),
+        found: l.found,
+      }))
+      .sort(
+        (a, b) =>
+          a.location.localeCompare(b.location, "bs") ||
+          a.itemCode.localeCompare(b.itemCode, "bs") ||
+          (a.lotNumber ?? "").localeCompare(b.lotNumber ?? "") ||
+          Number(b.length ?? 0) - Number(a.length ?? 0),
+      ),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Warnings (dashboard, order list)
+// ---------------------------------------------------------------------------
+
+export type OrderShortage = {
+  orderId: string;
+  orderNumber: string;
+  dueDate: string;
+  itemCode: string;
+  baseUnit: BaseUnit;
+  shortage: string;
+};
+
+/** Released orders that lack material, by due date. */
+export async function listOrderShortages(organizationId: string): Promise<OrderShortage[]> {
+  const supabase = await createClient();
+  const coverage = await supabase
+    .from("stock_order_coverage")
+    .select("order_id, item_id, shortage")
+    .eq("organization_id", organizationId)
+    .gt("shortage", 0);
+  if (coverage.error) throw coverage.error;
+  if (coverage.data.length === 0) return [];
+  const [orders, items] = await Promise.all([
+    supabase
+      .from("production_orders")
+      .select("id, order_number, due_date")
+      .eq("organization_id", organizationId)
+      .in(
+        "id",
+        coverage.data.map((row) => row.order_id ?? ""),
+      ),
+    supabase
+      .from("stock_items")
+      .select("id, code, base_unit")
+      .eq("organization_id", organizationId)
+      .in(
+        "id",
+        coverage.data.map((row) => row.item_id ?? ""),
+      ),
+  ]);
+  if (orders.error) throw orders.error;
+  if (items.error) throw items.error;
+  const orderById = new Map(orders.data.map((o) => [o.id, o]));
+  const itemById = new Map(items.data.map((i) => [i.id, i]));
+  return coverage.data
+    .map((row) => {
+      const order = orderById.get(row.order_id ?? "");
+      const item = itemById.get(row.item_id ?? "");
+      return {
+        orderId: row.order_id ?? "",
+        orderNumber: order?.order_number ?? "",
+        dueDate: order?.due_date ?? "",
+        itemCode: item?.code ?? "",
+        baseUnit: (item?.base_unit ?? "mm") as BaseUnit,
+        shortage: dec(row.shortage),
+      };
+    })
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/** Order ids (of the given ones) that lack material. */
+export async function ordersShortOfMaterial(
+  organizationId: string,
+  orderIds: string[],
+): Promise<Set<string>> {
+  if (orderIds.length === 0) return new Set();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stock_order_coverage")
+    .select("order_id")
+    .eq("organization_id", organizationId)
+    .in("order_id", orderIds)
+    .gt("shortage", 0);
+  if (error) throw error;
+  return new Set(data.map((row) => row.order_id ?? ""));
+}
+
+export async function countSubmittedStockCounts(organizationId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("stock_counts")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("status", "submitted");
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Labels and the mobile warehouse
+// ---------------------------------------------------------------------------
+
+export type LotView = {
+  lotId: string;
+  lotNumber: string;
+  heatNumber: string | null;
+  ownerCustomer: string | null;
+  itemId: string;
+};
+
+export async function getLot(organizationId: string, lotId: string): Promise<LotView | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stock_lots")
+    .select("id, lot_number, heat_number, item_id, customer:customers(name)")
+    .eq("organization_id", organizationId)
+    .eq("id", lotId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    lotId: data.id,
+    lotNumber: data.lot_number,
+    heatNumber: data.heat_number,
+    ownerCustomer: data.customer?.name ?? null,
+    itemId: data.item_id,
+  };
+}
+
+export type LocationStockRow = StockBalanceRow & {
+  itemId: string;
+  itemCode: string;
+  itemName: string;
+  baseUnit: BaseUnit;
+};
+
+/** Stock at one location (with its shelves for a warehouse). */
+export async function listLocationStock(
+  organizationId: string,
+  locationId: string,
+): Promise<LocationStockRow[]> {
+  const supabase = await createClient();
+  const locations = await listStockLocations(organizationId);
+  const ids = locations
+    .filter((l) => l.id === locationId || l.parentId === locationId)
+    .map((l) => l.id);
+  if (ids.length === 0) return [];
+  const balances = await supabase
+    .from("stock_balances")
+    .select("item_id, lot_id, location_id, length_mm, width_mm, pieces, quantity, mass_kg")
+    .eq("organization_id", organizationId)
+    .in("location_id", ids)
+    .gt("quantity", 0);
+  if (balances.error) throw balances.error;
+  const itemIds = [...new Set(balances.data.map((b) => b.item_id ?? ""))];
+  const lotIds = [...new Set(balances.data.map((b) => b.lot_id ?? ""))];
+  if (itemIds.length === 0) return [];
+  const [items, lots] = await Promise.all([
+    supabase.from("stock_items").select("id, code, name, base_unit").in("id", itemIds),
+    supabase
+      .from("stock_lots")
+      .select("id, lot_number, heat_number, customer:customers(name)")
+      .in("id", lotIds),
+  ]);
+  if (items.error) throw items.error;
+  if (lots.error) throw lots.error;
+  const itemById = new Map(items.data.map((i) => [i.id, i]));
+  const lotById = new Map(lots.data.map((l) => [l.id, l]));
+  const label = new Map(locations.map((l) => [l.id, l.label]));
+  return balances.data
+    .map((b) => {
+      const item = itemById.get(b.item_id ?? "");
+      const lot = lotById.get(b.lot_id ?? "");
+      return {
+        itemId: b.item_id ?? "",
+        itemCode: item?.code ?? "",
+        itemName: item?.name ?? "",
+        baseUnit: (item?.base_unit ?? "kg") as BaseUnit,
+        lotId: b.lot_id ?? "",
+        lotNumber: lot?.lot_number ?? "",
+        heatNumber: lot?.heat_number ?? null,
+        ownerCustomer: lot?.customer?.name ?? null,
+        locationId: b.location_id ?? "",
+        location: label.get(b.location_id ?? "") ?? "",
+        length: decimalFromDb(b.length_mm),
+        width: decimalFromDb(b.width_mm),
+        pieces: b.pieces,
+        quantity: dec(b.quantity),
+        mass: decimalFromDb(b.mass_kg),
+      };
+    })
+    .sort(
+      (a, b) =>
+        a.location.localeCompare(b.location, "bs") || a.itemCode.localeCompare(b.itemCode, "bs"),
+    );
+}

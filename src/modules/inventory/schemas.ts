@@ -31,6 +31,9 @@ export const STOCK_ERRORS = [
   "offcut_own_material_only",
   "invalid_offcut",
   "lot_not_issued",
+  "count_not_found",
+  "count_not_open",
+  "count_not_submitted",
 ] as const;
 export type StockError = (typeof STOCK_ERRORS)[number];
 
@@ -396,3 +399,38 @@ export const consumptionSchema = z.object({
 });
 export const CONSUMPTION_FIELDS = ["quantity", "note"] as const;
 export type ConsumptionField = (typeof CONSUMPTION_FIELDS)[number];
+
+// ---------------------------------------------------------------------------
+// Stock counts (D-033)
+// ---------------------------------------------------------------------------
+
+export const openCountSchema = z.object({
+  idempotencyKey: z.uuid(),
+  locationId: z.uuid(),
+  itemId: optionalUuid,
+  notes: optionalText(2000),
+});
+export const OPEN_COUNT_FIELDS = ["locationId", "itemId", "notes"] as const;
+export type OpenCountField = (typeof OPEN_COUNT_FIELDS)[number];
+
+/** Counted pieces (dimensioned items) or quantity; "" clears the line. */
+const counted = optionalDecimal({ maxScale: 3, max: "1000000000" });
+
+export const countLineSchema = z.object({ lineId: z.uuid(), counted });
+
+export const foundLineSchema = z.object({
+  countId: z.uuid(),
+  itemId: z.uuid(),
+  locationId: z.uuid(),
+  length: pieceSize,
+  width: pieceSize,
+  counted: optionalDecimal({ maxScale: 3, max: "1000000000", exclusiveMin: true }).refine(
+    (value) => value !== null,
+  ),
+});
+export const FOUND_LINE_FIELDS = ["itemId", "locationId", "length", "width", "counted"] as const;
+export type FoundLineField = (typeof FOUND_LINE_FIELDS)[number];
+
+export const decideCountSchema = z
+  .object({ countId: z.uuid(), post: z.boolean(), note: optionalText(500) })
+  .refine((d) => d.post || d.note !== null, { path: ["note"] });

@@ -3679,6 +3679,175 @@ export type Database = {
           },
         ]
       }
+      stock_count_lines: {
+        Row: {
+          count_id: string
+          counted_at: string | null
+          counted_by: string | null
+          counted_pieces: number | null
+          counted_quantity: number | null
+          expected_pieces: number | null
+          expected_quantity: number
+          found: boolean
+          id: string
+          item_id: string
+          length_mm: number | null
+          location_id: string
+          lot_id: string | null
+          organization_id: string
+          width_mm: number | null
+        }
+        Insert: {
+          count_id: string
+          counted_at?: string | null
+          counted_by?: string | null
+          counted_pieces?: number | null
+          counted_quantity?: number | null
+          expected_pieces?: number | null
+          expected_quantity?: number
+          found?: boolean
+          id?: string
+          item_id: string
+          length_mm?: number | null
+          location_id: string
+          lot_id?: string | null
+          organization_id: string
+          width_mm?: number | null
+        }
+        Update: {
+          count_id?: string
+          counted_at?: string | null
+          counted_by?: string | null
+          counted_pieces?: number | null
+          counted_quantity?: number | null
+          expected_pieces?: number | null
+          expected_quantity?: number
+          found?: boolean
+          id?: string
+          item_id?: string
+          length_mm?: number | null
+          location_id?: string
+          lot_id?: string | null
+          organization_id?: string
+          width_mm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_lines_organization_id_count_id_fkey"
+            columns: ["organization_id", "count_id"]
+            isOneToOne: false
+            referencedRelation: "stock_counts"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_count_lines_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_count_lines_organization_id_item_id_lot_id_fkey"
+            columns: ["organization_id", "item_id", "lot_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lots"
+            referencedColumns: ["organization_id", "item_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_count_lines_organization_id_location_id_fkey"
+            columns: ["organization_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_counts: {
+        Row: {
+          adjustment_document_id: string | null
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          idempotency_key: string
+          item_id: string | null
+          location_id: string
+          notes: string | null
+          number: string
+          organization_id: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+        }
+        Insert: {
+          adjustment_document_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          idempotency_key: string
+          item_id?: string | null
+          location_id: string
+          notes?: string | null
+          number: string
+          organization_id: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+        }
+        Update: {
+          adjustment_document_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          idempotency_key?: string
+          item_id?: string | null
+          location_id?: string
+          notes?: string | null
+          number?: string
+          organization_id?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_counts_organization_id_adjustment_document_id_fkey"
+            columns: ["organization_id", "adjustment_document_id"]
+            isOneToOne: false
+            referencedRelation: "stock_documents"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_counts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_counts_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_counts_organization_id_location_id_fkey"
+            columns: ["organization_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       stock_documents: {
         Row: {
           created_at: string
@@ -4845,6 +5014,10 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
       }
+      add_count_line: {
+        Args: { p_count_id: string; p_line: Json }
+        Returns: string
+      }
       add_order_operation: {
         Args: { p_operation: Json; p_order_id: string }
         Returns: string
@@ -5032,6 +5205,10 @@ export type Database = {
         Args: { p_approve: boolean; p_document_id: string; p_note?: string }
         Returns: undefined
       }
+      decide_stock_count: {
+        Args: { p_count_id: string; p_note?: string; p_post: boolean }
+        Returns: string
+      }
       decide_support_request: {
         Args: {
           p_approve: boolean
@@ -5218,6 +5395,16 @@ export type Database = {
           starts_at: string
           work_date: string
         }[]
+      }
+      open_stock_count: {
+        Args: {
+          p_idempotency_key: string
+          p_item_id?: string
+          p_location_id: string
+          p_notes?: string
+          p_org_id: string
+        }
+        Returns: string
       }
       order_file_path: { Args: { p_attachment_id: string }; Returns: string }
       order_material_plan: { Args: { p_order_id: string }; Returns: Json }
@@ -5719,6 +5906,10 @@ export type Database = {
           support_ended: boolean
         }[]
       }
+      set_count_line: {
+        Args: { p_counted: number; p_line_id: string }
+        Returns: undefined
+      }
       set_crew_archived: {
         Args: { p_archived: boolean; p_crew_id: string }
         Returns: undefined
@@ -5779,6 +5970,7 @@ export type Database = {
         Args: { p_operation_id: string }
         Returns: undefined
       }
+      submit_stock_count: { Args: { p_count_id: string }; Returns: undefined }
       update_product: {
         Args: { p_product: Json; p_product_id: string; p_revision: Json }
         Returns: string

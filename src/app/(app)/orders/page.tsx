@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { getMemberAccess } from "@/lib/auth/access";
-import { listStockItemOptions } from "@/modules/inventory/queries";
+import { listStockItemOptions, ordersShortOfMaterial } from "@/modules/inventory/queries";
 import { requireMember } from "@/lib/auth/session";
 import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { zonedDate } from "@/lib/timezone";
@@ -53,6 +53,16 @@ async function OrdersContent({ searchParams }: { searchParams: Promise<SearchPar
     canPickStock ? listStockItemOptions(organizationId) : Promise.resolve([]),
   ]);
 
+  const shortOfMaterial =
+    access.modules.has("inventory") && access.permissions.has("inventory.read")
+      ? [
+          ...(await ordersShortOfMaterial(
+            organizationId,
+            page.rows.map((row) => row.id),
+          )),
+        ]
+      : [];
+
   return (
     <>
       <PageHeader
@@ -73,6 +83,7 @@ async function OrdersContent({ searchParams }: { searchParams: Promise<SearchPar
         }
       />
       <OrdersTable
+        shortOfMaterial={shortOfMaterial}
         rows={page.rows}
         total={page.total}
         params={{

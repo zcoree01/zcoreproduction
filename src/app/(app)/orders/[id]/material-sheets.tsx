@@ -135,6 +135,8 @@ export function IssueSheet(props: {
   material: OrderMaterialView;
   locations: StockLocation[];
   remnantMinLength: string;
+  /** Lot of a scanned label: its first bucket is chosen. */
+  initialLotId?: string;
 }) {
   return props.open ? <IssueForm {...props} /> : null;
 }
@@ -145,12 +147,14 @@ function IssueForm({
   material,
   locations,
   remnantMinLength,
+  initialLotId,
 }: {
   onClose: () => void;
   order: { id: string; orderNumber: string; customerId: string };
   material: OrderMaterialView;
   locations: StockLocation[];
   remnantMinLength: string;
+  initialLotId?: string;
 }) {
   const t = useTranslations("inventory.issue");
   const tUnits = useTranslations("inventory.units");
@@ -173,7 +177,8 @@ function IssueForm({
     `${b.lotId}|${b.locationId}|${b.length}|${b.width}`;
 
   const [key] = useState(() => crypto.randomUUID());
-  const [bucketKey, setBucketKey] = useState(buckets[0] ? keyOf(buckets[0]) : "");
+  const initialBucket = buckets.find((b) => b.lotId === initialLotId) ?? buckets[0];
+  const [bucketKey, setBucketKey] = useState(initialBucket ? keyOf(initialBucket) : "");
   const bucket = buckets.find((b) => keyOf(b) === bucketKey) ?? null;
   const customerMaterial = bucket?.ownerCustomerId != null;
   const [mode, setMode] = useState<"whole" | "cut">("cut");

@@ -1,9 +1,13 @@
+import { QrCodeIcon } from "lucide-react";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
+import { buttonVariants } from "@/components/ui/button";
 import { getMemberAccess } from "@/lib/auth/access";
+import { cn } from "@/lib/utils";
 import { requireMember } from "@/lib/auth/session";
 import { listStockLocations } from "@/modules/inventory/queries";
 import { listMachineOptions } from "@/modules/machines/queries";
@@ -35,7 +39,20 @@ async function LocationsContent() {
   ]);
   return (
     <>
-      <PageHeader title={t("locations.title")} description={t("locations.description")} />
+      <PageHeader
+        title={t("locations.title")}
+        description={t("locations.description")}
+        actions={
+          <Link
+            href="/inventory/labels"
+            target="_blank"
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            <QrCodeIcon />
+            {t("labelsButton")}
+          </Link>
+        }
+      />
       <LocationList locations={locations} machines={machines} />
     </>
   );

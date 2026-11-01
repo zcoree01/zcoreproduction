@@ -13,7 +13,7 @@ import {
 import type { PermissionKey } from "@/lib/auth/permissions";
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
-import { numericParam } from "@/lib/supabase/numeric";
+import { nullableParam, numericParam } from "@/lib/supabase/numeric";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 import {
@@ -28,6 +28,12 @@ import {
   adjustmentSchema,
   CONSUMPTION_FIELDS,
   consumptionSchema,
+  countLineSchema,
+  decideCountSchema,
+  FOUND_LINE_FIELDS,
+  foundLineSchema,
+  OPEN_COUNT_FIELDS,
+  openCountSchema,
   ISSUE_FIELDS,
   issueSchema,
   RETURN_FIELDS,
@@ -49,6 +55,8 @@ import {
   transferSchema,
   type AdjustmentField,
   type ConsumptionField,
+  type FoundLineField,
+  type OpenCountField,
   type IssueField,
   type ReturnField,
   type CertificateActionResult,
@@ -832,4 +840,113 @@ export async function confirmConsumptionAction(
 
   revalidateOrderMaterial(c.orderId);
   return { ok: true, id: c.orderId };
+}
+
+// ---------------------------------------------------------------------------
+// Stock counts (D-033)
+// ---------------------------------------------------------------------------
+
+function revalidateCounts() {
+  revalidateInventory();
+  revalidatePath("/floor/warehouse", "layout");
+}
+
+export async function openCountAction(input: unknown): Promise<MoveActionResult<OpenCountField>> {
+  const organizationId = await orgWith("inventory.move");
+  if (!organizationId) return actionFail<OpenCountField, StockError>("denied");
+  const parsed = openCountSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail<OpenCountField, StockError>(
+      "invalid",
+      invalidFields(parsed.error, OPEN_COUNT_FIELDS),
+    );
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("open_stock_count", {
+    p_org_id: organizationId,
+    p_idempotency_key: parsed.data.idempotencyKey,
+    p_location_id: parsed.data.locationId,
+    p_item_id: nullableParam(parsed.data.itemId),
+    p_notes: parsed.data.notes ?? "",
+  });
+  if (error) return moveFail<OpenCountField>(error, "stock count open");
+  revalidateCounts();
+  return { ok: true, id: data };
+}
+
+export async function setCountLineAction(input: unknown): Promise<MoveActionResult<"counted">> {
+  const organizationId = await orgWith("inventory.move");
+  if (!organizationId) return actionFail<"counted", StockError>("denied");
+  const parsed = countLineSchema.safeParse(input);
+  if (!parsed.success) return actionFail<"counted", StockError>("invalid", ["counted"]);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_count_line", {
+    p_line_id: parsed.data.lineId,
+    p_counted: nullableParam(
+      parsed.data.counted === null ? null : numericParam(parsed.data.counted),
+    ),
+  });
+  if (error) return moveFail<"counted">(error, "stock count line");
+  revalidateCounts();
+  return { ok: true, id: parsed.data.lineId };
+}
+
+export async function addCountLineAction(
+  input: unknown,
+): Promise<MoveActionResult<FoundLineField>> {
+  const organizationId = await orgWith("inventory.move");
+  if (!organizationId) return actionFail<FoundLineField, StockError>("denied");
+  const parsed = foundLineSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail<FoundLineField, StockError>(
+      "invalid",
+      invalidFields(parsed.error, FOUND_LINE_FIELDS),
+    );
+  }
+  const f = parsed.data;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_count_line", {
+    p_count_id: f.countId,
+    p_line: {
+      item_id: f.itemId,
+      location_id: f.locationId,
+      length_mm: f.length,
+      width_mm: f.width,
+      counted: f.counted,
+    },
+  });
+  if (error) return moveFail<FoundLineField>(error, "stock count found line");
+  revalidateCounts();
+  return { ok: true, id: data };
+}
+
+export async function submitCountAction(countId: unknown): Promise<MoveActionResult<never>> {
+  const organizationId = await orgWith("inventory.move");
+  if (!organizationId) return actionFail<never, StockError>("denied");
+  const parsed = z.uuid().safeParse(countId);
+  if (!parsed.success) return actionFail<never, StockError>("invalid");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("submit_stock_count", { p_count_id: parsed.data });
+  if (error) return moveFail<never>(error, "stock count submit");
+  revalidateCounts();
+  return { ok: true, id: parsed.data };
+}
+
+/** Posts the differences of a submitted count, or cancels it with a reason. */
+export async function decideCountAction(input: unknown): Promise<MoveActionResult<"note">> {
+  const organizationId = await orgWith("inventory.adjust.approve");
+  if (!organizationId) return actionFail<"note", StockError>("denied");
+  const parsed = decideCountSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail<"note", StockError>("invalid", invalidFields(parsed.error, ["note"]));
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decide_stock_count", {
+    p_count_id: parsed.data.countId,
+    p_post: parsed.data.post,
+    p_note: parsed.data.note ?? "",
+  });
+  if (error) return moveFail<"note">(error, "stock count decision");
+  revalidateCounts();
+  return { ok: true, id: parsed.data.countId };
 }

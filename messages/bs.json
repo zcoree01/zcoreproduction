@@ -95,7 +95,9 @@
     "stockAdjustments": "Korekcije stanja",
     "stockLocations": "Lokacije",
     "stockPairing": "Uparivanje proizvoda",
-    "inventorySettings": "Postavke magacina"
+    "inventorySettings": "Postavke magacina",
+    "stockCounts": "Inventura",
+    "floorWarehouse": "Magacin"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -1854,7 +1856,8 @@
       "downtimeSaved": "Zastoj je zabilježen.",
       "toolChangesTitle": "Promjene alata",
       "toolChangesEmpty": "Nema promjena alata."
-    }
+    },
+    "materialBadge": "Fali materijal"
   },
   "floorOrders": {
     "title": "Radni nalozi",
@@ -3677,7 +3680,10 @@
       "customer_material": "Materijal drugog kupca ne može ići na ovaj nalog.",
       "offcut_own_material_only": "Ostatak se vraća u magacin samo za naš materijal; materijal kupca ostaje uz nalog.",
       "invalid_offcut": "Ostatak mora biti manji od komada koji se izdaje.",
-      "lot_not_issued": "Ova šarža nije izdata na ovaj nalog."
+      "lot_not_issued": "Ova šarža nije izdata na ovaj nalog.",
+      "count_not_found": "Popis nije pronađen.",
+      "count_not_open": "Popis je već poslan na potvrdu; unos više nije moguć.",
+      "count_not_submitted": "Popis se može knjižiti tek kad ga magacin pošalje na potvrdu."
     },
     "list": {
       "title": "Materijal na stanju",
@@ -4137,6 +4143,105 @@
       "submit": "Vrati u magacin",
       "done": "Povrat je knjižen.",
       "noLots": "Na nalog još ništa nije izdato."
+    },
+    "counts": {
+      "title": "Inventura",
+      "description": "Popis stvarnog stanja po lokaciji. Razlike se knjiže tek kad popis potvrdi ovlaštena osoba.",
+      "new": "Novi popis",
+      "newTitle": "Novi popis",
+      "newDescription": "Očekivano stanje se zapamti pri otvaranju; kretanja tokom popisa ne mijenjaju razliku.",
+      "location": "Lokacija",
+      "locationHint": "Magacin obuhvata i svoje police.",
+      "item": "Samo artikal (opciono)",
+      "itemAll": "Svi artikli na lokaciji",
+      "notes": "Napomena",
+      "open": "Otvori popis",
+      "opened": "Popis je otvoren.",
+      "columns": {
+        "number": "Broj",
+        "status": "Status",
+        "location": "Lokacija",
+        "item": "Artikal",
+        "progress": "Izbrojano",
+        "created": "Otvoren"
+      },
+      "progress": "{counted} od {lines}",
+      "status": {
+        "open": "U toku",
+        "submitted": "Čeka potvrdu",
+        "posted": "Knjiženo",
+        "cancelled": "Poništeno"
+      },
+      "emptyTitle": "Još nema popisa",
+      "emptyDescription": "Otvorite popis za magacin, policu ili mjesto uz mašinu.",
+      "back": "Nazad na inventuru",
+      "notFoundTitle": "Popis nije pronađen",
+      "lines": {
+        "item": "Artikal",
+        "lot": "Šarža",
+        "location": "Lokacija",
+        "size": "Komad",
+        "expected": "Očekivano",
+        "counted": "Izbrojano",
+        "difference": "Razlika",
+        "found": "pronađeno",
+        "notCounted": "nije izbrojano",
+        "countedLabel": "Izbrojano za {item}, {lot}, {size}",
+        "piecesUnit": "kom",
+        "saved": "Sačuvano."
+      },
+      "summary": "{counted} od {lines} redova izbrojano · {differences} razlika",
+      "noLines": "Na lokaciji nema materijala. Pronađen materijal dodajte ispod.",
+      "foundTitle": "Pronađen materijal",
+      "foundItem": "Artikal",
+      "foundItemPlaceholder": "Izaberite artikal",
+      "foundLocation": "Lokacija",
+      "foundLength": "Dužina (mm)",
+      "foundWidth": "Širina (mm)",
+      "foundCounted": "Količina (kom ili {unit})",
+      "foundAdd": "Dodaj red",
+      "foundAdded": "Red je dodan.",
+      "submit": "Pošalji na potvrdu",
+      "submitted": "Popis je poslan na potvrdu.",
+      "post": "Potvrdi i knjiži razlike",
+      "posted": "Razlike su knjižene korekcijom.",
+      "cancel": "Poništi popis",
+      "cancelReason": "Razlog poništenja",
+      "cancelled": "Popis je poništen.",
+      "postedNote": "Razlike su knjižene korekcijom.",
+      "cancelledNote": "Poništeno: {note}",
+      "waiting": "Popis čeka potvrdu ovlaštene osobe (admin, direktor ili šef proizvodnje)."
+    },
+    "labels": {
+      "title": "Naljepnice",
+      "print": "Štampaj",
+      "back": "Nazad",
+      "size": "Veličina",
+      "sizes": {
+        "50x30": "50 × 30 mm",
+        "70x40": "70 × 40 mm",
+        "a4": "A4 arak (3 × 8)"
+      },
+      "item": "Naljepnice za artikal",
+      "locations": "Naljepnice za lokacije",
+      "lot": "Šarža {lot}",
+      "heat": "Talina {heat}",
+      "empty": "Nema ničega za štampu.",
+      "denied": "Za naljepnice je potrebna dozvola za pregled zaliha."
+    },
+    "labelsButton": "Naljepnice",
+    "warnings": {
+      "title": "Magacin",
+      "belowMinimum": "Ispod minimalne zalihe",
+      "belowMinimumNone": "Svi artikli su iznad minimuma.",
+      "shortages": "Nalozi kojima fali materijal",
+      "shortagesNone": "Svi pušteni nalozi su pokriveni materijalom.",
+      "shortageRow": "{order} · {item}: fali {quantity}",
+      "toApprove": "Na potvrdu",
+      "pendingAdjustments": "{count, plural, one {# korekcija} few {# korekcije} other {# korekcija}}",
+      "submittedCounts": "{count, plural, one {# popis} few {# popisa} other {# popisa}}",
+      "nothingToApprove": "Ništa ne čeka potvrdu.",
+      "more": "i još {count}"
     }
   },
   "floorMaterial": {
@@ -4144,5 +4249,54 @@
     "none": "Materijal još nije izdat.",
     "lot": "Šarža {lot}",
     "heat": "talina {heat}"
+  },
+  "floorWarehouse": {
+    "title": "Magacin",
+    "description": "Skenirajte naljepnicu materijala, lokacije ili QR radnog naloga.",
+    "scan": "Skeniraj",
+    "receipt": "Prijem",
+    "counts": "Inventura",
+    "openCounts": "Popisi u toku",
+    "noOpenCounts": "Nema popisa u toku.",
+    "deniedDescription": "Za mobilni magacin je potrebna dozvola za kretanja u magacinu.",
+    "scanner": {
+      "title": "Skeniranje",
+      "hold": "Usmjerite kameru na QR kod naljepnice ili naloga.",
+      "cameraFailed": "Kamera nije dostupna (potreban je HTTPS i dozvola). Upišite ili zalijepite kod.",
+      "unsupported": "Ovaj preglednik ne čita QR kodove. Upišite ili zalijepite kod.",
+      "manual": "Kod s naljepnice",
+      "open": "Otvori",
+      "unknown": "Ovo nije naljepnica magacina ni QR naloga."
+    },
+    "lot": {
+      "title": "Šarža {lot}",
+      "notFound": "Šarža nije pronađena.",
+      "heat": "Talina {heat}",
+      "customer": "Materijal kupca: {name}",
+      "transfer": "Prenesi",
+      "issue": "Izdaj na nalog",
+      "issueHint": "Skenirajte QR radnog naloga pa ovu naljepnicu.",
+      "empty": "Ova šarža više nije na stanju."
+    },
+    "location": {
+      "title": "Lokacija {location}",
+      "notFound": "Lokacija nije pronađena.",
+      "empty": "Na lokaciji nema materijala.",
+      "startCount": "Počni inventuru ovdje"
+    },
+    "order": {
+      "title": "Nalog {number}",
+      "notFound": "Nalog nije pronađen.",
+      "noItem": "Nalog nema artikal na stanju.",
+      "issue": "Izdaj materijal",
+      "scanLot": "Skeniraj naljepnicu materijala",
+      "remaining": "Za izdati: {quantity}",
+      "shortage": "Fali: {quantity}"
+    },
+    "count": {
+      "title": "Popis {number}",
+      "submit": "Pošalji na potvrdu",
+      "back": "Nazad na magacin"
+    }
   }
 }

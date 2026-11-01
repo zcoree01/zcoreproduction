@@ -44,7 +44,9 @@ export type NavLabelKey =
   | "stockAdjustments"
   | "stockLocations"
   | "stockPairing"
-  | "inventorySettings";
+  | "inventorySettings"
+  | "stockCounts"
+  | "floorWarehouse";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -233,6 +235,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     href: "/inventory/adjustments",
     label: "stockAdjustments",
     icon: "inbox",
+    module: "inventory",
+    permission: "inventory.read",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "stock-counts",
+    href: "/inventory/counts",
+    label: "stockCounts",
+    icon: "catalog",
     module: "inventory",
     permission: "inventory.read",
     surface: "app",
@@ -435,6 +447,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "order",
     module: "production",
     permission: ["machines.status.update", "quality.inspect"],
+    surface: "floor",
+    section: "work",
+  },
+  {
+    id: "floor-warehouse",
+    href: "/floor/warehouse",
+    label: "floorWarehouse",
+    icon: "warehouse",
+    module: "inventory",
+    permission: "inventory.move",
     surface: "floor",
     section: "work",
   },

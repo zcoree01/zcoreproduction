@@ -9,6 +9,7 @@ import { Duration } from "@/components/shared/duration";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OrderProgress } from "@/components/shared/order-progress";
 import { DueWarningBadge, OrderStatusBadge, PriorityBadge } from "@/components/shared/order-badges";
+import { Badge } from "@/components/ui/badge";
 import { formatDecimal } from "@/lib/decimal";
 import { formatDay } from "@/lib/format";
 import type { CustomerOption } from "@/modules/customers/queries";
@@ -34,6 +35,7 @@ export function OrdersTable({
   customers,
   machines,
   priorityMode,
+  shortOfMaterial = [],
 }: {
   rows: OrderRow[];
   total: number;
@@ -41,6 +43,8 @@ export function OrdersTable({
   customers: CustomerOption[];
   machines: MachineChoice[];
   priorityMode: PriorityMode;
+  /** Released orders that lack material (inventory, D-033). */
+  shortOfMaterial?: string[];
 }) {
   const t = useTranslations("orders");
   const tStatus = useTranslations("orderStatus");
@@ -65,6 +69,11 @@ export function OrdersTable({
             className="font-mono text-sm font-medium whitespace-nowrap underline-offset-4 hover:underline"
           >
             {row.original.orderNumber}
+            {shortOfMaterial.includes(row.original.id) ? (
+              <Badge variant="destructive" className="ml-2 font-sans">
+                {t("materialBadge")}
+              </Badge>
+            ) : null}
           </Link>
         ),
       },
@@ -138,7 +147,7 @@ export function OrdersTable({
         ),
       },
     ],
-    [t, tUnits, priorityMode],
+    [t, tUnits, priorityMode, shortOfMaterial],
   );
 
   return (
