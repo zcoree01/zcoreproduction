@@ -24,6 +24,7 @@ const ORDER = {
   barRemnant: "",
   stockItemId: "",
   sheetPiecesPerSheet: "",
+  customerPosition: "",
 };
 
 describe("order form", () => {
@@ -44,6 +45,7 @@ describe("order form", () => {
       bar_length_mm: null,
       bar_remnant_mm: null,
       stock_item_id: null,
+      customer_position: null,
       sheet_pieces_per_sheet: null,
     });
   });

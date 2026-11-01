@@ -46,7 +46,10 @@ export type NavLabelKey =
   | "stockPairing"
   | "inventorySettings"
   | "stockCounts"
-  | "floorWarehouse";
+  | "floorWarehouse"
+  | "finishedGoods"
+  | "deliveryNotes"
+  | "deliverySettings";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -251,6 +254,26 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     section: "inventory",
   },
   {
+    id: "finished-goods",
+    href: "/inventory/finished",
+    label: "finishedGoods",
+    icon: "product",
+    module: "inventory",
+    permission: "finished_goods.read",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "delivery-notes",
+    href: "/inventory/delivery-notes",
+    label: "deliveryNotes",
+    icon: "receipt",
+    module: "inventory",
+    permission: "finished_goods.read",
+    surface: "app",
+    section: "inventory",
+  },
+  {
     id: "stock-locations",
     href: "/inventory/locations",
     label: "stockLocations",
@@ -269,6 +292,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     permission: "products.manage",
     surface: "app",
     section: "inventory",
+  },
+  {
+    id: "delivery-settings",
+    href: "/settings/delivery-notes",
+    label: "deliverySettings",
+    icon: "settings",
+    module: "inventory",
+    permission: "org.settings.manage",
+    surface: "app",
+    section: "administration",
   },
   {
     id: "inventory-settings",

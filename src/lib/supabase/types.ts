@@ -818,6 +818,7 @@ export type Database = {
           country: string | null
           created_at: string
           customer_number: number
+          delivery_note_template_id: string | null
           email: string | null
           id: string
           name: string
@@ -837,6 +838,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           customer_number?: number
+          delivery_note_template_id?: string | null
           email?: string | null
           id?: string
           name: string
@@ -856,6 +858,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           customer_number?: number
+          delivery_note_template_id?: string | null
           email?: string | null
           id?: string
           name?: string
@@ -875,11 +878,208 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customers_delivery_template_fkey"
+            columns: ["organization_id", "delivery_note_template_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_note_templates"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
             foreignKeyName: "customers_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_note_lines: {
+        Row: {
+          customer_position: string | null
+          delivery_note_id: string
+          drawing_number: string | null
+          id: string
+          line_no: number
+          order_id: string
+          order_number: string
+          organization_id: string
+          part_number: string
+          product_name: string
+          quantity: number
+          revision: string | null
+          unit: string
+        }
+        Insert: {
+          customer_position?: string | null
+          delivery_note_id: string
+          drawing_number?: string | null
+          id?: string
+          line_no: number
+          order_id: string
+          order_number: string
+          organization_id: string
+          part_number: string
+          product_name: string
+          quantity: number
+          revision?: string | null
+          unit: string
+        }
+        Update: {
+          customer_position?: string | null
+          delivery_note_id?: string
+          drawing_number?: string | null
+          id?: string
+          line_no?: number
+          order_id?: string
+          order_number?: string
+          organization_id?: string
+          part_number?: string
+          product_name?: string
+          quantity?: number
+          revision?: string | null
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_note_lines_organization_id_delivery_note_id_fkey"
+            columns: ["organization_id", "delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "delivery_note_lines_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "delivery_note_lines_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      delivery_note_templates: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          layout: Json
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout: Json
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_note_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_notes: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          idempotency_key: string
+          issued_on: string
+          note_sequence: number
+          note_year: number
+          notes: string | null
+          number: string
+          organization_id: string
+          status: string
+          template_id: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          idempotency_key: string
+          issued_on: string
+          note_sequence: number
+          note_year: number
+          notes?: string | null
+          number: string
+          organization_id: string
+          status?: string
+          template_id: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          idempotency_key?: string
+          issued_on?: string
+          note_sequence?: number
+          note_year?: number
+          notes?: string | null
+          number?: string
+          organization_id?: string
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_notes_organization_id_customer_id_fkey"
+            columns: ["organization_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_organization_id_template_id_fkey"
+            columns: ["organization_id", "template_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_note_templates"
+            referencedColumns: ["organization_id", "id"]
           },
         ]
       }
@@ -1277,6 +1477,71 @@ export type Database = {
             columns: ["organization_id", "user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      finished_goods_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delivery_note_id: string | null
+          id: string
+          idempotency_key: string
+          kind: string
+          order_id: string
+          organization_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delivery_note_id?: string | null
+          id?: string
+          idempotency_key: string
+          kind: string
+          order_id: string
+          organization_id: string
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delivery_note_id?: string | null
+          id?: string
+          idempotency_key?: string
+          kind?: string
+          order_id?: string
+          organization_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finished_goods_movements_organization_id_delivery_note_id_fkey"
+            columns: ["organization_id", "delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "finished_goods_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finished_goods_movements_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "finished_goods_movements_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
             referencedColumns: ["organization_id", "id"]
           },
         ]
@@ -2560,6 +2825,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string
+          customer_position: string | null
           due_date: string
           id: string
           kerf_mm: number | null
@@ -2592,6 +2858,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id: string
+          customer_position?: string | null
           due_date: string
           id?: string
           kerf_mm?: number | null
@@ -2624,6 +2891,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string
+          customer_position?: string | null
           due_date?: string
           id?: string
           kerf_mm?: number | null
@@ -4563,6 +4831,38 @@ export type Database = {
           },
         ]
       }
+      finished_goods_stock: {
+        Row: {
+          on_hand: number | null
+          order_id: string | null
+          organization_id: string | null
+          received: number | null
+          shipped: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finished_goods_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finished_goods_movements_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "finished_goods_movements_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       machine_directory: {
         Row: {
           archived_at: string | null
@@ -5088,6 +5388,10 @@ export type Database = {
         Args: { p_correction_id: string }
         Returns: undefined
       }
+      cancel_delivery_note: {
+        Args: { p_note_id: string; p_reason: string }
+        Returns: undefined
+      }
       clock_in: {
         Args: { p_idempotency_key: string; p_org_id: string }
         Returns: string
@@ -5312,6 +5616,15 @@ export type Database = {
       }
       is_session_active: { Args: never; Returns: boolean }
       issue_badge: { Args: { p_employee_id: string }; Returns: string }
+      issue_delivery_note: {
+        Args: {
+          p_idempotency_key: string
+          p_lines: Json
+          p_note: Json
+          p_org_id: string
+        }
+        Returns: string
+      }
       kiosk_activate: {
         Args: { p_code: string; p_org_slug: string }
         Returns: {
@@ -5652,6 +5965,15 @@ export type Database = {
           reason: string
           tool: string
         }[]
+      }
+      receive_finished_goods: {
+        Args: {
+          p_idempotency_key: string
+          p_order_id: string
+          p_org_id: string
+          p_quantity: number
+        }
+        Returns: undefined
       }
       record_downtime: {
         Args: {

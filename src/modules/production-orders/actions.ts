@@ -191,6 +191,7 @@ export async function updateOrderAction(id: unknown, input: unknown): Promise<Or
     notes: values.notes,
     // The database refuses a new stock item once material was issued.
     stock_item_id: values.stockItemId,
+    customer_position: values.customerPosition,
   };
   if (canEditPlanning(current.data.status)) {
     if (!quantityFitsUnit(values.quantity, current.data.unit)) {

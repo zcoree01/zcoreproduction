@@ -97,7 +97,10 @@
     "stockPairing": "Uparivanje proizvoda",
     "inventorySettings": "Postavke magacina",
     "stockCounts": "Inventura",
-    "floorWarehouse": "Magacin"
+    "floorWarehouse": "Magacin",
+    "finishedGoods": "Gotovi proizvodi",
+    "deliveryNotes": "Otpremnice",
+    "deliverySettings": "Postavke otpremnica"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -1424,7 +1427,9 @@
       "sheetPiecesPerSheet": "Komada po tabli",
       "sheetPiecesHint": "Prazno = procjena po površini table.",
       "needsCutting": "Treba rezanje (prva operacija)",
-      "needsCuttingHint": "Uključeno dodaje rezanje kao prvu operaciju; isključeno uklanja rezanje iz postupka."
+      "needsCuttingHint": "Uključeno dodaje rezanje kao prvu operaciju; isključeno uklanja rezanje iz postupka.",
+      "customerPosition": "Pozicija kupca",
+      "customerPositionHint": "Broj pozicije ili narudžbe kupca; ispisuje se na otpremnici."
     },
     "status": {
       "change": "Promijeni status",
@@ -4297,6 +4302,160 @@
       "title": "Popis {number}",
       "submit": "Pošalji na potvrdu",
       "back": "Nazad na magacin"
+    }
+  },
+  "finishedGoods": {
+    "deniedDescription": "Za gotove proizvode je potrebna dozvola za pregled gotovih proizvoda.",
+    "errors": {
+      "invalid": "Provjerite unesene podatke.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "not_found": "Zapis nije pronađen.",
+      "unexpected": "Došlo je do greške. Pokušajte ponovo.",
+      "order_not_found": "Nalog nije pronađen ili ne pripada ovom kupcu.",
+      "order_not_open": "Nalog nije pušten ili je otkazan.",
+      "invalid_line": "Količina nije ispravna (cijeli komadi).",
+      "more_than_good": "Ne može se primiti više od dobrih komada zadnje operacije koji još nisu primljeni.",
+      "customer_not_found": "Kupac nije pronađen.",
+      "template_not_found": "Šablon otpremnice nije pronađen.",
+      "not_in_stock": "Na stanju nema toliko komada ovog naloga.",
+      "already_cancelled": "Otpremnica je već stornirana.",
+      "delivery_note_not_found": "Otpremnica nije pronađena.",
+      "reason_required": "Unesite razlog.",
+      "module_disabled": "Modul magacina nije uključen.",
+      "name_taken": "Šablon s ovim nazivom već postoji.",
+      "upload_failed": "Datoteka nije poslana. Pokušajte ponovo.",
+      "file_type": "Logo mora biti PNG, JPG, WEBP ili SVG do 2 MB."
+    },
+    "order": {
+      "title": "Gotovi proizvodi",
+      "received": "Primljeno",
+      "shipped": "Isporučeno",
+      "onHand": "Na stanju",
+      "receivable": "Može se primiti: {quantity}",
+      "nothing": "Nema novih dobrih komada za prijem.",
+      "quantity": "Količina za prijem",
+      "receive": "Primi u magacin",
+      "received_toast": "Komadi su primljeni u magacin gotovih proizvoda.",
+      "deliver": "Nova otpremnica"
+    },
+    "stock": {
+      "title": "Gotovi proizvodi",
+      "description": "Dobri komadi primljeni s naloga, spremni za isporuku.",
+      "emptyTitle": "Nema gotovih proizvoda na stanju",
+      "emptyDescription": "Komadi se primaju na nalogu (Gotovi proizvodi → Primi u magacin).",
+      "columns": {
+        "order": "Nalog",
+        "product": "Proizvod",
+        "position": "Pozicija kupca",
+        "received": "Primljeno",
+        "shipped": "Isporučeno",
+        "onHand": "Na stanju"
+      },
+      "deliver": "Otpremnica za {customer}"
+    },
+    "notes": {
+      "title": "Otpremnice",
+      "description": "Izdate otpremnice; storniranje vraća komade na stanje.",
+      "new": "Nova otpremnica",
+      "columns": {
+        "number": "Broj",
+        "customer": "Kupac",
+        "date": "Datum",
+        "lines": "Stavki",
+        "status": "Status"
+      },
+      "status": {
+        "issued": "Izdata",
+        "cancelled": "Stornirana"
+      },
+      "emptyTitle": "Još nema otpremnica",
+      "emptyDescription": "Otpremnica se pravi iz gotovih proizvoda na stanju.",
+      "print": "Štampaj",
+      "cancel": "Storniraj",
+      "cancelTitle": "Stornirati otpremnicu {number}?",
+      "cancelReason": "Razlog storniranja",
+      "cancelled": "Otpremnica je stornirana.",
+      "cancelledNote": "Stornirana: {reason}",
+      "back": "Nazad na otpremnice"
+    },
+    "form": {
+      "title": "Nova otpremnica",
+      "description": "Izaberite kupca i količine s naloga koji su na stanju.",
+      "customer": "Kupac",
+      "customerPlaceholder": "Izaberite kupca",
+      "template": "Šablon",
+      "templateDefault": "Šablon kupca ili zadani",
+      "issuedOn": "Datum otpremnice",
+      "notes": "Napomena",
+      "lines": "Stavke",
+      "noStock": "Ovaj kupac nema gotovih proizvoda na stanju.",
+      "include": "Uključi {order}",
+      "quantity": "Količina (na stanju {onHand})",
+      "position": "Pozicija kupca",
+      "submit": "Izdaj otpremnicu",
+      "issued": "Otpremnica je izdata.",
+      "noLines": "Izaberite bar jednu stavku."
+    },
+    "print": {
+      "number": "Broj",
+      "date": "Datum",
+      "customer": "Kupac",
+      "taxId": "ID broj: {taxId}",
+      "cancelled": "STORNIRANO",
+      "signature": "{label}"
+    },
+    "settings": {
+      "title": "Postavke otpremnica",
+      "description": "Broj otpremnice, logo i šabloni. Mijenjaju ih admin firme i Zcore podrška.",
+      "deniedDescription": "Za postavke je potrebna dozvola za upravljanje postavkama firme.",
+      "numberTitle": "Broj otpremnice",
+      "numberTemplate": "Format broja",
+      "numberHint": "Oznake: '{KUPAC}' broj kupca, '{KUPAC2}' broj kupca s najmanje 2 cifre, '{MJESEC}', '{GODINA}', '{GODINA4}', '{BROJ}' redni broj (kreće ispočetka s novom godinom).",
+      "numberDigits": "Najmanje cifara rednog broja",
+      "numberPreview": "Primjer: {example}",
+      "numberInvalid": "Format mora sadržavati '{BROJ}' i samo dozvoljene oznake i znakove.",
+      "save": "Sačuvaj",
+      "saved": "Sačuvano.",
+      "logoTitle": "Logo firme",
+      "logoHint": "PNG, JPG, WEBP ili SVG do 2 MB; ispisuje se na otpremnici.",
+      "logoUpload": "Učitaj logo",
+      "logoUploaded": "Logo je sačuvan.",
+      "logoNone": "Logo još nije učitan.",
+      "templatesTitle": "Šabloni",
+      "templateNew": "Novi šablon",
+      "templateEdit": "Uredi {name}",
+      "templateArchive": "Arhiviraj {name}",
+      "templateArchived": "Šablon je arhiviran.",
+      "defaultBadge": "Zadani",
+      "name": "Naziv šablona",
+      "isDefault": "Zadani šablon (za kupce bez svog šablona)",
+      "docTitle": "Naslov dokumenta",
+      "headerText": "Tekst iznad tabele",
+      "footerText": "Tekst ispod tabele",
+      "showLogo": "Prikaži logo",
+      "columns": "Kolone tabele (redoslijed i nazivi)",
+      "columnShown": "Prikaži kolonu {column}",
+      "columnLabel": "Naziv kolone {column}",
+      "moveUp": "Pomjeri {column} gore",
+      "moveDown": "Pomjeri {column} dolje",
+      "columnKeys": {
+        "position": "Redni broj",
+        "customer_position": "Pozicija kupca",
+        "order": "Broj naloga",
+        "part_number": "Šifra dijela",
+        "drawing": "Broj crteža",
+        "revision": "Revizija",
+        "product": "Naziv proizvoda",
+        "quantity": "Količina",
+        "unit": "Jedinica mjere"
+      },
+      "signatures": "Potpisi (jedan po redu, najviše 4)",
+      "templateSaved": "Šablon je sačuvan.",
+      "customersTitle": "Šablon po kupcu",
+      "customersHint": "Kupci bez izbora dobijaju zadani šablon.",
+      "customerTemplate": "Šablon za {customer}",
+      "templateDefaultOption": "Zadani",
+      "customerSaved": "Šablon kupca je sačuvan."
     }
   }
 }

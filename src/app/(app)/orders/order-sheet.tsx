@@ -97,6 +97,7 @@ const EMPTY: CreateOrderFormValues = {
   stockItemId: "",
   sheetPiecesPerSheet: "",
   needsCutting: false,
+  customerPosition: "",
 };
 
 const decimalText = (value: string | null) => formatDecimal(value);
@@ -699,6 +700,13 @@ function CreateOrderForm({ options, onDone }: { options: OrderFormOptions; onDon
               </Field>
             )}
           />
+          <TextField
+            control={form.control}
+            name="customerPosition"
+            label={t("customerPosition")}
+            hint={t("customerPositionHint")}
+            error={t("fieldErrors.notes")}
+          />
           <ScheduleFields
             control={form.control}
             unitLabel={tUnits(unit)}
@@ -734,6 +742,7 @@ function toEditValues(order: OrderDetail): UpdateOrderFormValues {
     barLength: formatDecimal(order.barLength),
     barRemnant: formatDecimal(order.barRemnant),
     stockItemId: order.stockItemId ?? "",
+    customerPosition: order.customerPosition ?? "",
     sheetPiecesPerSheet:
       order.sheetPiecesPerSheet === null ? "" : String(order.sheetPiecesPerSheet),
   };
@@ -843,6 +852,13 @@ function EditOrderForm({
               <AlertDescription>{t(`errors.${formError}`)}</AlertDescription>
             </Alert>
           ) : null}
+          <TextField
+            control={form.control}
+            name="customerPosition"
+            label={t("customerPosition")}
+            hint={t("customerPositionHint")}
+            error={t("fieldErrors.notes")}
+          />
           <ScheduleFields
             control={form.control}
             unitLabel={tUnits(order.unit)}

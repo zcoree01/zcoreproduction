@@ -21,6 +21,7 @@ import {
   listStockItemOptions,
   listStockLocations,
 } from "@/modules/inventory/queries";
+import { getOrderFinishedGoods } from "@/modules/finished-goods/queries";
 import { parseOrderTab } from "@/modules/production-orders/list-params";
 import { allowedOrderTargets } from "@/modules/production-orders/status-rules";
 import { isWholeUnit } from "@/modules/production-orders/schemas";
@@ -39,6 +40,7 @@ import { OrderAttachmentsPanel } from "./attachments-panel";
 import { OrderHistoryPanel } from "./history-panel";
 import { OperationsPanel } from "./operations-panel";
 import { OrderActions, OrderStatusControl } from "./order-actions";
+import { FinishedGoodsCard } from "./finished-goods-card";
 import { MaterialPanel } from "./material-panel";
 import { OrderTabs } from "./order-tabs";
 import { OverviewPanel } from "./overview-panel";
@@ -106,6 +108,8 @@ async function OrderContent({
     canManage &&
     inventory &&
     (access.permissions.has("inventory.read") || access.permissions.has("products.manage"));
+  const canReadFinished = inventory && access.permissions.has("finished_goods.read");
+  const finished = canReadFinished ? await getOrderFinishedGoods(organizationId, order.id) : null;
   const [material, stockItems, stockLocations, inventorySettings] = await Promise.all([
     canReadStock && order.customer
       ? getOrderMaterial(organizationId, order.id, order.stockItemId, order.customer.id)
@@ -216,6 +220,17 @@ async function OrderContent({
             {t("detail.missingMachines", { count: missingMachines })}
           </AlertDescription>
         </Alert>
+      ) : null}
+
+      {finished && order.customer && order.status !== "draft" ? (
+        <FinishedGoodsCard
+          orderId={order.id}
+          customerId={order.customer.id}
+          goodQuantity={order.goodQuantity}
+          unitLabel={tUnits(order.unit)}
+          stock={finished}
+          canManage={access.permissions.has("finished_goods.manage")}
+        />
       ) : null}
 
       <OrderTabs

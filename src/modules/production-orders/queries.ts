@@ -259,6 +259,7 @@ export type OrderDetail = OrderRow & {
   /** Stock item the raw piece is cut from (D-032). */
   stockItemId: string | null;
   sheetPiecesPerSheet: number | null;
+  customerPosition: string | null;
   sourceOrder: { id: string; orderNumber: string } | null;
   /** Revisions of the product (for replacing the drawings), newest first. */
   revisions: { id: string; revision: string | null; isCurrent: boolean; createdAt: string }[];
@@ -278,7 +279,7 @@ export async function getOrder(organizationId: string, id: string): Promise<Orde
     supabase
       .from("production_orders")
       .select(
-        "notes, cancel_reason, status_changed_at, piece_length_mm, kerf_mm, bar_length_mm, bar_remnant_mm, product_id, revision_id, source_order_id, stock_item_id, sheet_pieces_per_sheet",
+        "notes, cancel_reason, status_changed_at, piece_length_mm, kerf_mm, bar_length_mm, bar_remnant_mm, product_id, revision_id, source_order_id, stock_item_id, sheet_pieces_per_sheet, customer_position",
       )
       .eq("organization_id", organizationId)
       .eq("id", id)
@@ -326,6 +327,7 @@ export async function getOrder(organizationId: string, id: string): Promise<Orde
     barRemnant: decimalFromDb(extra.data.bar_remnant_mm),
     stockItemId: extra.data.stock_item_id,
     sheetPiecesPerSheet: extra.data.sheet_pieces_per_sheet,
+    customerPosition: extra.data.customer_position,
     sourceOrder: source.data ? { id: source.data.id, orderNumber: source.data.order_number } : null,
     revisions: revisions.data.map((r) => ({
       id: r.id,

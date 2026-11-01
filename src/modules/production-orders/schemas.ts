@@ -73,6 +73,8 @@ const pieceFields = {
 
 /** Stock item the raw piece is cut from and, for sheets, pieces per sheet (D-032). */
 const materialFields = {
+  /** Position / item number the customer uses (printed on delivery notes, D-034). */
+  customerPosition: optionalText(60),
   stockItemId: optionalUuid,
   sheetPiecesPerSheet: z
     .string()
@@ -144,6 +146,7 @@ export const ORDER_FIELDS = [
   "stockItemId",
   "sheetPiecesPerSheet",
   "needsCutting",
+  "customerPosition",
 ] as const;
 export type OrderField = (typeof ORDER_FIELDS)[number];
 export type OrderError =
@@ -171,6 +174,7 @@ export function toOrderRpcArgs(input: CopyOrderInput & Partial<CreateOrderInput>
     bar_length_mm: input.barLength ?? null,
     bar_remnant_mm: input.barRemnant ?? null,
     stock_item_id: input.stockItemId ?? null,
+    customer_position: input.customerPosition ?? null,
     sheet_pieces_per_sheet: input.sheetPiecesPerSheet ?? null,
     ...(input.needsCutting === undefined ? {} : { needs_cutting: input.needsCutting }),
   };
