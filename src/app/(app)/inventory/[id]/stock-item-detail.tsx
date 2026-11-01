@@ -32,7 +32,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addDecimals, compareDecimals, formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { setStockItemArchivedAction } from "@/modules/inventory/actions";
-import type { StockBalanceRow, StockItemDetail, StockLocation } from "@/modules/inventory/queries";
+import type {
+  ItemReservationRow,
+  StockBalanceRow,
+  StockItemDetail,
+  StockLocation,
+} from "@/modules/inventory/queries";
 import { kgPerMetre } from "@/modules/inventory/rules";
 import type { MaterialOption } from "@/modules/materials/schemas";
 import { StockItemSheet } from "../stock-item-sheet";
@@ -50,13 +55,21 @@ const MOVEMENT_LIMIT = 200;
 export function StockItemDetailView({
   detail,
   dateLabels,
+  reservations,
   materials,
   locations,
   permissions,
 }: {
   detail: StockItemDetail;
   /** Formatted on the server, by movement id and lot id. */
-  dateLabels: { movements: Record<string, string>; lots: Record<string, string> };
+  dateLabels: {
+    movements: Record<string, string>;
+    lots: Record<string, string>;
+    /** Due dates by order id. */
+    reservations: Record<string, string>;
+  };
+  /** Open reservations of released orders (D-032). */
+  reservations: ItemReservationRow[];
   materials: MaterialOption[];
   locations: StockLocation[];
   permissions: { canManage: boolean; canMove: boolean; canApprove: boolean };
@@ -179,6 +192,12 @@ export function StockItemDetailView({
           <TabsTrigger value="movements" className="flex-none px-3">
             {t("detail.tabs.movements")}
             <span className="text-xs text-muted-foreground tabular-nums">{movements.length}</span>
+          </TabsTrigger>
+          <TabsTrigger value="reservations" className="flex-none px-3">
+            {t("detail.tabs.reservations")}
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {reservations.length}
+            </span>
           </TabsTrigger>
           <TabsTrigger value="certificates" className="flex-none px-3">
             {t("detail.tabs.certificates")}
@@ -340,6 +359,73 @@ export function StockItemDetailView({
                 </p>
               ) : null}
             </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="reservations" className="pt-2">
+          {reservations.length === 0 ? (
+            <EmptyState
+              icon={<WarehouseIcon />}
+              title={t("detail.reservations.emptyTitle")}
+              description={t("detail.reservations.emptyDescription")}
+            />
+          ) : (
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("detail.reservations.order")}</TableHead>
+                    <TableHead>{t("detail.reservations.customer")}</TableHead>
+                    <TableHead>{t("detail.reservations.dueDate")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("detail.reservations.quantity")}
+                    </TableHead>
+                    <TableHead className="text-right">{t("detail.reservations.issued")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("detail.reservations.remaining")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t("detail.reservations.shortage")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reservations.map((r) => (
+                    <TableRow key={r.orderId}>
+                      <TableCell className="font-mono">
+                        <Link
+                          href={`/orders/${r.orderId}?tab=material`}
+                          className="hover:underline"
+                        >
+                          {r.orderNumber}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{r.customer}</TableCell>
+                      <TableCell>{dateLabels.reservations[r.orderId]}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {format.quantity(item.baseUnit, r.quantity)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {format.quantity(item.baseUnit, r.issued)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {format.quantity(item.baseUnit, r.remaining)}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right tabular-nums",
+                          compareDecimals(r.shortage, "0") > 0 && "font-medium text-destructive",
+                        )}
+                      >
+                        {compareDecimals(r.shortage, "0") > 0
+                          ? format.quantity(item.baseUnit, r.shortage)
+                          : t("unknown")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </TabsContent>
 

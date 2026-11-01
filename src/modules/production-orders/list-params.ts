@@ -45,6 +45,7 @@ export const ORDER_TABS = [
   "overview",
   "operations",
   "production",
+  "material",
   "attachments",
   "history",
 ] as const;

@@ -49,7 +49,7 @@ import {
   type OrderStatus,
   type StatusActor,
 } from "@/modules/production-orders/status-rules";
-import { CopyOrderSheet, EditOrderSheet } from "../order-sheet";
+import { CopyOrderSheet, EditOrderSheet, type OrderStockItemChoice } from "../order-sheet";
 
 /** Status change: allowed targets for the member; cancelling asks for a reason. */
 export function OrderStatusControl({
@@ -230,9 +230,11 @@ function CancelSheet({
 export function OrderActions({
   order,
   priorityMode,
+  stockItems,
 }: {
   order: OrderDetail;
   priorityMode: PriorityMode;
+  stockItems: OrderStockItemChoice[];
 }) {
   const t = useTranslations("orders.detail");
   const [editing, setEditing] = useState(false);
@@ -283,6 +285,7 @@ export function OrderActions({
         onOpenChange={setEditing}
         order={order}
         priorityMode={priorityMode}
+        stockItems={stockItems}
       />
       <CopyOrderSheet
         open={copying}

@@ -19,6 +19,8 @@ import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
+import { getFloorOrderMaterial } from "@/modules/inventory/queries";
+import { toDisplayQuantity } from "@/modules/inventory/rules";
 import { getFloorOperation } from "@/modules/production-orders/floor";
 import { barPlan } from "@/modules/production-orders/rules";
 import { isWholeUnit } from "@/modules/production-orders/schemas";
@@ -51,9 +53,11 @@ const MATERIAL_CONTEXT: readonly OrderStatus[] = ["planned", ...MATERIAL_STATUSE
 
 async function FloorOperationContent({ params }: { params: Promise<{ id: string }> }) {
   const member = await requireMember();
-  const [t, tUnits, format, access] = await Promise.all([
+  const [t, tUnits, tMaterial, tStock, format, access] = await Promise.all([
     getTranslations("floorOrders"),
     getTranslations("productUnits"),
+    getTranslations("floorMaterial"),
+    getTranslations("inventory"),
     getFormatter(),
     getMemberAccess(member),
   ]);
@@ -129,6 +133,8 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
         listReasons(member.organization.id, "tool_change_reason"),
       ])
     : [null, [], [], []];
+  // Material issued to this order (inventory, D-032): the worker sees lot and heat.
+  const issued = access.modules.has("inventory") ? await getFloorOrderMaterial(operation.id) : null;
   const plan = barPlan({
     barLength: order.bar_length_mm,
     remnant: order.bar_remnant_mm,
@@ -230,6 +236,50 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
           ) : null}
         </CardContent>
       </Card>
+
+      {issued ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {tMaterial("title")}: {issued.itemCode} · {issued.itemName}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {issued.lots.length === 0 ? (
+              <p className="text-muted-foreground">{tMaterial("none")}</p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {issued.lots.map((lot) => (
+                  <li
+                    key={`${lot.lotNumber}:${lot.length}:${lot.width}`}
+                    className="flex flex-wrap justify-between gap-2"
+                  >
+                    <span>
+                      {tMaterial("lot", { lot: lot.lotNumber })}
+                      {lot.heatNumber ? ` · ${tMaterial("heat", { heat: lot.heatNumber })}` : ""}
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {lot.pieces !== null && lot.length
+                        ? tStock("piecesOf", {
+                            pieces: lot.pieces,
+                            size: lot.width
+                              ? tStock("sheetSize", {
+                                  length: formatDecimal(lot.length),
+                                  width: formatDecimal(lot.width),
+                                })
+                              : tStock("barSize", { length: formatDecimal(lot.length) }),
+                          })
+                        : `${formatDecimal(toDisplayQuantity(issued.baseUnit, lot.quantity))} ${tStock(
+                            `units.${issued.baseUnit}`,
+                          )}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {work ? (
         <WorkPanel

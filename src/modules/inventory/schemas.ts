@@ -25,6 +25,12 @@ export const STOCK_ERRORS = [
   "module_disabled",
   "item_has_movements",
   "shelf_needs_warehouse",
+  "order_not_found",
+  "order_not_open",
+  "customer_material",
+  "offcut_own_material_only",
+  "invalid_offcut",
+  "lot_not_issued",
 ] as const;
 export type StockError = (typeof STOCK_ERRORS)[number];
 
@@ -315,3 +321,78 @@ export const certificateMetaSchema = z.object({
 });
 export type CertificateError = StockError | "upload_failed" | "file_type" | "too_large";
 export type CertificateActionResult = ActionResult<never, CertificateError>;
+
+// ---------------------------------------------------------------------------
+// Material of production orders (D-032)
+// ---------------------------------------------------------------------------
+
+export const issueSchema = z
+  .object({
+    idempotencyKey: z.uuid(),
+    orderId: z.uuid(),
+    itemId: z.uuid(),
+    lotId: z.uuid(),
+    locationId: z.uuid(),
+    length: pieceSize,
+    width: pieceSize,
+    pieces: pieceCount(false),
+    quantity: optionalDecimal({ maxScale: 3, max: "1000000000", exclusiveMin: true }),
+    /** Pieces cut from each bar / sheet in the warehouse (for the record). */
+    cutPieces: pieceCount(false),
+    /** Offcut of each bar / sheet put back into stock (own material only). */
+    offcutLength: pieceSize,
+    offcutWidth: pieceSize,
+    offcutLocationId: optionalUuid,
+    notes: optionalText(2000),
+  })
+  .refine((i) => (i.pieces === null) !== (i.quantity === null), { path: ["pieces"] })
+  .refine((i) => i.offcutWidth === null || i.offcutLength !== null, { path: ["offcutLength"] })
+  .refine((i) => i.offcutLength === null || i.pieces !== null, { path: ["offcutLength"] });
+export type IssueFormValues = z.input<typeof issueSchema>;
+export const ISSUE_FIELDS = [
+  "lotId",
+  "pieces",
+  "quantity",
+  "cutPieces",
+  "offcutLength",
+  "offcutWidth",
+  "offcutLocationId",
+  "notes",
+] as const;
+export type IssueField = (typeof ISSUE_FIELDS)[number];
+
+export const returnSchema = z
+  .object({
+    idempotencyKey: z.uuid(),
+    orderId: z.uuid(),
+    itemId: z.uuid(),
+    lotId: z.uuid(),
+    locationId: z.uuid(),
+    length: pieceSize,
+    width: pieceSize,
+    pieces: pieceCount(false),
+    quantity: optionalDecimal({ maxScale: 3, max: "1000000000", exclusiveMin: true }),
+    notes: optionalText(2000),
+  })
+  .refine((r) => (r.pieces === null) !== (r.quantity === null), { path: ["pieces"] });
+export type ReturnFormValues = z.input<typeof returnSchema>;
+export const RETURN_FIELDS = [
+  "lotId",
+  "locationId",
+  "length",
+  "width",
+  "pieces",
+  "quantity",
+  "notes",
+] as const;
+export type ReturnField = (typeof RETURN_FIELDS)[number];
+
+export const consumptionSchema = z.object({
+  orderId: z.uuid(),
+  itemId: z.uuid(),
+  /** In the display unit (m for length items). */
+  quantity: optionalDecimal({ maxScale: 4, max: "1000000000" }).refine((v) => v !== null),
+  note: optionalText(500),
+});
+export const CONSUMPTION_FIELDS = ["quantity", "note"] as const;
+export type ConsumptionField = (typeof CONSUMPTION_FIELDS)[number];

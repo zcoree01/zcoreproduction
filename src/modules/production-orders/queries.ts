@@ -256,6 +256,9 @@ export type OrderDetail = OrderRow & {
   kerf: string | null;
   barLength: string | null;
   barRemnant: string | null;
+  /** Stock item the raw piece is cut from (D-032). */
+  stockItemId: string | null;
+  sheetPiecesPerSheet: number | null;
   sourceOrder: { id: string; orderNumber: string } | null;
   /** Revisions of the product (for replacing the drawings), newest first. */
   revisions: { id: string; revision: string | null; isCurrent: boolean; createdAt: string }[];
@@ -275,7 +278,7 @@ export async function getOrder(organizationId: string, id: string): Promise<Orde
     supabase
       .from("production_orders")
       .select(
-        "notes, cancel_reason, status_changed_at, piece_length_mm, kerf_mm, bar_length_mm, bar_remnant_mm, product_id, revision_id, source_order_id",
+        "notes, cancel_reason, status_changed_at, piece_length_mm, kerf_mm, bar_length_mm, bar_remnant_mm, product_id, revision_id, source_order_id, stock_item_id, sheet_pieces_per_sheet",
       )
       .eq("organization_id", organizationId)
       .eq("id", id)
@@ -321,6 +324,8 @@ export async function getOrder(organizationId: string, id: string): Promise<Orde
     kerf: decimalFromDb(extra.data.kerf_mm),
     barLength: decimalFromDb(extra.data.bar_length_mm),
     barRemnant: decimalFromDb(extra.data.bar_remnant_mm),
+    stockItemId: extra.data.stock_item_id,
+    sheetPiecesPerSheet: extra.data.sheet_pieces_per_sheet,
     sourceOrder: source.data ? { id: source.data.id, orderNumber: source.data.order_number } : null,
     revisions: revisions.data.map((r) => ({
       id: r.id,
@@ -590,21 +595,34 @@ export type ProductChoice = {
     isCurrent: boolean;
     cutLength: string | null;
     kerf: string | null;
+    stockItemId: string | null;
+    /** The routing has a cutting operation (default of "Treba rezanje"). */
+    hasCutting: boolean;
   }[];
 };
 
 /** Active products with their revisions (current first), for the order form. */
 export async function listProductChoices(organizationId: string): Promise<ProductChoice[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(
-      "id, part_number, name, unit, customer_id, product_revisions(id, revision, is_current, created_at, cut_length_mm, kerf_mm)",
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("part_number");
-  if (error) throw error;
+  const [products, cuttingTypes] = await Promise.all([
+    supabase
+      .from("products")
+      .select(
+        "id, part_number, name, unit, customer_id, product_revisions(id, revision, is_current, created_at, cut_length_mm, kerf_mm, stock_item_id, product_operations(operation_type_id, archived_at))",
+      )
+      .eq("organization_id", organizationId)
+      .is("archived_at", null)
+      .order("part_number"),
+    supabase
+      .from("operation_types")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("is_cutting", true),
+  ]);
+  if (products.error) throw products.error;
+  if (cuttingTypes.error) throw cuttingTypes.error;
+  const cutting = new Set(cuttingTypes.data.map((type) => type.id));
+  const data = products.data;
   return data.map((row) => ({
     id: row.id,
     partNumber: row.part_number,
@@ -622,6 +640,10 @@ export async function listProductChoices(organizationId: string): Promise<Produc
         isCurrent: r.is_current,
         cutLength: decimalFromDb(r.cut_length_mm),
         kerf: decimalFromDb(r.kerf_mm),
+        stockItemId: r.stock_item_id,
+        hasCutting: r.product_operations.some(
+          (o) => o.archived_at === null && cutting.has(o.operation_type_id),
+        ),
       })),
   }));
 }

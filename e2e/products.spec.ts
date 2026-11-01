@@ -71,6 +71,8 @@ test("warehouse reads products and customers without editing", async ({ page }) 
 test("admin builds a product with customer, material, drawing, routing and a revision", async ({
   page,
 }) => {
+  // The longest flow of the suite (~55 s in dev mode): close to the 60 s default.
+  test.slow();
   const run = Date.now().toString(36).toUpperCase();
   const code = `E${run.slice(-6)}`;
   const partNumber = `E2E-${run}`;
@@ -81,6 +83,8 @@ test("admin builds a product with customer, material, drawing, routing and a rev
 
   // Two operation types with abbreviations.
   await page.goto("/settings/operation-types");
+  // Typing before the (dev) page is hydrated would be reset by React.
+  await page.waitForLoadState("networkidle");
   for (const [suffix, name] of [
     ["T", `E2E Tokarenje ${run}`],
     ["G", `E2E Glodanje ${run}`],

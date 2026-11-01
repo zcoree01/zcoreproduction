@@ -10,7 +10,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
-import { getStockItemDetail, listStockLocations } from "@/modules/inventory/queries";
+import {
+  getStockItemDetail,
+  listItemReservations,
+  listStockLocations,
+} from "@/modules/inventory/queries";
 import { listMaterialOptions } from "@/modules/materials/queries";
 import { StockItemDetailView } from "./stock-item-detail";
 
@@ -57,9 +61,10 @@ async function StockItemContent({ params }: { params: Promise<{ id: string }> })
   const canManage = access.permissions.has("inventory.items.manage");
   const canMove = access.permissions.has("inventory.move");
   const canApprove = access.permissions.has("inventory.adjust.approve");
-  const [materials, locations] = await Promise.all([
+  const [materials, locations, reservations] = await Promise.all([
     canManage ? listMaterialOptions(organizationId) : Promise.resolve([]),
     listStockLocations(organizationId),
+    listItemReservations(organizationId, detail.item.id),
   ]);
 
   // Dates are formatted here: server and browser ICU data differ (hydration).
@@ -76,12 +81,22 @@ async function StockItemContent({ params }: { params: Promise<{ id: string }> })
         format.dateTime(new Date(lot.receivedAt), { dateStyle: "medium" }),
       ]),
     ),
+    reservations: Object.fromEntries(
+      reservations.map((r) => [
+        r.orderId,
+        format.dateTime(new Date(`${r.dueDate}T12:00:00Z`), {
+          dateStyle: "medium",
+          timeZone: "UTC",
+        }),
+      ]),
+    ),
   };
 
   return (
     <StockItemDetailView
       detail={detail}
       dateLabels={labels}
+      reservations={reservations}
       materials={materials}
       locations={locations}
       permissions={{ canManage, canMove, canApprove }}

@@ -53,6 +53,8 @@ function revalidateOrderScreens() {
 /** Business-rule errors raised by the database with a fixed message. */
 const RULE_ERRORS = [
   "order_closed",
+  "order_material_issued",
+  "no_cutting_operation_type",
   "order_not_draft",
   "order_in_production",
   "operation_done",
@@ -104,6 +106,8 @@ async function managerOrg(): Promise<{ id: string; timezone: string } | null> {
 function mapOrderError(error: DbError): OrderActionResult {
   const rule = ruleError(error);
   if (rule === "order_closed" || rule === "order_in_production") return failOrder(rule);
+  if (rule === "order_material_issued") return failOrder(rule, ["stockItemId"]);
+  if (rule === "no_cutting_operation_type") return failOrder(rule, ["needsCutting"]);
   switch (errorKind(error)) {
     case "foreign_key":
       return failOrder("invalid_reference", ["customerId", "productId", "revisionId"]);
@@ -185,6 +189,8 @@ export async function updateOrderAction(id: unknown, input: unknown): Promise<Or
     planned_start: values.plannedStart,
     planned_end: values.plannedEnd,
     notes: values.notes,
+    // The database refuses a new stock item once material was issued.
+    stock_item_id: values.stockItemId,
   };
   if (canEditPlanning(current.data.status)) {
     if (!quantityFitsUnit(values.quantity, current.data.unit)) {
@@ -197,6 +203,7 @@ export async function updateOrderAction(id: unknown, input: unknown): Promise<Or
       kerf_mm: numericParam(values.kerf),
       bar_length_mm: numericParam(values.barLength),
       bar_remnant_mm: numericParam(values.barRemnant),
+      sheet_pieces_per_sheet: values.sheetPiecesPerSheet,
     };
   }
 
@@ -637,4 +644,26 @@ export async function saveOrderSettingsAction(
   revalidatePath("/settings/production");
   revalidateOrderScreens();
   return { ok: true };
+}
+
+/** "Treba rezanje" on a draft order: adds cutting as the first operation or archives it. */
+export async function setOrderCuttingAction(
+  orderId: unknown,
+  needs: unknown,
+): Promise<OrderActionResult> {
+  const organization = await managerOrg();
+  if (!organization) return failOrder("denied");
+
+  const parsed = z.object({ orderId: z.uuid(), needs: z.boolean() }).safeParse({ orderId, needs });
+  if (!parsed.success) return failOrder("invalid");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_order_cutting", {
+    p_order_id: parsed.data.orderId,
+    p_needs: parsed.data.needs,
+  });
+  if (error) return mapOrderError(error);
+
+  revalidateOrderScreens();
+  return { ok: true, id: parsed.data.orderId };
 }

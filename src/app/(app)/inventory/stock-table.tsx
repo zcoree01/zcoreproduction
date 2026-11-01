@@ -132,6 +132,8 @@ export function StockTable({
                 <TableHead>{t("list.columns.name")}</TableHead>
                 <TableHead>{t("list.columns.shape")}</TableHead>
                 <TableHead className="text-right">{t("list.columns.stock")}</TableHead>
+                <TableHead className="text-right">{t("list.columns.reserved")}</TableHead>
+                <TableHead className="text-right">{t("list.columns.available")}</TableHead>
                 <TableHead className="text-right">{t("list.columns.mass")}</TableHead>
                 <TableHead className="text-right">{t("list.columns.value")}</TableHead>
                 <TableHead className="text-right">{t("list.columns.costPerKg")}</TableHead>
@@ -172,6 +174,19 @@ export function StockTable({
                           })}
                         </div>
                       ) : null}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {compareDecimals(item.reserved, "0") > 0
+                        ? format.quantity(item.baseUnit, item.reserved)
+                        : t("unknown")}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "text-right tabular-nums",
+                        compareDecimals(item.available, "0") < 0 && "font-medium text-destructive",
+                      )}
+                    >
+                      {format.quantity(item.baseUnit, item.available)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {item.kgPerUnit ? format.kg(item.mass) : t("unknown")}

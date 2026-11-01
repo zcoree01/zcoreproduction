@@ -15,7 +15,14 @@ import { requireMember } from "@/lib/auth/session";
 import { formatDecimal } from "@/lib/decimal";
 import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { cn } from "@/lib/utils";
+import {
+  getInventorySettings,
+  getOrderMaterial,
+  listStockItemOptions,
+  listStockLocations,
+} from "@/modules/inventory/queries";
 import { parseOrderTab } from "@/modules/production-orders/list-params";
+import { allowedOrderTargets } from "@/modules/production-orders/status-rules";
 import { isWholeUnit } from "@/modules/production-orders/schemas";
 import {
   getOrder,
@@ -32,6 +39,7 @@ import { OrderAttachmentsPanel } from "./attachments-panel";
 import { OrderHistoryPanel } from "./history-panel";
 import { OperationsPanel } from "./operations-panel";
 import { OrderActions, OrderStatusControl } from "./order-actions";
+import { MaterialPanel } from "./material-panel";
 import { OrderTabs } from "./order-tabs";
 import { OverviewPanel } from "./overview-panel";
 import { ProductionPanel } from "./production-panel";
@@ -54,9 +62,10 @@ async function OrderContent({
   const member = await requireMember();
   const organizationId = member.organization.id;
   const timezone = member.organization.timezone;
-  const [t, tUnits, format, access] = await Promise.all([
+  const [t, tUnits, tInventory, format, access] = await Promise.all([
     getTranslations("orders"),
     getTranslations("productUnits"),
+    getTranslations("inventory"),
     getFormatter(),
     getMemberAccess(member),
   ]);
@@ -90,6 +99,21 @@ async function OrderContent({
     manage: canManage,
     material: access.permissions.has("orders.material.update"),
   };
+  // Material of the order (D-032): needs the inventory module and inventory.read.
+  const inventory = access.modules.has("inventory");
+  const canReadStock = inventory && access.permissions.has("inventory.read");
+  const canPickStock =
+    canManage &&
+    inventory &&
+    (access.permissions.has("inventory.read") || access.permissions.has("products.manage"));
+  const [material, stockItems, stockLocations, inventorySettings] = await Promise.all([
+    canReadStock && order.customer
+      ? getOrderMaterial(organizationId, order.id, order.stockItemId, order.customer.id)
+      : Promise.resolve(null),
+    canPickStock ? listStockItemOptions(organizationId) : Promise.resolve([]),
+    canReadStock ? listStockLocations(organizationId) : Promise.resolve([]),
+    canReadStock ? getInventorySettings(organizationId) : Promise.resolve(null),
+  ]);
   const [
     operations,
     production,
@@ -173,7 +197,13 @@ async function OrderContent({
               wholePieces={isWholeUnit(order.unit)}
               quantity={order.quantity}
             />
-            {canManage ? <OrderActions order={order} priorityMode={settings.priorityMode} /> : null}
+            {canManage ? (
+              <OrderActions
+                order={order}
+                priorityMode={settings.priorityMode}
+                stockItems={stockItems}
+              />
+            ) : null}
           </div>
         </div>
       </div>
@@ -255,6 +285,37 @@ async function OrderContent({
               downtimeReasons={downtimeReasons}
             />
           ),
+          material:
+            material && inventorySettings && order.customer ? (
+              <MaterialPanel
+                order={{
+                  id: order.id,
+                  orderNumber: order.orderNumber,
+                  quantity: order.quantity,
+                  customerId: order.customer.id,
+                  pieceLength: order.pieceLength,
+                  kerf: order.kerf,
+                }}
+                material={{
+                  ...material,
+                  movementLabels: Object.fromEntries(
+                    material.movements.map((m) => [m.id, stamp(m.createdAt)]),
+                  ),
+                }}
+                locations={stockLocations}
+                remnantMinLength={inventorySettings.remnantMinLengthMm}
+                can={{
+                  move: access.permissions.has("inventory.move"),
+                  setWaiting: allowedOrderTargets(order.status, actor).includes("waiting_material"),
+                }}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {inventory
+                  ? tInventory("orderMaterial.denied")
+                  : tInventory("errors.module_disabled")}
+              </p>
+            ),
           attachments: (
             <OrderAttachmentsPanel
               attachments={attachments}

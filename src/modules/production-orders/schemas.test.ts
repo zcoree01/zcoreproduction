@@ -22,6 +22,8 @@ const ORDER = {
   kerf: "2,5",
   barLength: "",
   barRemnant: "",
+  stockItemId: "",
+  sheetPiecesPerSheet: "",
 };
 
 describe("order form", () => {
@@ -41,7 +43,24 @@ describe("order form", () => {
       kerf_mm: "2.5",
       bar_length_mm: null,
       bar_remnant_mm: null,
+      stock_item_id: null,
+      sheet_pieces_per_sheet: null,
     });
+  });
+
+  it("passes the stock item, pieces per sheet and the cutting choice", () => {
+    const parsed = createOrderSchema.parse({
+      ...ORDER,
+      stockItemId: ID,
+      sheetPiecesPerSheet: "80",
+      needsCutting: true,
+    });
+    expect(toOrderRpcArgs(parsed)).toMatchObject({
+      stock_item_id: ID,
+      sheet_pieces_per_sheet: 80,
+      needs_cutting: true,
+    });
+    expect(createOrderSchema.safeParse({ ...ORDER, sheetPiecesPerSheet: "0" }).success).toBe(false);
   });
 
   it("requires a positive quantity, a due date and ordered planned dates", () => {

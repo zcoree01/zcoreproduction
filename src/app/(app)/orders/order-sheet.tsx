@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { SearchSelect } from "@/components/shared/search-select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
@@ -44,6 +45,7 @@ import {
   createOrderAction,
   updateOrderAction,
 } from "@/modules/production-orders/actions";
+import type { StockItem } from "@/modules/inventory/queries";
 import type { OrderDetail, ProductChoice } from "@/modules/production-orders/queries";
 import { barPlan, type PriorityMode } from "@/modules/production-orders/rules";
 import {
@@ -65,9 +67,14 @@ import { canEditPlanning } from "@/modules/production-orders/status-rules";
 
 type FormError = Extract<OrderActionResult, { ok: false }>["error"];
 
+/** Stock item the raw piece is cut from (inventory, D-032). */
+export type OrderStockItemChoice = Pick<StockItem, "id" | "code" | "name" | "baseUnit">;
+
 export type OrderFormOptions = {
   customers: CustomerOption[];
   products: ProductChoice[];
+  /** Empty without the inventory module (or access to its items). */
+  stockItems: OrderStockItemChoice[];
   priorityMode: PriorityMode;
   /** Today in the organization's time zone (YYYY-MM-DD). */
   today: string;
@@ -87,6 +94,9 @@ const EMPTY: CreateOrderFormValues = {
   kerf: "",
   barLength: "",
   barRemnant: "",
+  stockItemId: "",
+  sheetPiecesPerSheet: "",
+  needsCutting: false,
 };
 
 const decimalText = (value: string | null) => formatDecimal(value);
@@ -353,6 +363,98 @@ function PieceFields<
   );
 }
 
+/** Stock item, pieces per sheet (sheets / plates) and, on creation, "Treba rezanje". */
+function MaterialFields<
+  TValues extends FieldValues & { stockItemId: string; sheetPiecesPerSheet: string },
+  TOut,
+>({
+  control,
+  stockItems,
+  withCutting,
+  disabled,
+}: {
+  control: Control<TValues, unknown, TOut>;
+  stockItems: OrderStockItemChoice[];
+  withCutting?: boolean;
+  disabled?: boolean;
+}) {
+  const t = useTranslations("orders.form");
+  const stockItemId = useWatch({ control, name: "stockItemId" as FieldPath<TValues> }) as string;
+  const item = stockItems.find((choice) => choice.id === stockItemId);
+  if (stockItems.length === 0 && !withCutting) return null;
+  return (
+    <FieldSet>
+      <FieldLegend variant="label">{t("materialTitle")}</FieldLegend>
+      {stockItems.length > 0 ? (
+        <Controller
+          name={"stockItemId" as FieldPath<TValues>}
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid || undefined}>
+              <FieldLabel htmlFor="order-stockItemId">{t("stockItem")}</FieldLabel>
+              <SearchSelect
+                id="order-stockItemId"
+                value={String(field.value ?? "")}
+                onChange={field.onChange}
+                disabled={disabled}
+                placeholder={t("stockItemNone")}
+                invalid={fieldState.invalid}
+                options={[
+                  { value: "", label: t("stockItemNone") },
+                  ...stockItems.map((choice) => ({
+                    value: choice.id,
+                    label: choice.code,
+                    hint: choice.name,
+                  })),
+                ]}
+              />
+              {fieldState.invalid ? (
+                <FieldError>{t("errors.order_material_issued")}</FieldError>
+              ) : (
+                <FieldDescription>{t("stockItemHint")}</FieldDescription>
+              )}
+            </Field>
+          )}
+        />
+      ) : null}
+      {item?.baseUnit === "m2" ? (
+        <TextField
+          control={control}
+          name={"sheetPiecesPerSheet" as FieldPath<TValues>}
+          label={t("sheetPiecesPerSheet")}
+          inputMode="numeric"
+          error={t("fieldErrors.quantityWhole")}
+          hint={t("sheetPiecesHint")}
+          disabled={disabled}
+        />
+      ) : null}
+      {withCutting ? (
+        <Controller
+          name={"needsCutting" as FieldPath<TValues>}
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field orientation="horizontal" data-invalid={fieldState.invalid || undefined}>
+              <Checkbox
+                id="order-needsCutting"
+                checked={field.value === true}
+                onCheckedChange={(value) => field.onChange(value === true)}
+              />
+              <div className="flex flex-col gap-1">
+                <FieldLabel htmlFor="order-needsCutting">{t("needsCutting")}</FieldLabel>
+                {fieldState.invalid ? (
+                  <FieldError>{t("errors.no_cutting_operation_type")}</FieldError>
+                ) : (
+                  <FieldDescription>{t("needsCuttingHint")}</FieldDescription>
+                )}
+              </div>
+            </Field>
+          )}
+        />
+      ) : null}
+    </FieldSet>
+  );
+}
+
 function ScheduleFields<
   TValues extends FieldValues & {
     quantity: string;
@@ -463,6 +565,8 @@ function CreateOrderForm({ options, onDone }: { options: OrderFormOptions; onDon
     form.setValue("revisionId", current?.id ?? "");
     form.setValue("pieceLength", decimalText(current?.cutLength ?? null));
     form.setValue("kerf", decimalText(current?.kerf ?? null));
+    form.setValue("stockItemId", current?.stockItemId ?? "");
+    form.setValue("needsCutting", current?.hasCutting ?? false);
     if (chosen?.customerId) form.setValue("customerId", chosen.customerId);
   };
 
@@ -545,6 +649,8 @@ function CreateOrderForm({ options, onDone }: { options: OrderFormOptions; onDon
                       const chosen = product.revisions.find((r) => r.id === event.target.value);
                       form.setValue("pieceLength", decimalText(chosen?.cutLength ?? null));
                       form.setValue("kerf", decimalText(chosen?.kerf ?? null));
+                      form.setValue("stockItemId", chosen?.stockItemId ?? "");
+                      form.setValue("needsCutting", chosen?.hasCutting ?? false);
                     }}
                   >
                     {product.revisions.map((r) => (
@@ -601,6 +707,9 @@ function CreateOrderForm({ options, onDone }: { options: OrderFormOptions; onDon
             computedPriority={null}
           />
           <PieceFields control={form.control} wholePieces={wholePieces} />
+          {product ? (
+            <MaterialFields control={form.control} stockItems={options.stockItems} withCutting />
+          ) : null}
         </FieldGroup>
       </form>
       <SheetFooter className="border-t">
@@ -624,6 +733,9 @@ function toEditValues(order: OrderDetail): UpdateOrderFormValues {
     kerf: formatDecimal(order.kerf),
     barLength: formatDecimal(order.barLength),
     barRemnant: formatDecimal(order.barRemnant),
+    stockItemId: order.stockItemId ?? "",
+    sheetPiecesPerSheet:
+      order.sheetPiecesPerSheet === null ? "" : String(order.sheetPiecesPerSheet),
   };
 }
 
@@ -632,11 +744,13 @@ export function EditOrderSheet({
   onOpenChange,
   order,
   priorityMode,
+  stockItems,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: OrderDetail;
   priorityMode: PriorityMode;
+  stockItems: OrderStockItemChoice[];
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -645,6 +759,7 @@ export function EditOrderSheet({
           <EditOrderForm
             order={order}
             priorityMode={priorityMode}
+            stockItems={stockItems}
             onDone={() => onOpenChange(false)}
           />
         ) : null}
@@ -656,10 +771,12 @@ export function EditOrderSheet({
 function EditOrderForm({
   order,
   priorityMode,
+  stockItems,
   onDone,
 }: {
   order: OrderDetail;
   priorityMode: PriorityMode;
+  stockItems: OrderStockItemChoice[];
   onDone: () => void;
 }) {
   const t = useTranslations("orders.form");
@@ -692,7 +809,12 @@ function EditOrderForm({
       applyResult(
         result,
         (field) => {
-          if (field !== "customerId" && field !== "productId" && field !== "revisionId") {
+          if (
+            field !== "customerId" &&
+            field !== "productId" &&
+            field !== "revisionId" &&
+            field !== "needsCutting"
+          ) {
             form.setError(field, { type: "server" });
           }
         },
@@ -730,6 +852,7 @@ function EditOrderForm({
             quantityDisabled={!planning}
           />
           <PieceFields control={form.control} wholePieces={wholePieces} disabled={!planning} />
+          <MaterialFields control={form.control} stockItems={stockItems} />
         </FieldGroup>
       </form>
       <SheetFooter className="border-t">

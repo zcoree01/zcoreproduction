@@ -26,6 +26,12 @@ import { listPairingRevisions, listStockItemOptions } from "./queries";
 import {
   ADJUSTMENT_FIELDS,
   adjustmentSchema,
+  CONSUMPTION_FIELDS,
+  consumptionSchema,
+  ISSUE_FIELDS,
+  issueSchema,
+  RETURN_FIELDS,
+  returnSchema,
   CERTIFICATE_CONTENT_TYPES,
   CERTIFICATES_BUCKET,
   certificateMetaSchema,
@@ -42,6 +48,9 @@ import {
   TRANSFER_FIELDS,
   transferSchema,
   type AdjustmentField,
+  type ConsumptionField,
+  type IssueField,
+  type ReturnField,
   type CertificateActionResult,
   type InventorySettingsField,
   type LocationActionResult,
@@ -708,4 +717,119 @@ export async function saveInventorySettingsAction(
 
   revalidateInventory();
   return { ok: true, id: organizationId };
+}
+
+// ---------------------------------------------------------------------------
+// Material of production orders (D-032)
+// ---------------------------------------------------------------------------
+
+function revalidateOrderMaterial(orderId: string) {
+  revalidateInventory();
+  revalidatePath(`/orders/${orderId}`);
+}
+
+export async function postIssueAction(input: unknown): Promise<MoveActionResult<IssueField>> {
+  const organizationId = await orgWith("inventory.move");
+  if (!organizationId) return actionFail<IssueField, StockError>("denied");
+
+  const parsed = issueSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail<IssueField, StockError>("invalid", invalidFields(parsed.error, ISSUE_FIELDS));
+  }
+  const i = parsed.data;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("post_stock_issue", {
+    p_org_id: organizationId,
+    p_idempotency_key: i.idempotencyKey,
+    p_order_id: i.orderId,
+    p_notes: i.notes ?? "",
+    p_lines: [
+      {
+        item_id: i.itemId,
+        lot_id: i.lotId,
+        location_id: i.locationId,
+        pieces: i.pieces,
+        length_mm: i.length,
+        width_mm: i.width,
+        quantity: i.quantity,
+        cut_pieces: i.cutPieces,
+        offcut_length_mm: i.offcutLength,
+        offcut_width_mm: i.offcutWidth,
+        offcut_location_id: i.offcutLocationId,
+      },
+    ],
+  });
+  if (error) return moveFail<IssueField>(error, "stock issue");
+
+  revalidateOrderMaterial(i.orderId);
+  return { ok: true, id: data };
+}
+
+export async function postReturnAction(input: unknown): Promise<MoveActionResult<ReturnField>> {
+  const organizationId = await orgWith("inventory.move");
+  if (!organizationId) return actionFail<ReturnField, StockError>("denied");
+
+  const parsed = returnSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail<ReturnField, StockError>(
+      "invalid",
+      invalidFields(parsed.error, RETURN_FIELDS),
+    );
+  }
+  const r = parsed.data;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("post_stock_return", {
+    p_org_id: organizationId,
+    p_idempotency_key: r.idempotencyKey,
+    p_order_id: r.orderId,
+    p_notes: r.notes ?? "",
+    p_lines: [
+      {
+        item_id: r.itemId,
+        lot_id: r.lotId,
+        location_id: r.locationId,
+        pieces: r.pieces,
+        length_mm: r.length,
+        width_mm: r.width,
+        quantity: r.quantity,
+      },
+    ],
+  });
+  if (error) return moveFail<ReturnField>(error, "stock return");
+
+  revalidateOrderMaterial(r.orderId);
+  return { ok: true, id: data };
+}
+
+/** Confirms (or corrects) the consumed quantity of an order, in the display unit. */
+export async function confirmConsumptionAction(
+  input: unknown,
+  baseUnit: unknown,
+): Promise<MoveActionResult<ConsumptionField>> {
+  const organizationId = await orgWith("inventory.move");
+  if (!organizationId) return actionFail<ConsumptionField, StockError>("denied");
+
+  const parsed = consumptionSchema.safeParse(input);
+  const unit = z.enum(["mm", "m2", "kg", "pcs"]).safeParse(baseUnit);
+  if (!parsed.success || !unit.success) {
+    return actionFail<ConsumptionField, StockError>(
+      "invalid",
+      parsed.success ? [] : invalidFields(parsed.error, CONSUMPTION_FIELDS),
+    );
+  }
+  const c = parsed.data;
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("confirm_order_consumption", {
+    p_order_id: c.orderId,
+    p_item_id: c.itemId,
+    p_quantity: numericParam(fromDisplayQuantity(unit.data, c.quantity ?? "0")),
+    p_note: c.note ?? "",
+  });
+  if (error) return moveFail<ConsumptionField>(error, "order consumption");
+
+  revalidateOrderMaterial(c.orderId);
+  return { ok: true, id: c.orderId };
 }

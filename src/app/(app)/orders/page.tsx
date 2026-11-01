@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { getMemberAccess } from "@/lib/auth/access";
+import { listStockItemOptions } from "@/modules/inventory/queries";
 import { requireMember } from "@/lib/auth/session";
 import type { SearchParamsRecord } from "@/lib/data-table/params";
 import { zonedDate } from "@/lib/timezone";
@@ -36,14 +37,20 @@ async function OrdersContent({ searchParams }: { searchParams: Promise<SearchPar
     return <PermissionDenied description={t("deniedDescription")} />;
   }
   const canManage = access.permissions.has("orders.manage");
+  // Stock items are readable with inventory.read or products.manage (D-032).
+  const canPickStock =
+    canManage &&
+    access.modules.has("inventory") &&
+    (access.permissions.has("inventory.read") || access.permissions.has("products.manage"));
 
   const params = parseOrderListParams(await searchParams);
-  const [page, customers, options, products, settings] = await Promise.all([
+  const [page, customers, options, products, settings, stockItems] = await Promise.all([
     listOrdersPage(organizationId, params),
     listCustomerOptions(organizationId),
     listAssignmentOptions(organizationId),
     canManage ? listProductChoices(organizationId) : Promise.resolve([]),
     getOrderSettings(organizationId),
+    canPickStock ? listStockItemOptions(organizationId) : Promise.resolve([]),
   ]);
 
   return (
@@ -57,6 +64,7 @@ async function OrdersContent({ searchParams }: { searchParams: Promise<SearchPar
               options={{
                 customers,
                 products,
+                stockItems,
                 priorityMode: settings.priorityMode,
                 today: zonedDate(new Date(), member.organization.timezone),
               }}

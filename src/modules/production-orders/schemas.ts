@@ -71,6 +71,23 @@ const pieceFields = {
   barRemnant: remnant,
 };
 
+/** Stock item the raw piece is cut from and, for sheets, pieces per sheet (D-032). */
+const materialFields = {
+  stockItemId: optionalUuid,
+  sheetPiecesPerSheet: z
+    .string()
+    .trim()
+    .transform((value, ctx) => {
+      if (value === "") return null;
+      const parsed = /^\d{1,6}$/.test(value) ? Number(value) : 0;
+      if (parsed < 1) {
+        ctx.addIssue({ code: "custom", message: "invalid pieces per sheet" });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+};
+
 type Bar = { barLength: string | null; barRemnant: string | null };
 
 function checkBar(value: Bar, ctx: z.RefinementCtx) {
@@ -90,6 +107,9 @@ export const createOrderSchema = z
     revisionId: optionalUuid,
     ...scheduleFields,
     ...pieceFields,
+    ...materialFields,
+    /** Cutting as the first operation; undefined keeps the routing as it is. */
+    needsCutting: z.boolean().optional(),
   })
   .superRefine(checkPlannedDates)
   .superRefine(checkBar);
@@ -97,7 +117,7 @@ export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type CreateOrderFormValues = z.input<typeof createOrderSchema>;
 
 export const updateOrderSchema = z
-  .object({ ...scheduleFields, ...pieceFields })
+  .object({ ...scheduleFields, ...pieceFields, ...materialFields })
   .superRefine(checkPlannedDates)
   .superRefine(checkBar);
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
@@ -121,9 +141,17 @@ export const ORDER_FIELDS = [
   "kerf",
   "barLength",
   "barRemnant",
+  "stockItemId",
+  "sheetPiecesPerSheet",
+  "needsCutting",
 ] as const;
 export type OrderField = (typeof ORDER_FIELDS)[number];
-export type OrderError = "invalid_reference" | "order_closed" | "order_in_production";
+export type OrderError =
+  | "invalid_reference"
+  | "order_closed"
+  | "order_in_production"
+  | "order_material_issued"
+  | "no_cutting_operation_type";
 export type OrderActionResult = ActionResult<OrderField, OrderError>;
 
 /** JSON for create_production_order / copy_production_order; decimals stay strings. */
@@ -142,6 +170,9 @@ export function toOrderRpcArgs(input: CopyOrderInput & Partial<CreateOrderInput>
     kerf_mm: input.kerf ?? null,
     bar_length_mm: input.barLength ?? null,
     bar_remnant_mm: input.barRemnant ?? null,
+    stock_item_id: input.stockItemId ?? null,
+    sheet_pieces_per_sheet: input.sheetPiecesPerSheet ?? null,
+    ...(input.needsCutting === undefined ? {} : { needs_cutting: input.needsCutting }),
   };
 }
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { addDecimals, decimalFromDb } from "@/lib/decimal";
+import { addDecimals, compareDecimals, decimalFromDb } from "@/lib/decimal";
 import { createClient } from "@/lib/supabase/server";
 import {
   averageCostPerKg,
@@ -172,6 +172,10 @@ export type StockItemTotals = {
   ownValue: string;
   costPerKg: string | null;
   belowMinimum: boolean;
+  /** Still to issue to released orders (D-032). */
+  reserved: string;
+  /** Stock − reserved (negative: planned orders need more than there is). */
+  available: string;
 };
 
 export type StockItemRow = StockItem & StockItemTotals;
@@ -183,6 +187,7 @@ type TotalsRow = {
   own_quantity: number | null;
   own_mass_kg: number | null;
   own_value: number | null;
+  reserved: number | null;
 };
 
 async function totalsByItem(
@@ -190,14 +195,31 @@ async function totalsByItem(
   itemIds?: string[],
 ): Promise<Map<string, TotalsRow>> {
   const supabase = await createClient();
-  let query = supabase
+  let totals = supabase
     .from("stock_item_totals")
     .select("item_id, quantity, mass_kg, own_quantity, own_mass_kg, own_value")
     .eq("organization_id", organizationId);
-  if (itemIds) query = query.in("item_id", itemIds);
-  const { data, error } = await query;
-  if (error) throw error;
-  return new Map(data.map((row) => [row.item_id ?? "", row]));
+  let reserved = supabase
+    .from("stock_item_reserved")
+    .select("item_id, reserved")
+    .eq("organization_id", organizationId);
+  if (itemIds) {
+    totals = totals.in("item_id", itemIds);
+    reserved = reserved.in("item_id", itemIds);
+  }
+  const [stock, claims] = await Promise.all([totals, reserved]);
+  if (stock.error) throw stock.error;
+  if (claims.error) throw claims.error;
+  const reservedBy = new Map(claims.data.map((row) => [row.item_id ?? "", row.reserved]));
+  const empty = { quantity: 0, mass_kg: 0, own_quantity: 0, own_mass_kg: 0, own_value: 0 };
+  const ids = new Set([...stock.data.map((r) => r.item_id ?? ""), ...reservedBy.keys()]);
+  const byId = new Map(stock.data.map((row) => [row.item_id ?? "", row]));
+  return new Map(
+    [...ids].map((id) => [
+      id,
+      { ...empty, ...byId.get(id), item_id: id, reserved: reservedBy.get(id) ?? 0 },
+    ]),
+  );
 }
 
 function withTotals(item: StockItem, totals: Map<string, TotalsRow>): StockItemRow {
@@ -214,6 +236,8 @@ function withTotals(item: StockItem, totals: Map<string, TotalsRow>): StockItemR
     ownValue,
     costPerKg: averageCostPerKg({ ownMass, ownValue }),
     belowMinimum: !item.archived && isBelowMinimum(ownQuantity, item.minStock),
+    reserved: dec(row?.reserved),
+    available: addDecimals([dec(row?.quantity), `-${dec(row?.reserved)}`]),
   };
 }
 
@@ -266,7 +290,7 @@ export type StockBalanceRow = {
 export type StockMovementRow = {
   id: string;
   createdAt: string;
-  kind: "receipt" | "transfer_out" | "transfer_in" | "adjustment";
+  kind: "receipt" | "transfer_out" | "transfer_in" | "adjustment" | "issue" | "remnant" | "return";
   documentNumber: string;
   lotNumber: string;
   location: string;
@@ -596,4 +620,331 @@ export async function listPairingRevisions(organizationId: string): Promise<Pair
       stockItemId: row.stock_item_id,
     }))
     .sort((a, b) => a.partNumber.localeCompare(b.partNumber, "bs"));
+}
+
+// ---------------------------------------------------------------------------
+// Material of production orders (D-032)
+// ---------------------------------------------------------------------------
+
+export type OrderMaterialPlan = {
+  quantity: string | null;
+  perPiece: string | null;
+  pieceWidth: string | null;
+  unitLength: string | null;
+  unitWidth: string | null;
+  piecesPerUnit: number | null;
+  estimated: boolean;
+  unitsNeeded: number | null;
+  reportedPieces: string;
+  proposedConsumption: string | null;
+};
+
+export type OrderIssueRow = {
+  id: string;
+  createdAt: string;
+  kind: "issue" | "remnant" | "return";
+  documentNumber: string;
+  lotId: string;
+  lotNumber: string;
+  heatNumber: string | null;
+  locationId: string;
+  location: string;
+  length: string | null;
+  width: string | null;
+  pieces: number | null;
+  quantity: string;
+  cutPieces: number | null;
+};
+
+export type OrderIssueBucket = StockBalanceRow & { ownerCustomerId: string | null };
+
+export type OrderMaterial = {
+  item: StockItem | null;
+  plan: OrderMaterialPlan;
+  reservation: { quantity: string; issued: string; remaining: string; shortage: string } | null;
+  issued: string;
+  returned: string;
+  issuedValue: string;
+  consumption: { quantity: string; proposed: string | null; note: string | null } | null;
+  movements: OrderIssueRow[];
+  /** Stock of the item the order may take (own and the order customer). */
+  buckets: OrderIssueBucket[];
+};
+
+type PlanJson = {
+  quantity?: number | null;
+  per_piece?: number | null;
+  piece_width?: number | null;
+  unit_length?: number | null;
+  unit_width?: number | null;
+  pieces_per_unit?: number | null;
+  estimated?: boolean | null;
+  units_needed?: number | null;
+  reported_pieces?: number | null;
+  proposed_consumption?: number | null;
+};
+
+/** Everything the "Materijal" tab of an order shows (needs inventory.read). */
+export async function getOrderMaterial(
+  organizationId: string,
+  orderId: string,
+  stockItemId: string | null,
+  customerId: string,
+): Promise<OrderMaterial> {
+  const supabase = await createClient();
+  const [plan, coverage, issued, consumption, movements, items, locations] = await Promise.all([
+    supabase.rpc("order_material_plan", { p_order_id: orderId }),
+    supabase
+      .from("stock_order_coverage")
+      .select("quantity, issued, remaining, shortage")
+      .eq("organization_id", organizationId)
+      .eq("order_id", orderId)
+      .maybeSingle(),
+    supabase
+      .from("stock_order_issued")
+      .select("item_id, issued, returned, issued_value")
+      .eq("organization_id", organizationId)
+      .eq("order_id", orderId),
+    stockItemId
+      ? supabase
+          .from("stock_order_consumption")
+          .select("quantity, proposed_quantity, note")
+          .eq("organization_id", organizationId)
+          .eq("order_id", orderId)
+          .eq("item_id", stockItemId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from("stock_movements")
+      .select(
+        "id, created_at, kind, lot_id, location_id, length_mm, width_mm, pieces, quantity, cut_pieces, document:stock_documents(number), lot:stock_lots(lot_number, heat_number)",
+      )
+      .eq("organization_id", organizationId)
+      .eq("production_order_id", orderId)
+      .order("created_at", { ascending: false })
+      .order("line_no"),
+    stockItemId
+      ? supabase
+          .from("stock_items")
+          .select(ITEM_SELECT)
+          .eq("organization_id", organizationId)
+          .eq("id", stockItemId)
+          .returns<ItemRow[]>()
+      : Promise.resolve({ data: [] as ItemRow[], error: null }),
+    listStockLocations(organizationId),
+  ]);
+  if (plan.error) throw plan.error;
+  if (coverage.error) throw coverage.error;
+  if (issued.error) throw issued.error;
+  if (consumption.error) throw consumption.error;
+  if (movements.error) throw movements.error;
+  if (items.error) throw items.error;
+
+  const p = (plan.data ?? {}) as PlanJson;
+  const locationLabel = new Map(locations.map((l) => [l.id, l.label]));
+  const own = issued.data.find((row) => row.item_id === stockItemId);
+  const itemRow = items.data?.[0];
+  const buckets = stockItemId ? await orderBuckets(organizationId, stockItemId, customerId) : [];
+
+  return {
+    item: itemRow ? toItem(itemRow) : null,
+    plan: {
+      quantity: decimalFromDb(p.quantity),
+      perPiece: decimalFromDb(p.per_piece),
+      pieceWidth: decimalFromDb(p.piece_width),
+      unitLength: decimalFromDb(p.unit_length),
+      unitWidth: decimalFromDb(p.unit_width),
+      piecesPerUnit: p.pieces_per_unit ?? null,
+      estimated: p.estimated ?? false,
+      unitsNeeded: p.units_needed ?? null,
+      reportedPieces: dec(p.reported_pieces),
+      proposedConsumption: decimalFromDb(p.proposed_consumption),
+    },
+    reservation: coverage.data
+      ? {
+          quantity: dec(coverage.data.quantity),
+          issued: dec(coverage.data.issued),
+          remaining: dec(coverage.data.remaining),
+          shortage: dec(coverage.data.shortage),
+        }
+      : null,
+    issued: dec(own?.issued),
+    returned: dec(own?.returned),
+    issuedValue: dec(own?.issued_value),
+    consumption: consumption.data
+      ? {
+          quantity: dec(consumption.data.quantity),
+          proposed: decimalFromDb(consumption.data.proposed_quantity),
+          note: consumption.data.note,
+        }
+      : null,
+    movements: movements.data.map((m) => ({
+      id: m.id,
+      createdAt: m.created_at,
+      kind: m.kind as OrderIssueRow["kind"],
+      documentNumber: m.document?.number ?? "",
+      lotId: m.lot_id,
+      lotNumber: m.lot?.lot_number ?? "",
+      heatNumber: m.lot?.heat_number ?? null,
+      locationId: m.location_id,
+      location: locationLabel.get(m.location_id) ?? "",
+      length: decimalFromDb(m.length_mm),
+      width: decimalFromDb(m.width_mm),
+      pieces: m.pieces,
+      quantity: dec(m.quantity),
+      cutPieces: m.cut_pieces,
+    })),
+    buckets,
+  };
+}
+
+/** Positive buckets of the item: own material and material of the order customer. */
+async function orderBuckets(
+  organizationId: string,
+  itemId: string,
+  customerId: string,
+): Promise<OrderIssueBucket[]> {
+  const supabase = await createClient();
+  const [balances, locations] = await Promise.all([
+    supabase
+      .from("stock_balances")
+      .select("lot_id, location_id, length_mm, width_mm, pieces, quantity, mass_kg")
+      .eq("organization_id", organizationId)
+      .eq("item_id", itemId),
+    listStockLocations(organizationId),
+  ]);
+  if (balances.error) throw balances.error;
+  const lotIds = [...new Set(balances.data.map((b) => b.lot_id ?? ""))];
+  if (lotIds.length === 0) return [];
+  const lots = await supabase
+    .from("stock_lots")
+    .select("id, lot_number, heat_number, owner_customer_id, customer:customers(name)")
+    .eq("organization_id", organizationId)
+    .in("id", lotIds);
+  if (lots.error) throw lots.error;
+  const lotById = new Map(lots.data.map((lot) => [lot.id, lot]));
+  const locationLabel = new Map(locations.map((l) => [l.id, l.label]));
+  return balances.data
+    .map((row) => {
+      const lot = lotById.get(row.lot_id ?? "");
+      return {
+        lotId: row.lot_id ?? "",
+        lotNumber: lot?.lot_number ?? "",
+        heatNumber: lot?.heat_number ?? null,
+        ownerCustomer: lot?.customer?.name ?? null,
+        ownerCustomerId: lot?.owner_customer_id ?? null,
+        locationId: row.location_id ?? "",
+        location: locationLabel.get(row.location_id ?? "") ?? "",
+        length: decimalFromDb(row.length_mm),
+        width: decimalFromDb(row.width_mm),
+        pieces: row.pieces,
+        quantity: dec(row.quantity),
+        mass: decimalFromDb(row.mass_kg),
+      };
+    })
+    .filter((b) => b.ownerCustomerId === null || b.ownerCustomerId === customerId)
+    .filter((b) => compareDecimals(b.quantity, "0") > 0);
+}
+
+export type ItemReservationRow = {
+  orderId: string;
+  orderNumber: string;
+  customer: string;
+  dueDate: string;
+  quantity: string;
+  issued: string;
+  remaining: string;
+  shortage: string;
+};
+
+/** Open reservations of an item, by due date. */
+export async function listItemReservations(
+  organizationId: string,
+  itemId: string,
+): Promise<ItemReservationRow[]> {
+  const supabase = await createClient();
+  const coverage = await supabase
+    .from("stock_order_coverage")
+    .select("order_id, quantity, issued, remaining, shortage")
+    .eq("organization_id", organizationId)
+    .eq("item_id", itemId);
+  if (coverage.error) throw coverage.error;
+  const orderIds = coverage.data.map((row) => row.order_id ?? "");
+  if (orderIds.length === 0) return [];
+  const orders = await supabase
+    .from("production_orders")
+    .select("id, order_number, due_date, customer:customers(name)")
+    .eq("organization_id", organizationId)
+    .in("id", orderIds);
+  if (orders.error) throw orders.error;
+  const orderById = new Map(orders.data.map((o) => [o.id, o]));
+  return coverage.data
+    .map((row) => {
+      const order = orderById.get(row.order_id ?? "");
+      return {
+        orderId: row.order_id ?? "",
+        orderNumber: order?.order_number ?? "",
+        customer: order?.customer?.name ?? "",
+        dueDate: order?.due_date ?? "",
+        quantity: dec(row.quantity),
+        issued: dec(row.issued),
+        remaining: dec(row.remaining),
+        shortage: dec(row.shortage),
+      };
+    })
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+export type FloorOrderMaterial = {
+  itemCode: string;
+  itemName: string;
+  baseUnit: BaseUnit;
+  lots: {
+    lotNumber: string;
+    heatNumber: string | null;
+    length: string | null;
+    width: string | null;
+    pieces: number | null;
+    quantity: string;
+  }[];
+};
+
+type FloorMaterialJson = {
+  item_code: string;
+  item_name: string;
+  base_unit: BaseUnit;
+  lots: {
+    lot_number: string;
+    heat_number: string | null;
+    length_mm: number | null;
+    width_mm: number | null;
+    pieces: number | null;
+    quantity: number;
+  }[];
+};
+
+/** Material issued to the order of an operation the caller sees (floor). */
+export async function getFloorOrderMaterial(
+  operationId: string,
+): Promise<FloorOrderMaterial | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("floor_order_material", {
+    p_operation_id: operationId,
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const row = data as unknown as FloorMaterialJson;
+  return {
+    itemCode: row.item_code,
+    itemName: row.item_name,
+    baseUnit: row.base_unit,
+    lots: row.lots.map((lot) => ({
+      lotNumber: lot.lot_number,
+      heatNumber: lot.heat_number,
+      length: decimalFromDb(lot.length_mm),
+      width: decimalFromDb(lot.width_mm),
+      pieces: lot.pieces,
+      quantity: dec(lot.quantity),
+    })),
+  };
 }

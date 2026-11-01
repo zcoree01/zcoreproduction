@@ -1398,7 +1398,9 @@
         "unexpected": "Promjena nije sačuvana zbog greške. Pokušajte ponovo.",
         "invalid_reference": "Izabrani proizvod, revizija ili kupac više nisu dostupni.",
         "order_closed": "Nalog je zatvoren i više se ne mijenja.",
-        "order_in_production": "Materijal je u pripremi ili je nalog u radu: količina i šipka se više ne mijenjaju."
+        "order_in_production": "Materijal je u pripremi ili je nalog u radu: količina i šipka se više ne mijenjaju.",
+        "order_material_issued": "Materijal je već izdat na ovaj nalog: artikal se više ne mijenja.",
+        "no_cutting_operation_type": "Nijedna vrsta operacije nije označena kao rezanje (Administracija → Operacije)."
       },
       "fieldErrors": {
         "length": "Unesite dužinu u mm (do 3 decimale).",
@@ -1412,7 +1414,15 @@
         "notes": "Napomena može imati do 2000 znakova.",
         "productId": "Izaberite proizvod.",
         "customerId": "Izaberite kupca."
-      }
+      },
+      "materialTitle": "Materijal",
+      "stockItem": "Artikal na stanju",
+      "stockItemNone": "Bez artikla",
+      "stockItemHint": "Predloženo iz uparenog proizvoda. Rezervacija nastaje kad se nalog pusti.",
+      "sheetPiecesPerSheet": "Komada po tabli",
+      "sheetPiecesHint": "Prazno = procjena po površini table.",
+      "needsCutting": "Treba rezanje (prva operacija)",
+      "needsCuttingHint": "Uključeno dodaje rezanje kao prvu operaciju; isključeno uklanja rezanje iz postupka."
     },
     "status": {
       "change": "Promijeni status",
@@ -1473,7 +1483,9 @@
         "unexpected": "Crteži nisu zamijenjeni zbog greške. Pokušajte ponovo.",
         "invalid_reference": "Revizija ne pripada ovom proizvodu.",
         "order_closed": "Nalog je zatvoren i više se ne mijenja.",
-        "order_in_production": "Nalog je u radu."
+        "order_in_production": "Nalog je u radu.",
+        "order_material_issued": "Materijal je već izdat na ovaj nalog.",
+        "no_cutting_operation_type": "Nijedna vrsta operacije nije označena kao rezanje."
       }
     },
     "tabs": {
@@ -1481,7 +1493,8 @@
       "operations": "Operacije",
       "production": "Proizvodnja",
       "attachments": "Prilozi",
-      "history": "Historija"
+      "history": "Historija",
+      "material": "Materijal"
     },
     "assignment": {
       "title": "Dodjela: {code} {name}",
@@ -3658,7 +3671,13 @@
       "shelf_needs_warehouse": "Polica mora pripadati magacinu.",
       "upload_failed": "Datoteka nije poslana. Pokušajte ponovo.",
       "file_type": "Dozvoljeni su PDF i slike (PNG, JPG, WEBP).",
-      "too_large": "Datoteka je veća od 20 MB."
+      "too_large": "Datoteka je veća od 20 MB.",
+      "order_not_found": "Nalog nije pronađen.",
+      "order_not_open": "Materijal se izdaje samo na puštene naloge koji nisu zatvoreni.",
+      "customer_material": "Materijal drugog kupca ne može ići na ovaj nalog.",
+      "offcut_own_material_only": "Ostatak se vraća u magacin samo za naš materijal; materijal kupca ostaje uz nalog.",
+      "invalid_offcut": "Ostatak mora biti manji od komada koji se izdaje.",
+      "lot_not_issued": "Ova šarža nije izdata na ovaj nalog."
     },
     "list": {
       "title": "Materijal na stanju",
@@ -3682,7 +3701,9 @@
         "mass": "Masa",
         "value": "Vrijednost",
         "costPerKg": "Prosj. cijena",
-        "status": "Status"
+        "status": "Status",
+        "reserved": "Rezervisano",
+        "available": "Raspoloživo"
       },
       "belowMinimum": "Ispod minimuma",
       "archived": "Arhiviran",
@@ -3751,7 +3772,8 @@
       "tabs": {
         "stock": "Stanje po lokaciji i šarži",
         "movements": "Kretanja",
-        "certificates": "Šarže i atesti"
+        "certificates": "Šarže i atesti",
+        "reservations": "Rezervacije"
       },
       "balances": {
         "location": "Lokacija",
@@ -3785,7 +3807,10 @@
           "receipt": "Prijem",
           "transfer_out": "Prenos – izlaz",
           "transfer_in": "Prenos – ulaz",
-          "adjustment": "Korekcija"
+          "adjustment": "Korekcija",
+          "issue": "Izdavanje na nalog",
+          "remnant": "Ostatak nakon rezanja",
+          "return": "Povrat s naloga"
         },
         "emptyTitle": "Još nema kretanja",
         "limit": "Prikazano je posljednjih {count} kretanja."
@@ -3810,6 +3835,17 @@
         "removeDescription": "Atest se više ne prikazuje uz šaržu; datoteka ostaje sačuvana.",
         "emptyTitle": "Još nema šarži",
         "emptyDescription": "Svaka stavka prijema postaje šarža na koju dodajete atest (3.1)."
+      },
+      "reservations": {
+        "order": "Nalog",
+        "customer": "Kupac",
+        "dueDate": "Rok",
+        "quantity": "Potreba",
+        "issued": "Izdato",
+        "remaining": "Za izdati",
+        "shortage": "Fali",
+        "emptyTitle": "Nema otvorenih rezervacija",
+        "emptyDescription": "Rezervacija nastaje kad se pusti nalog čiji je proizvod uparen s ovim artiklom."
       }
     },
     "transfer": {
@@ -4007,6 +4043,106 @@
       "save": "Sačuvaj",
       "saved": "Postavke magacina su sačuvane.",
       "deniedDescription": "Za postavke je potrebna dozvola za upravljanje postavkama firme."
+    },
+    "orderMaterial": {
+      "denied": "Za materijal naloga je potrebna dozvola za pregled zaliha.",
+      "noItemTitle": "Nalog nema artikal na stanju",
+      "noItemDescription": "Uparite proizvod s artiklom (Magacin → Uparivanje proizvoda) ili izaberite artikal u izmjeni naloga.",
+      "noRequirement": "Potreba se ne može izračunati: nedostaje dužina reza (za lim i širina pripremka).",
+      "requirement": "Potreba",
+      "calcBar": "{quantity} kom × ({length} mm + {kerf} mm rez) = {total}",
+      "calcBarUnits": "{perUnit} kom iz šipke od {unitLength} mm → {units} šipki",
+      "calcSheet": "{quantity} kom × ({length} + {kerf}) × ({width} + {kerf}) mm",
+      "calcSheetUnits": "{perUnit} kom po tabli {unitLength} × {unitWidth} mm{estimated} → {units} tabli = {total}",
+      "estimated": " (procjena po površini)",
+      "reserved": "Rezervisano",
+      "issued": "Izdato",
+      "remaining": "Za izdati",
+      "returned": "Vraćeno",
+      "consumed": "Potrošeno",
+      "difference": "Razlika (izdato − potrošeno − vraćeno)",
+      "notReserved": "Nalog još nije pušten: rezervacija nastaje pri puštanju.",
+      "shortageTitle": "Nema dovoljno materijala",
+      "shortage": "Fali {quantity} (oko {pieces} kom). Materijal se može izdati i djelimično.",
+      "waitingMaterial": "Prebaci u „Čeka materijal”",
+      "waitingDone": "Nalog čeka materijal.",
+      "issue": "Izdaj materijal",
+      "return": "Povrat",
+      "movements": "Izdavanja i povrati",
+      "movementsEmpty": "Još ništa nije izdato.",
+      "kinds": {
+        "issue": "Izdato",
+        "remnant": "Ostatak u magacin",
+        "return": "Povrat"
+      },
+      "cutPieces": "{count} kom izrezano",
+      "columns": {
+        "date": "Vrijeme",
+        "document": "Dokument",
+        "kind": "Vrsta",
+        "lot": "Šarža",
+        "location": "Lokacija",
+        "size": "Komad",
+        "quantity": "Količina"
+      },
+      "consumption": "Potrošnja",
+      "proposal": "Prijedlog: {pieces} kom (dobri + škart prve operacije) × {perPiece} = {quantity}",
+      "noProposal": "Još nema prijava proizvodnje za prijedlog.",
+      "consumedQuantity": "Stvarno potrošeno ({unit})",
+      "consumedNote": "Napomena",
+      "useProposal": "Preuzmi prijedlog",
+      "confirm": "Potvrdi potrošnju",
+      "confirmed": "Potrošnja je potvrđena.",
+      "confirmedValue": "Potvrđeno: {quantity}"
+    },
+    "issue": {
+      "title": "Izdavanje na nalog {number}",
+      "description": "Ostaci i materijal kupca nude se prvi. Izdavanje se knjiži odmah.",
+      "bucket": "Sa stanja",
+      "bucketPlaceholder": "Izaberite šaržu i komad",
+      "remnantTag": "ostatak",
+      "shortTag": "kratki ostatak",
+      "customerTag": "materijal kupca",
+      "tooShortTag": "ne stane komad",
+      "mode": "Kako se izdaje",
+      "modeWhole": "Cijeli komad",
+      "modeCut": "Isječeno u magacinu",
+      "pieces": "Broj šipki / tabli (dostupno {available})",
+      "quantity": "Količina u {unit} (dostupno {available})",
+      "cutPieces": "Izrezano komada iz jedne",
+      "cutHint": "Iz jedne šipke izlazi najviše {max} kom.",
+      "offcut": "Ostatak po komadu – dužina (mm)",
+      "offcutWidth": "Ostatak po komadu – širina (mm)",
+      "offcutHint": "Vraća se u magacin kao poseban komad.",
+      "offcutShort": "Kraći od {min} mm: ostaje u magacinu kao kratki ostatak.",
+      "offcutCustomer": "Materijal kupca: ostatak se ne vraća u naše stanje.",
+      "offcutLocation": "Lokacija ostatka",
+      "sameLocation": "Ista lokacija",
+      "shortageAfter": "Nakon ovoga fali još oko {pieces} kom.",
+      "notes": "Napomena",
+      "submit": "Izdaj",
+      "done": "Materijal je izdat.",
+      "empty": "Nema materijala na stanju koji ovaj nalog smije uzeti."
+    },
+    "return": {
+      "title": "Povrat iz proizvodnje",
+      "description": "Komad se vraća u magacin uz šaržu s kojom je izdat.",
+      "lot": "Šarža (izdata na nalog)",
+      "location": "Na lokaciju",
+      "length": "Dužina komada (mm)",
+      "width": "Širina komada (mm)",
+      "pieces": "Broj komada",
+      "quantity": "Količina ({unit})",
+      "notes": "Napomena",
+      "submit": "Vrati u magacin",
+      "done": "Povrat je knjižen.",
+      "noLots": "Na nalog još ništa nije izdato."
     }
+  },
+  "floorMaterial": {
+    "title": "Materijal",
+    "none": "Materijal još nije izdat.",
+    "lot": "Šarža {lot}",
+    "heat": "talina {heat}"
   }
 }

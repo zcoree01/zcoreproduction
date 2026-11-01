@@ -2575,10 +2575,12 @@ export type Database = {
           product_id: string
           quantity: number
           revision_id: string
+          sheet_pieces_per_sheet: number | null
           source_order_id: string | null
           status: string
           status_changed_at: string
           status_changed_by: string | null
+          stock_item_id: string | null
           unit: string
           updated_at: string
         }
@@ -2605,10 +2607,12 @@ export type Database = {
           product_id: string
           quantity: number
           revision_id: string
+          sheet_pieces_per_sheet?: number | null
           source_order_id?: string | null
           status?: string
           status_changed_at?: string
           status_changed_by?: string | null
+          stock_item_id?: string | null
           unit: string
           updated_at?: string
         }
@@ -2635,10 +2639,12 @@ export type Database = {
           product_id?: string
           quantity?: number
           revision_id?: string
+          sheet_pieces_per_sheet?: number | null
           source_order_id?: string | null
           status?: string
           status_changed_at?: string
           status_changed_by?: string | null
+          stock_item_id?: string | null
           unit?: string
           updated_at?: string
         }
@@ -2690,6 +2696,13 @@ export type Database = {
             columns: ["organization_id", "source_order_id"]
             isOneToOne: false
             referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "production_orders_stock_item_fkey"
+            columns: ["organization_id", "stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
             referencedColumns: ["organization_id", "id"]
           },
         ]
@@ -3681,6 +3694,7 @@ export type Database = {
           notes: string | null
           number: string
           organization_id: string
+          production_order_id: string | null
           reason: string | null
           status: string
           supplier: string | null
@@ -3699,6 +3713,7 @@ export type Database = {
           notes?: string | null
           number: string
           organization_id: string
+          production_order_id?: string | null
           reason?: string | null
           status: string
           supplier?: string | null
@@ -3717,11 +3732,26 @@ export type Database = {
           notes?: string | null
           number?: string
           organization_id?: string
+          production_order_id?: string | null
           reason?: string | null
           status?: string
           supplier?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_documents_order_fkey"
+            columns: ["organization_id", "production_order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_documents_order_fkey"
+            columns: ["organization_id", "production_order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "stock_documents_organization_id_fkey"
             columns: ["organization_id"]
@@ -4015,6 +4045,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          cut_pieces: number | null
           document_id: string
           id: string
           idempotency_key: string
@@ -4030,6 +4061,7 @@ export type Database = {
           pieces: number | null
           price_includes_vat: boolean | null
           price_unit: string | null
+          production_order_id: string | null
           quantity: number
           unit_price: number | null
           value: number
@@ -4038,6 +4070,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          cut_pieces?: number | null
           document_id: string
           id?: string
           idempotency_key: string
@@ -4053,6 +4086,7 @@ export type Database = {
           pieces?: number | null
           price_includes_vat?: boolean | null
           price_unit?: string | null
+          production_order_id?: string | null
           quantity: number
           unit_price?: number | null
           value?: number
@@ -4061,6 +4095,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          cut_pieces?: number | null
           document_id?: string
           id?: string
           idempotency_key?: string
@@ -4076,12 +4111,27 @@ export type Database = {
           pieces?: number | null
           price_includes_vat?: boolean | null
           price_unit?: string | null
+          production_order_id?: string | null
           quantity?: number
           unit_price?: number | null
           value?: number
           width_mm?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_order_fkey"
+            columns: ["organization_id", "production_order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_movements_order_fkey"
+            columns: ["organization_id", "production_order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "stock_movements_organization_id_document_id_fkey"
             columns: ["organization_id", "document_id"]
@@ -4108,6 +4158,136 @@ export type Database = {
             columns: ["organization_id", "location_id"]
             isOneToOne: false
             referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_order_consumption: {
+        Row: {
+          confirmed_at: string
+          confirmed_by: string | null
+          id: string
+          item_id: string
+          note: string | null
+          order_id: string
+          organization_id: string
+          proposed_quantity: number | null
+          quantity: number
+        }
+        Insert: {
+          confirmed_at?: string
+          confirmed_by?: string | null
+          id?: string
+          item_id: string
+          note?: string | null
+          order_id: string
+          organization_id: string
+          proposed_quantity?: number | null
+          quantity: number
+        }
+        Update: {
+          confirmed_at?: string
+          confirmed_by?: string | null
+          id?: string
+          item_id?: string
+          note?: string | null
+          order_id?: string
+          organization_id?: string
+          proposed_quantity?: number | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_order_consumption_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_order_consumption_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_order_consumption_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_order_consumption_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_reservations: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          order_id: string
+          organization_id: string
+          quantity: number
+          release_reason: string | null
+          released_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          order_id: string
+          organization_id: string
+          quantity: number
+          release_reason?: string | null
+          released_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          order_id?: string
+          organization_id?: string
+          quantity?: number
+          release_reason?: string | null
+          released_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_reservations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
             referencedColumns: ["organization_id", "id"]
           },
         ]
@@ -4521,6 +4701,46 @@ export type Database = {
           },
         ]
       }
+      stock_item_owner_totals: {
+        Row: {
+          item_id: string | null
+          organization_id: string | null
+          owner_customer_id: string | null
+          quantity: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_item_reserved: {
+        Row: {
+          item_id: string | null
+          organization_id: string | null
+          reserved: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_reservations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       stock_item_totals: {
         Row: {
           item_id: string | null
@@ -4532,6 +4752,84 @@ export type Database = {
           quantity: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_order_coverage: {
+        Row: {
+          issued: number | null
+          item_id: string | null
+          order_id: string | null
+          organization_id: string | null
+          pool_quantity: number | null
+          quantity: number | null
+          remaining: number | null
+          reservation_id: string | null
+          shortage: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_reservations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_organization_id_item_id_fkey"
+            columns: ["organization_id", "item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_organization_id_order_id_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      stock_order_issued: {
+        Row: {
+          issued: number | null
+          issued_mass_kg: number | null
+          issued_value: number | null
+          item_id: string | null
+          order_id: string | null
+          organization_id: string | null
+          returned: number | null
+          returned_value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_order_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "stock_movements_order_fkey"
+            columns: ["organization_id", "order_id"]
+            isOneToOne: false
+            referencedRelation: "production_orders"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "stock_movements_organization_id_fkey"
             columns: ["organization_id"]
@@ -4641,6 +4939,15 @@ export type Database = {
           reason: string
           requested_by: string
         }[]
+      }
+      confirm_order_consumption: {
+        Args: {
+          p_item_id: string
+          p_note?: string
+          p_order_id: string
+          p_quantity: number
+        }
+        Returns: undefined
       }
       copy_product: {
         Args: {
@@ -4810,6 +5117,7 @@ export type Database = {
       }
       floor_operation_work: { Args: { p_operation_id: string }; Returns: Json }
       floor_order: { Args: { p_order_id: string }; Returns: Json }
+      floor_order_material: { Args: { p_operation_id: string }; Returns: Json }
       get_company: { Args: { p_company_id: string }; Returns: Json }
       get_login_organization: {
         Args: { p_slug: string }
@@ -4912,6 +5220,7 @@ export type Database = {
         }[]
       }
       order_file_path: { Args: { p_attachment_id: string }; Returns: string }
+      order_material_plan: { Args: { p_order_id: string }; Returns: Json }
       order_operation_warnings: {
         Args: { p_operation_id: string }
         Returns: Json
@@ -5009,11 +5318,31 @@ export type Database = {
           status: string
         }[]
       }
+      post_stock_issue: {
+        Args: {
+          p_idempotency_key: string
+          p_lines: Json
+          p_notes?: string
+          p_order_id: string
+          p_org_id: string
+        }
+        Returns: string
+      }
       post_stock_receipt: {
         Args: {
           p_header: Json
           p_idempotency_key: string
           p_lines: Json
+          p_org_id: string
+        }
+        Returns: string
+      }
+      post_stock_return: {
+        Args: {
+          p_idempotency_key: string
+          p_lines: Json
+          p_notes?: string
+          p_order_id: string
           p_org_id: string
         }
         Returns: string
@@ -5412,6 +5741,10 @@ export type Database = {
       }
       set_machine_status: {
         Args: { p_machine_id: string; p_status: string }
+        Returns: undefined
+      }
+      set_order_cutting: {
+        Args: { p_needs: boolean; p_order_id: string }
         Returns: undefined
       }
       set_order_operation_status: {
