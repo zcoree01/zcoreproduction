@@ -312,3 +312,9 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Putting badges on NFC cards:** in `/settings/kiosk` "Kopiraj za NFC" copies `zcore-kiosk:<token>` (or shows it for copying when the clipboard is unavailable over plain HTTP) for an app such as NFC Tools (Text record); "Upiši na NFC" writes the card directly with Web NFC (Chrome on Android over HTTPS; hidden elsewhere).
 - **Development on the local network:** `next.config.ts` allows this computer's local IPv4 addresses as dev origins (otherwise the dev server does not serve its scripts to http://192.168.x.x and pages never hydrate), and `?org=` is accepted on private-network IPv4 hosts in development only (never in production). `npm run dev:https` runs the dev server with HTTPS, which the camera and NFC need on devices other than localhost.
   **Consequences:** A worker who really wants to clock out right after clocking in waits 10 seconds. NFC and camera on the kiosk need HTTPS (production has it).
+
+## D-031 — Vercel functions in Dublin, next to the database (2026-11-01)
+
+**Context:** The app felt slow: the Supabase project runs in `eu-west-1` (Ireland) while Vercel functions ran in the default US region, so every server render, server action and proxy call crossed the Atlantic several times (each page makes several database round trips).
+**Decision:** `vercel.json` sets `"regions": ["dub1"]` (Dublin), the Vercel region next to `eu-west-1`. Kept in git so every deploy uses it.
+  **Consequences:** If the database ever moves, move the function region with it. Users in BiH are also closer to Dublin than to the US.

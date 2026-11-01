@@ -207,6 +207,10 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-01 — Vercel region next to the database
+
+- `vercel.json`: functions in `dub1` (Dublin) instead of the US default, next to the Supabase project in `eu-west-1`; every database round trip of a page was crossing the Atlantic. Takes effect with the next deploy.
+
 ### 2026-10-28 — Kiosk NFC and local-network development
 
 - Product owner tested on a phone: the kiosk did not activate over http://192.168.1.7:3000 (dev server blocked its scripts for that origin, ?org ignored on IP hosts) and NFC cards were read repeatedly / stopped working after one read. Fixed as in D-030; migration `20261028130000_kiosk_repeat_guard` applied.
