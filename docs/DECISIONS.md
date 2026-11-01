@@ -317,4 +317,4 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 
 **Context:** The app felt slow: the Supabase project runs in `eu-west-1` (Ireland) while Vercel functions ran in the default US region, so every server render, server action and proxy call crossed the Atlantic several times (each page makes several database round trips).
 **Decision:** `vercel.json` sets `"regions": ["dub1"]` (Dublin), the Vercel region next to `eu-west-1`. Kept in git so every deploy uses it.
-  **Consequences:** If the database ever moves, move the function region with it. Users in BiH are also closer to Dublin than to the US.
+**Consequences:** If the database ever moves, move the function region with it. Users in BiH are also closer to Dublin than to the US.
