@@ -251,6 +251,10 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 - Assumptions stated before building (count per location with snapshot, posting only after approval, warnings on the dashboard and the order list, label links into the app, mobile screens under `/floor/warehouse`); D-033. Migration `20261102100000_inventory_counts` applied; types regenerated.
 - Verified: `npm run check`, `npx vitest run --config vitest.db.config.mts tests/db/inventory-counts.test.ts` (3: snapshot of a warehouse with its shelves, counted 2 of 3, uncounted lot unchanged, found 1500 mm piece, posting needs a submitted count and the approver, cancel needs a reason, operators / other tenants refused), `npx playwright test e2e/inventory-counts.spec.ts` (dashboard warnings, order list badge, label page, typed label code in the mobile scanner, count of an item posted by the admin). Full checks: `npm run format:check`, `npm run check` (422), `npm run test:db` (233), `npm run build`, `npm run e2e` (63 tests: 60 passed, 3 failed late in the 17.5-minute run — product revision, customer order filter, mobile clock-in stuck on the login — all three passed when rerun individually; the known dev-server slowdown, plus more API sign-ins against the Supabase Auth rate limit).
 
+### 2026-11-01 — Vercel region next to the database
+
+- `vercel.json`: functions in `dub1` (Dublin) instead of the US default, next to the Supabase project in `eu-west-1`; every database round trip of a page was crossing the Atlantic. Takes effect with the next deploy (D-036).
+
 ### 2026-11-01 — Inventory part B (material of production orders)
 
 - Product owner confirmed the plan and answered (cutting checkbox on the order, full reservation with partial issue and a missing-pieces warning, editable sheet estimate, own offcuts always back into stock, customer offcuts not); D-032. Migration `20261101100000_inventory_order_material` applied; types regenerated.

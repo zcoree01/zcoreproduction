@@ -382,3 +382,9 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Inserts in use** `machine_inserts`: per machine and insert type the insert in use and its edges used. `record_tool_change_with_tool`: "new" takes one insert from the machine's stock (`consume`) and starts at edge 1; "next edge" turns the current insert (refused with `no_insert_in_use` / `no_edges_left`); other tools are recorded without stock. `production_tool_changes` gets `tool_id`, `insert_action`, `edge_no` (the tool text is filled with code and name); the free-text function stays for organizations without a catalog and as "Drugi alat (upis)". The floor reads the tools at the machine with `floor_operation_tools`.
 - **Pieces, not serial numbers:** every tool is counted in pieces per location; individual serial numbers per piece are not tracked yet (the product owner counts tools in pieces).
   **Consequences:** One insert in use per machine and insert type (several pockets with the same insert type share the count). Holders and other tools are not consumed by tool changes; worn tools are scrapped with a reason.
+
+## D-036 — Vercel functions in Dublin, next to the database (2026-11-01)
+
+**Context:** The app felt slow: the Supabase project runs in `eu-west-1` (Ireland) while Vercel functions ran in the default US region, so every server render, server action and proxy call crossed the Atlantic several times (each page makes several database round trips).
+**Decision:** `vercel.json` sets `"regions": ["dub1"]` (Dublin), the Vercel region next to `eu-west-1`. Kept in git so every deploy uses it.
+**Consequences:** If the database ever moves, move the function region with it. Users in BiH are also closer to Dublin than to the US.
