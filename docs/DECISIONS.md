@@ -428,3 +428,15 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - Writes happen in the background (optimistic). A failed write only means the item shows as unread again after a reload.
 
 **Consequences:** Removing an item from the bell does not decide it. The request still waits on its own page. `notification_reads` grows by one row per seen item per user; it can be pruned later (e.g. rows whose item is resolved).
+
+## D-039 — Delivery note editor with a live paper preview; original + copy (2026-11-03)
+
+**Context:** The product owner asked for a new delivery note with the fields on the left and the note forming on the right as on paper, with options to issue, send by e-mail and copy. Asked, the product owner chose real sending from the app (PDF attachment, e-mail provider such as Resend) and "copy" = an original and a copy when printing.
+**Decision:**
+
+- **One paper component** (`delivery-notes/delivery-note-paper.tsx`) renders a note by its template. The print page, the note's page and the live preview all use it, so they always look the same. It is always black on white (also in dark mode). Dates use the fixed `d.m.yyyy.` format, so server and browser match.
+- **New note:** the form on the left, the paper on the right (sticky on wide screens). The preview follows the customer, template (chosen → customer's → default), date, lines, positions, quantities and notes. The number is previewed with "…" for the sequence (`previewDeliveryNumber`), since the sequence is assigned only on issue. "Izdaj otpremnicu" issues and opens the note; "Izdaj i štampaj" issues and opens the print page with the print dialog.
+- **Print:** an original and a copy by default, each on its own page and marked "ORIGINAL" / "KOPIJA"; "Samo original" (`?copies=1`) prints one.
+- **E-mail:** not built yet. It needs an e-mail provider account and API key from the product owner (and the domain for the sender address); until then there is no e-mail button.
+
+**Consequences:** Layout changes to templates show up the same everywhere. Sending by e-mail will render the same note to PDF on the server; that work starts when the provider is set up.

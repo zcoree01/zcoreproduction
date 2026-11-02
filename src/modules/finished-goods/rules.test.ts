@@ -8,10 +8,28 @@ import {
   isValidDeliveryNumberTemplate,
   layoutFrom,
   logoStoragePath,
+  previewDeliveryNumber,
   receivable,
 } from "./rules";
 
 describe("delivery note numbers", () => {
+  it("previews the number with the sequence still open", () => {
+    expect(
+      previewDeliveryNumber({
+        template: "{KUPAC2}-{MJESEC}{GODINA}-{BROJ}",
+        customerNumber: 3,
+        date: "2026-11-03",
+      }),
+    ).toBe("03-1126-…");
+    expect(
+      previewDeliveryNumber({
+        template: "OT-{BROJ}/{GODINA4}",
+        customerNumber: 7,
+        date: "2026-01-05",
+      }),
+    ).toBe("OT-…/2026");
+  });
+
   it("formats customer, month, year and the yearly sequence: 03-0326-122", () => {
     expect(
       formatDeliveryNumber({

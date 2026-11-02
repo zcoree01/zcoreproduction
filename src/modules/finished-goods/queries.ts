@@ -36,6 +36,9 @@ export type FinishedStockRow = FinishedStock & {
   customer: string;
   partNumber: string;
   productName: string;
+  /** Of the order's revision (as the note's line will show them). */
+  drawingNumber: string | null;
+  revision: string | null;
   unit: string;
   customerPosition: string | null;
 };
@@ -53,7 +56,7 @@ export async function listFinishedStock(organizationId: string): Promise<Finishe
   const orders = await supabase
     .from("production_orders")
     .select(
-      "id, order_number, unit, customer_position, customer:customers(id, name), product:products(part_number, name)",
+      "id, order_number, unit, customer_position, customer:customers(id, name), product:products(part_number, name), revision:product_revisions(revision, drawing_number)",
     )
     .eq("organization_id", organizationId)
     .in(
@@ -74,6 +77,8 @@ export async function listFinishedStock(organizationId: string): Promise<Finishe
           customer: order.customer.name,
           partNumber: order.product?.part_number ?? "",
           productName: order.product?.name ?? "",
+          drawingNumber: order.revision?.drawing_number ?? null,
+          revision: order.revision?.revision ?? null,
           unit: order.unit,
           customerPosition: order.customer_position,
           received: dec(row.received),
@@ -144,7 +149,7 @@ export async function listDeliveryCustomers(organizationId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, name, customer_number, delivery_note_template_id")
+    .select("id, name, customer_number, delivery_note_template_id, address, city, tax_id")
     .eq("organization_id", organizationId)
     .is("archived_at", null)
     .order("name");
@@ -154,6 +159,9 @@ export async function listDeliveryCustomers(organizationId: string) {
     name: c.name,
     number: c.customer_number,
     templateId: c.delivery_note_template_id,
+    address: c.address,
+    city: c.city,
+    taxId: c.tax_id,
   }));
 }
 

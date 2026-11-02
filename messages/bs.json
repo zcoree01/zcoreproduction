@@ -4575,7 +4575,10 @@
       "position": "Pozicija kupca",
       "submit": "Izdaj otpremnicu",
       "issued": "Otpremnica je izdata.",
-      "noLines": "Izaberite bar jednu stavku."
+      "noLines": "Izaberite bar jednu stavku.",
+      "submitPrint": "Izdaj i štampaj",
+      "preview": "Pregled otpremnice",
+      "numberHint": "Redni broj otpremnice dodjeljuje se pri izdavanju."
     },
     "print": {
       "number": "Broj",
@@ -4583,7 +4586,13 @@
       "customer": "Kupac",
       "taxId": "ID broj: {taxId}",
       "cancelled": "STORNIRANO",
-      "signature": "{label}"
+      "signature": "{label}",
+      "noLines": "Izaberite stavke s lijeve strane.",
+      "original": "ORIGINAL",
+      "copy": "KOPIJA",
+      "copies": "Primjerci",
+      "originalAndCopy": "Original i kopija",
+      "originalOnly": "Samo original"
     },
     "settings": {
       "title": "Postavke otpremnica",

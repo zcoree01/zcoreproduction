@@ -9,20 +9,12 @@ import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
-import { formatDecimal } from "@/lib/decimal";
+import { formatDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { getDeliveryNote } from "@/modules/finished-goods/queries";
-import { columnValue } from "@/modules/finished-goods/rules";
+import { getDeliveryNote, getDeliverySettings, logoUrl } from "@/modules/finished-goods/queries";
+import { DeliveryNotePaper } from "../delivery-note-paper";
 import { CancelNoteButton } from "./cancel-note-button";
 
 export default function DeliveryNotePage({ params }: PageProps<"/inventory/delivery-notes/[id]">) {
@@ -35,9 +27,8 @@ export default function DeliveryNotePage({ params }: PageProps<"/inventory/deliv
 
 async function DeliveryNoteContent({ params }: { params: Promise<{ id: string }> }) {
   const member = await requireMember();
-  const [t, tUnits, format, access] = await Promise.all([
+  const [t, format, access] = await Promise.all([
     getTranslations("finishedGoods"),
-    getTranslations("productUnits"),
     getFormatter(),
     getMemberAccess(member),
   ]);
@@ -65,7 +56,9 @@ async function DeliveryNoteContent({ params }: { params: Promise<{ id: string }>
       </>
     );
   }
-  const unit = (value: string) => tUnits(value as "pcs");
+  const logo = note.layout.show_logo
+    ? await logoUrl((await getDeliverySettings(member.organization.id)).logoPath)
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -99,34 +92,20 @@ async function DeliveryNoteContent({ params }: { params: Promise<{ id: string }>
           </AlertDescription>
         </Alert>
       ) : null}
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {note.layout.columns.map((column) => (
-                <TableHead key={column.key}>{column.label}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {note.lines.map((line) => (
-              <TableRow key={line.lineNo}>
-                {note.layout.columns.map((column) => (
-                  <TableCell key={column.key}>
-                    {columnValue(
-                      column.key,
-                      line,
-                      (value) => `${formatDecimal(value)} ${unit(line.unit)}`,
-                      unit,
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="overflow-x-auto rounded-lg border bg-muted p-3">
+        <DeliveryNotePaper
+          className="mx-auto aspect-[210/297] max-w-[210mm] min-w-[560px] shadow-md"
+          organizationName={member.organization.name}
+          logoUrl={logo}
+          layout={note.layout}
+          number={note.number}
+          date={formatDay(note.issuedOn)}
+          cancelled={note.status === "cancelled"}
+          customer={note.customer}
+          lines={note.lines}
+          notes={note.notes}
+        />
       </div>
-      {note.notes ? <p className="text-sm whitespace-pre-line">{note.notes}</p> : null}
     </div>
   );
 }

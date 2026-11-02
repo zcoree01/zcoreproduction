@@ -143,7 +143,13 @@ test("head of production receives good pieces and issues a delivery note", async
   await page.waitForLoadState("networkidle");
   await expect(page.getByLabel("Kupac")).toHaveValue(/.+/);
   await expect(page.getByLabel("Pozicija kupca")).toHaveValue("Poz. 10");
+  // The paper on the right follows the form.
+  const preview = page.getByTestId("delivery-note-paper");
+  await expect(preview).toContainText(customer);
+  await expect(preview.getByRole("row").filter({ hasText: "Poz. 10" })).toContainText("8 kom");
+  await expect(preview).toContainText(/Broj: \d+-\d{4}-…/);
   await page.getByLabel("Količina (na stanju 8)").fill("5");
+  await expect(preview.getByRole("row").filter({ hasText: "Poz. 10" })).toContainText("5 kom");
   await page.getByRole("button", { name: "Izdaj otpremnicu" }).click();
   await expect(page.getByText("Otpremnica je izdata.")).toBeVisible();
   await expect(page.getByRole("heading", { name: new RegExp(`· ${customer}$`) })).toBeVisible();
@@ -151,11 +157,19 @@ test("head of production receives good pieces and issues a delivery note", async
   await expect(page.getByRole("row").filter({ hasText: "Poz. 10" })).toContainText(`CRT-${code}`);
   const noteUrl = page.url();
 
+  // Printed as an original and a copy, or the original only.
   await page.goto(`${noteUrl}/print`);
-  await expect(page.getByRole("heading", { name: "Otpremnica" })).toBeVisible();
-  await expect(page.getByText(customer)).toBeVisible();
-  await expect(page.getByText("Preuzeo")).toBeVisible();
-  await expect(page.getByRole("cell", { name: "Poz. 10" })).toBeVisible();
+  const papers = page.getByTestId("delivery-note-paper");
+  await expect(papers).toHaveCount(2);
+  await expect(papers.nth(0)).toContainText("ORIGINAL");
+  await expect(papers.nth(1)).toContainText("KOPIJA");
+  const original = papers.nth(0);
+  await expect(original.getByRole("heading", { name: "Otpremnica" })).toBeVisible();
+  await expect(original.getByText(customer)).toBeVisible();
+  await expect(original.getByText("Preuzeo")).toBeVisible();
+  await expect(original.getByRole("cell", { name: "Poz. 10" })).toBeVisible();
+  await page.getByRole("link", { name: "Samo original" }).click();
+  await expect(papers).toHaveCount(1);
 
   await page.goto("/inventory/finished");
   await expect(page.getByRole("row").filter({ hasText: code })).toContainText("3 kom");

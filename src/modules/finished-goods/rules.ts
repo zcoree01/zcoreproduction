@@ -42,6 +42,23 @@ export function formatDeliveryNumber(input: {
     .replaceAll("{BROJ}", pad(input.sequence, input.digits));
 }
 
+/** The number a new note will get, with "…" for the sequence assigned on issue. */
+export function previewDeliveryNumber(input: {
+  template: string;
+  customerNumber: number;
+  date: string;
+}): string {
+  // Templates cannot contain "#" (isValidDeliveryNumberTemplate).
+  const marker = "#";
+  return formatDeliveryNumber({
+    template: input.template.replaceAll("{BROJ}", marker),
+    digits: 1,
+    customerNumber: input.customerNumber,
+    date: input.date,
+    sequence: 0,
+  }).replaceAll(marker, "…");
+}
+
 export type DeliveryNumberSettings = { template: string; digits: number };
 
 export function deliveryNumberSettingsFrom(settings: unknown): DeliveryNumberSettings {

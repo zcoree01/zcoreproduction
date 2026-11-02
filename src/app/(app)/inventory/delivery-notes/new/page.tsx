@@ -8,9 +8,11 @@ import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { zonedDate } from "@/lib/timezone";
 import {
+  getDeliverySettings,
   listDeliveryCustomers,
   listDeliveryTemplates,
   listFinishedStock,
+  logoUrl,
 } from "@/modules/finished-goods/queries";
 import { DeliveryNoteForm } from "./delivery-note-form";
 
@@ -40,11 +42,13 @@ async function NewDeliveryNoteContent({
   if (!access.permissions.has("finished_goods.manage")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
-  const [stock, customers, templates] = await Promise.all([
+  const [stock, customers, templates, settings] = await Promise.all([
     listFinishedStock(organizationId),
     listDeliveryCustomers(organizationId),
     listDeliveryTemplates(organizationId),
+    getDeliverySettings(organizationId),
   ]);
+  const logo = await logoUrl(settings.logoPath);
   const customer = z.uuid().safeParse(params.customer);
 
   return (
@@ -56,6 +60,9 @@ async function NewDeliveryNoteContent({
         templates={templates.filter((tpl) => !tpl.archived)}
         initialCustomerId={customer.success ? customer.data : ""}
         today={zonedDate(new Date(), member.organization.timezone)}
+        organizationName={member.organization.name}
+        logoUrl={logo}
+        numbers={settings.numbers}
       />
     </>
   );
