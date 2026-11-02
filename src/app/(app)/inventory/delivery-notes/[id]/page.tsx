@@ -14,8 +14,10 @@ import { requireMember } from "@/lib/auth/session";
 import { formatDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getDeliveryNote, getDeliverySettings, logoUrl } from "@/modules/finished-goods/queries";
+import { deliveryPdfFileName } from "@/modules/finished-goods/rules";
 import { DeliveryNotePaper } from "../delivery-note-paper";
 import { CancelNoteButton } from "./cancel-note-button";
+import { SendNoteMenu } from "./send-note-menu";
 
 export default function DeliveryNotePage({ params }: PageProps<"/inventory/delivery-notes/[id]">) {
   return (
@@ -79,6 +81,22 @@ async function DeliveryNoteContent({ params }: { params: Promise<{ id: string }>
               <PrinterIcon />
               {t("notes.print")}
             </Link>
+            {note.status === "issued" ? (
+              <SendNoteMenu
+                noteId={note.id}
+                fileName={deliveryPdfFileName(note.layout.title, note.number)}
+                draft={{
+                  to: note.customer.email,
+                  subject: t("send.subject", { title: note.layout.title, number: note.number }),
+                  body: t("send.body", {
+                    title: note.layout.title,
+                    number: note.number,
+                    date: formatDay(note.issuedOn),
+                    organization: member.organization.name,
+                  }),
+                }}
+              />
+            ) : null}
             {note.status === "issued" && access.permissions.has("finished_goods.manage") ? (
               <CancelNoteButton noteId={note.id} number={note.number} />
             ) : null}

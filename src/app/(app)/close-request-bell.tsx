@@ -42,7 +42,7 @@ const GROUPS = ["approvals", "attendance", "close"] as const;
  * (approvers), attendance alerts (attendance.manage) and leave / sick-leave /
  * correction requests waiting for the caller's decision. Refreshed every
  * 30 s, on navigation and when the window gets focus. A new unread item pops
- * up with "Otvori" and ✕; in the bell every item opens on click and has ✕,
+ * up for 10 s with "Otvori" and ✕; in the bell every item opens on click and has ✕,
  * and "Označi sve kao pročitano" clears the counter. Read / removed is kept
  * per user; the pending work itself stays until it is decided.
  */
@@ -153,8 +153,8 @@ export function CloseRequestBell({
       show(item.toast, {
         id: item.key,
         description: item.group === "approvals" ? item.detail : undefined,
-        duration: Infinity,
-        position: "bottom-right",
+        // Long enough to read and act on; the item stays in the bell.
+        duration: 10_000,
         closeButton: true,
         action: { label: t("open"), onClick: () => open(item) },
         // ✕ (or a swipe) means "seen": it does not pop up again.

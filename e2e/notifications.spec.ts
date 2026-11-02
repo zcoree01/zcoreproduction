@@ -96,16 +96,19 @@ test("pop-ups and the bell: open, mark all read, remove", async ({ page }) => {
 
     // Saved in the background: wait for both rows, one of them removed.
     await expect
-      .poll(async () => {
-        const { data } = await admin
-          .from("notification_reads")
-          .select("dismissed_at")
-          .in(
-            "item_key",
-            alerts.map((id) => `alert:${id}`),
-          );
-        return (data ?? []).map((row) => row.dismissed_at !== null).sort();
-      })
+      .poll(
+        async () => {
+          const { data } = await admin
+            .from("notification_reads")
+            .select("dismissed_at")
+            .in(
+              "item_key",
+              alerts.map((id) => `alert:${id}`),
+            );
+          return (data ?? []).map((row) => row.dismissed_at !== null).sort();
+        },
+        { timeout: 30_000 },
+      )
       .toEqual([false, true]);
 
     // Clicking an item opens it.

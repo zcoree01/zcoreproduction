@@ -157,6 +157,30 @@ test("head of production receives good pieces and issues a delivery note", async
   await expect(page.getByRole("row").filter({ hasText: "Poz. 10" })).toContainText(`CRT-${code}`);
   const noteUrl = page.url();
 
+  // E-mail without an account (D-040): the PDF, and Gmail opened with the
+  // subject while the PDF is downloaded for the attachment.
+  const pdf = await page.request.get(`${noteUrl}/pdf`);
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+  expect(pdf.headers()["content-disposition"]).toMatch(/filename="Otpremnica-[\w-]+\.pdf"/);
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+  // Gmail itself is not opened in tests: the link is answered locally.
+  await page
+    .context()
+    .route("https://mail.google.com/**", (route) =>
+      route.fulfill({ contentType: "text/html", body: "gmail" }),
+    );
+  await page.getByRole("button", { name: "Pošalji mailom" }).click();
+  const [gmail, download] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.waitForEvent("download"),
+    page.getByRole("menuitem", { name: "Gmail" }).click(),
+  ]);
+  await gmail.waitForURL(/^https:\/\/mail\.google\.com\/mail\/\?view=cm/);
+  expect(new URL(gmail.url()).searchParams.get("su")).toMatch(/^Otpremnica \d+-\d{4}-\d+$/);
+  await gmail.close();
+  expect(download.suggestedFilename()).toMatch(/^Otpremnica-.+\.pdf$/);
+  await expect(page.getByText(/je preuzet\. Prevucite ga u mail/)).toBeVisible();
+
   // Printed as an original and a copy, or the original only.
   await page.goto(`${noteUrl}/print`);
   const papers = page.getByTestId("delivery-note-paper");

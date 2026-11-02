@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   allowedDevOrigins: localNetworkHosts,
+  // Delivery note PDFs (D-040): react-pdf runs as a plain Node package, and
+  // its fonts are read from disk, so they must ship with the function.
+  serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingIncludes: {
+    "/inventory/delivery-notes/[id]/pdf": ["./src/assets/fonts/**"],
+  },
   turbopack: {
     rules: {
       "*.css": {

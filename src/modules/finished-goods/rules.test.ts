@@ -3,6 +3,7 @@ import {
   columnValue,
   DEFAULT_LAYOUT,
   deliveryNumberSettingsFrom,
+  deliveryPdfFileName,
   formatDeliveryNumber,
   isLogoStoragePath,
   isValidDeliveryNumberTemplate,
@@ -127,5 +128,12 @@ describe("templates", () => {
     const file = "22222222-2222-4222-8222-222222222222";
     expect(isLogoStoragePath(logoStoragePath(org, file, "png"), org)).toBe(true);
     expect(isLogoStoragePath(`${org}/../logo-${file}.png`, org)).toBe(false);
+  });
+});
+
+describe("pdf file name", () => {
+  it("keeps the number readable and the name safe", () => {
+    expect(deliveryPdfFileName("Otpremnica", "03-1126-122")).toBe("Otpremnica-03-1126-122.pdf");
+    expect(deliveryPdfFileName("Dostavnica čćđ", "OT/2026 5")).toBe("Dostavnica-ccd-OT-2026-5.pdf");
   });
 });

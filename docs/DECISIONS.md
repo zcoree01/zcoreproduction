@@ -422,8 +422,7 @@ Next.js renders a server action's `redirect()` by fetching the target route from
   - a click marks the item read and opens it.
 - **Pop-ups:**
   - shown only for unread items not shown before;
-  - they stay until closed;
-  - they sit bottom-right so they do not cover the page header;
+  - they stay 10 s, at the usual place (top centre). Pop-ups that stayed open until closed, bottom-right, covered the save buttons of side panels (found by the full e2e run), so they were changed; the item always stays in the bell;
   - they offer "Otvori" (read + open) and ✕ (read).
 - Writes happen in the background (optimistic). A failed write only means the item shows as unread again after a reload.
 
@@ -440,3 +439,22 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **E-mail:** not built yet. It needs an e-mail provider account and API key from the product owner (and the domain for the sender address); until then there is no e-mail button.
 
 **Consequences:** Layout changes to templates show up the same everywhere. Sending by e-mail will render the same note to PDF on the server; that work starts when the provider is set up.
+
+## D-040 — Sending delivery notes by e-mail without connecting an account (2026-11-03)
+
+**Context:** The product owner first wanted senders to connect their own Gmail or Outlook, so the app opens it with a prepared e-mail and the note attached. Checked:
+
+- Creating a Gmail draft with an attachment needs a Google "restricted" scope. For a public app that means a paid security assessment (CASA) every year; without it, the app is limited to 100 test users whose sign-in expires after 7 days.
+- Outlook (Microsoft Graph) would be free, but needs an app registration by the product owner.
+
+The product owner chose the free variant ("logičnija mi je").
+**Decision:**
+
+- **PDF:** `/inventory/delivery-notes/[id]/pdf` (finished_goods.read, data through RLS) renders the note with `@react-pdf/renderer`. It follows the same template, content and order as the paper on screen. The font is Noto Sans (OFL, in `src/assets/fonts`), because the PDF standard fonts lack č, ć and đ. The logo is included for PNG / JPEG; WebP / SVG logos are left out of the PDF. One page (original) by default, `?copies=2` adds the copy. The file name comes from `deliveryPdfFileName`.
+- **"Pošalji mailom"** on an issued note:
+  - **"Podijeli s PDF prilogom"** where the browser can share files (Android / iOS, Chrome / Edge on Windows, Safari on macOS). The system share sheet opens Gmail, Outlook or any other app with the PDF attached and the subject and text filled in. The PDF is loaded when the menu opens, because browsers allow sharing only right after a tap.
+  - **Gmail, Outlook.com, Outlook (Microsoft 365) and the mail program** (`mailto:`): a new e-mail opens with the customer's e-mail, the subject "Otpremnica <broj>" and a short text. The PDF is downloaded at the same time, and a hint says to drag it into the e-mail (web mail does not accept attachments through a link).
+  - "Preuzmi PDF".
+- No tokens or e-mail credentials are stored; nothing is sent by the app itself.
+
+**Consequences:** On a computer the attachment is one drag. If the product owner later registers an Outlook (Azure) app, a "connected Outlook" option that creates the draft with the attachment can be added without changing this.

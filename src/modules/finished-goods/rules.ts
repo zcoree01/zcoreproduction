@@ -195,3 +195,14 @@ export function logoStoragePath(organizationId: string, fileId: string, extensio
 export function isLogoStoragePath(path: string, organizationId: string) {
   return new RegExp(`^${organizationId}/logo-[0-9a-f-]{36}\\.(png|jpg|webp|svg)$`).test(path);
 }
+
+/** "Otpremnica-03-1126-122.pdf": letters, digits, dot, dash and underscore only. */
+export function deliveryPdfFileName(title: string, number: string): string {
+  const safe = `${title}-${number}`
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "-");
+  return `${safe}.pdf`;
+}

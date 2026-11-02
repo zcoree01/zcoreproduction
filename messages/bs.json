@@ -4646,6 +4646,24 @@
       "customerTemplate": "Šablon za {customer}",
       "templateDefaultOption": "Zadani",
       "customerSaved": "Šablon kupca je sačuvan."
+    },
+    "send": {
+      "button": "Pošalji mailom",
+      "share": "Podijeli s PDF prilogom",
+      "shareHint": "Izaberite Gmail ili Outlook; otpremnica je već priložena.",
+      "shareFailed": "Dijeljenje nije uspjelo. Pokušajte preko Gmaila ili Outlooka.",
+      "openIn": "Otvori novi mail u",
+      "targets": {
+        "gmail": "Gmail",
+        "outlook": "Outlook.com",
+        "outlook_work": "Outlook (Microsoft 365, poslovni)",
+        "mail_app": "Mail program na računaru"
+      },
+      "downloadPdf": "Preuzmi PDF",
+      "attachHint": "PDF \"{file}\" je preuzet. Prevucite ga u mail kao prilog.",
+      "noEmail": "Kupac nema upisan e-mail; adresu unesite u mailu ili na kartici kupca.",
+      "subject": "{title} {number}",
+      "body": "Poštovani,\n\nu prilogu vam šaljemo dokument {title} br. {number} od {date}.\n\nLijep pozdrav,\n{organization}"
     }
   },
   "tools": {

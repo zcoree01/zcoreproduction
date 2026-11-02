@@ -200,7 +200,13 @@ export type DeliveryNoteDetail = {
   status: "issued" | "cancelled";
   cancelReason: string | null;
   notes: string | null;
-  customer: { name: string; address: string | null; city: string | null; taxId: string | null };
+  customer: {
+    name: string;
+    address: string | null;
+    city: string | null;
+    taxId: string | null;
+    email: string | null;
+  };
   layout: DeliveryTemplateLayout;
   lines: DeliveryLineData[];
 };
@@ -213,7 +219,7 @@ export async function getDeliveryNote(
   const { data, error } = await supabase
     .from("delivery_notes")
     .select(
-      "id, number, issued_on, status, cancel_reason, notes, customer:customers(name, address, city, tax_id), template:delivery_note_templates(layout), delivery_note_lines(line_no, customer_position, order_number, part_number, drawing_number, revision, product_name, quantity, unit)",
+      "id, number, issued_on, status, cancel_reason, notes, customer:customers(name, address, city, tax_id, email), template:delivery_note_templates(layout), delivery_note_lines(line_no, customer_position, order_number, part_number, drawing_number, revision, product_name, quantity, unit)",
     )
     .eq("organization_id", organizationId)
     .eq("id", noteId)
@@ -232,6 +238,7 @@ export async function getDeliveryNote(
       address: data.customer?.address ?? null,
       city: data.customer?.city ?? null,
       taxId: data.customer?.tax_id ?? null,
+      email: data.customer?.email ?? null,
     },
     layout: layoutFrom(data.template?.layout),
     lines: [...data.delivery_note_lines]
@@ -258,4 +265,17 @@ export async function logoUrl(path: string | null): Promise<string | null> {
     .from("organization-files")
     .createSignedUrl(path, 600);
   return error ? null : data.signedUrl;
+}
+
+/** Logo bytes for the PDF (PNG / JPEG only; other formats are left out). */
+export async function logoBytes(
+  path: string | null,
+): Promise<{ data: Buffer; format: "png" | "jpg" } | null> {
+  if (!path) return null;
+  const format = path.endsWith(".png") ? "png" : path.endsWith(".jpg") ? "jpg" : null;
+  if (!format) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage.from("organization-files").download(path);
+  if (error) return null;
+  return { data: Buffer.from(await data.arrayBuffer()), format };
 }
