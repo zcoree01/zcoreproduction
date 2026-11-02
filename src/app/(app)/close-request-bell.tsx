@@ -1,10 +1,10 @@
 "use client";
 
-import { BellIcon } from "lucide-react";
+import { BellIcon, CheckCheckIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,26 +16,41 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDecimal } from "@/lib/decimal";
+import { cn } from "@/lib/utils";
 import { pendingRequestsAction } from "@/modules/attendance/absence-actions";
 import type { PendingRequests } from "@/modules/attendance/absence-queries";
 import { pendingAttendanceAlertsAction } from "@/modules/attendance/actions";
 import type { AttendanceAlert } from "@/modules/attendance/queries";
+import { markNotificationsAction, notificationStateAction } from "@/modules/notifications/actions";
+import {
+  bellItems,
+  itemsToAnnounce,
+  notificationKey,
+  unreadCount,
+  type BellItem,
+  type BellSource,
+  type NotificationState,
+} from "@/modules/notifications/rules";
 import { pendingCloseRequestsAction } from "@/modules/production-reporting/actions";
 import type { PendingCloseRequest } from "@/modules/production-reporting/queries";
 
 const POLL_MS = 30_000;
+const GROUPS = ["approvals", "attendance", "close"] as const;
 
 /**
- * Notification bell: requests to close an order with a shortage (approvers)
- * attendance alerts (automatic clock-out / clock-in, attendance.manage) and
- * leave / sick-leave / correction requests waiting for the caller's decision.
- * Refreshed every 30 s, on navigation and when the window gets focus; a new
- * item also shows a toast with a link.
+ * Notification bell (D-038): requests to close an order with a shortage
+ * (approvers), attendance alerts (attendance.manage) and leave / sick-leave /
+ * correction requests waiting for the caller's decision. Refreshed every
+ * 30 s, on navigation and when the window gets focus. A new unread item pops
+ * up with "Otvori" and ✕; in the bell every item opens on click and has ✕,
+ * and "Označi sve kao pročitano" clears the counter. Read / removed is kept
+ * per user; the pending work itself stays until it is decided.
  */
 export function CloseRequestBell({
   initial,
   initialAlerts,
   initialApprovals,
+  initialState,
   closes,
   attendance,
   approvals: approver,
@@ -43,6 +58,7 @@ export function CloseRequestBell({
   initial: PendingCloseRequest[];
   initialAlerts: AttendanceAlert[];
   initialApprovals: PendingRequests;
+  initialState: NotificationState;
   closes: boolean;
   attendance: boolean;
   approvals: boolean;
@@ -54,71 +70,123 @@ export function CloseRequestBell({
   const [requests, setRequests] = useState(initial);
   const [alerts, setAlerts] = useState(initialAlerts);
   const [approvals, setApprovals] = useState(initialApprovals);
-  const seen = useRef<Set<string> | null>(null);
+  const [state, setState] = useState(initialState);
+  const shown = useRef(new Set<string>());
+
+  const sources = useMemo<BellSource[]>(
+    () => [
+      ...approvals.absences.map((item) => ({
+        key: notificationKey("approval", item.id),
+        group: "approvals" as const,
+        href: "/attendance/requests",
+        title: item.employeeName,
+        detail: t(`approvalKinds.${item.kind}`),
+        toast: t("approvalToast", { name: item.employeeName }),
+      })),
+      ...approvals.interruptions.map((item) => ({
+        key: notificationKey("approval", item.id),
+        group: "approvals" as const,
+        href: "/attendance/requests",
+        title: item.employeeName,
+        detail: t("approvalKinds.interruption"),
+        toast: t("approvalToast", { name: item.employeeName }),
+      })),
+      ...approvals.corrections.map((item) => ({
+        key: notificationKey("approval", item.id),
+        group: "approvals" as const,
+        href: "/attendance/requests",
+        title: item.employeeName,
+        detail: t("approvalKinds.correction"),
+        toast: t("approvalToast", { name: item.employeeName }),
+      })),
+      ...alerts.map((alert) => ({
+        key: notificationKey("alert", alert.id),
+        group: "attendance" as const,
+        href: "/attendance",
+        title: alert.employeeName,
+        detail: t(`attendanceKinds.${alert.kind}`),
+        toast: t(`attendanceToast.${alert.kind}`, { name: alert.employeeName }),
+      })),
+      ...requests.map((request) => ({
+        key: notificationKey("close", request.requestId),
+        group: "close" as const,
+        href: `/orders/${request.orderId}?tab=production`,
+        title: t("closeItem", {
+          number: request.orderNumber,
+          good: formatDecimal(request.good),
+          quantity: formatDecimal(request.quantity),
+          unit: tUnits(request.unit),
+        }),
+        detail: t("closeBy", { name: request.requestedBy ?? "—", reason: request.reason }),
+        toast: t("newToast", { number: request.orderNumber }),
+      })),
+    ],
+    [approvals, alerts, requests, t, tUnits],
+  );
+  const items = useMemo(() => bellItems(sources, state), [sources, state]);
+  const count = unreadCount(items);
+
+  const mark = useCallback((keys: string[], dismiss: boolean) => {
+    if (keys.length === 0) return;
+    setState((current) => ({
+      read: [...new Set([...current.read, ...keys])],
+      dismissed: dismiss ? [...new Set([...current.dismissed, ...keys])] : current.dismissed,
+    }));
+    // Best effort: on failure the item shows as unread again after a reload.
+    void markNotificationsAction(keys, dismiss).catch(() => undefined);
+  }, []);
+
+  const open = useCallback(
+    (item: BellItem) => {
+      mark([item.key], false);
+      toast.dismiss(item.key);
+      router.push(item.href);
+    },
+    [mark, router],
+  );
+
+  // Pop-ups for new unread items.
+  useEffect(() => {
+    for (const item of itemsToAnnounce(items, shown.current)) {
+      shown.current.add(item.key);
+      const show = item.group === "approvals" ? toast.info : toast.warning;
+      show(item.toast, {
+        id: item.key,
+        description: item.group === "approvals" ? item.detail : undefined,
+        duration: Infinity,
+        position: "bottom-right",
+        closeButton: true,
+        action: { label: t("open"), onClick: () => open(item) },
+        // ✕ (or a swipe) means "seen": it does not pop up again.
+        onDismiss: () => mark([item.key], false),
+      });
+    }
+  }, [items, mark, open, t]);
 
   useEffect(() => {
     let active = true;
-    const announce = (
-      list: PendingCloseRequest[],
-      alertList: AttendanceAlert[],
-      approvalList: PendingRequests,
-    ) => {
-      const known = seen.current ?? new Set<string>();
-      for (const item of [
-        ...approvalList.absences,
-        ...approvalList.interruptions,
-        ...approvalList.corrections,
-      ]) {
-        if (known.has(item.id)) continue;
-        toast.info(t("approvalToast", { name: item.employeeName }), {
-          id: item.id,
-          action: { label: t("open"), onClick: () => router.push("/attendance/requests") },
-        });
-      }
-      for (const alert of alertList) {
-        if (known.has(alert.id)) continue;
-        toast.warning(t(`attendanceToast.${alert.kind}`, { name: alert.employeeName }), {
-          id: alert.id,
-          action: { label: t("open"), onClick: () => router.push("/attendance") },
-        });
-      }
-      for (const request of list) {
-        if (known.has(request.requestId)) continue;
-        toast.warning(t("newToast", { number: request.orderNumber }), {
-          id: request.requestId,
-          action: {
-            label: t("open"),
-            onClick: () => router.push(`/orders/${request.orderId}?tab=production`),
-          },
-        });
-      }
-      seen.current = new Set([
-        ...list.map((request) => request.requestId),
-        ...alertList.map((alert) => alert.id),
-        ...approvalList.absences.map((item) => item.id),
-        ...approvalList.interruptions.map((item) => item.id),
-        ...approvalList.corrections.map((item) => item.id),
-      ]);
-    };
     const refresh = async () => {
       try {
-        const [list, alertList, approvalList] = await Promise.all([
+        const [list, alertList, approvalList, nextState] = await Promise.all([
           closes ? pendingCloseRequestsAction() : Promise.resolve([]),
           attendance ? pendingAttendanceAlertsAction() : Promise.resolve([]),
           approver
             ? pendingRequestsAction()
             : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
+          notificationStateAction(),
         ]);
         if (!active) return;
         setRequests(list);
         setAlerts(alertList);
         setApprovals(approvalList);
-        announce(list, alertList, approvalList);
+        setState((current) => ({
+          read: [...new Set([...current.read, ...nextState.read])],
+          dismissed: [...new Set([...current.dismissed, ...nextState.dismissed])],
+        }));
       } catch {
         // Offline or signed out: keep the last list; the next poll retries.
       }
     };
-    if (seen.current === null) announce(initial, initialAlerts, initialApprovals);
     void refresh();
     const timer = window.setInterval(refresh, POLL_MS);
     window.addEventListener("focus", refresh);
@@ -127,26 +195,14 @@ export function CloseRequestBell({
       window.clearInterval(timer);
       window.removeEventListener("focus", refresh);
     };
-  }, [pathname, initial, initialAlerts, initialApprovals, closes, attendance, approver, router, t]);
+  }, [pathname, closes, attendance, approver]);
 
-  const approvalItems = [
-    ...approvals.absences.map((item) => ({
-      id: item.id,
-      name: item.employeeName,
-      label: t(`approvalKinds.${item.kind}`),
-    })),
-    ...approvals.interruptions.map((item) => ({
-      id: item.id,
-      name: item.employeeName,
-      label: t("approvalKinds.interruption"),
-    })),
-    ...approvals.corrections.map((item) => ({
-      id: item.id,
-      name: item.employeeName,
-      label: t("approvalKinds.correction"),
-    })),
-  ];
-  const count = requests.length + alerts.length + approvalItems.length;
+  const titles: Record<(typeof GROUPS)[number], string> = {
+    approvals: t("approvalsTitle"),
+    attendance: t("attendanceTitle"),
+    close: t("closeTitle"),
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -167,69 +223,83 @@ export function CloseRequestBell({
           </span>
         ) : null}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        {count === 0 ? (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>{t("label")}</DropdownMenuLabel>
-            <p className="px-2 py-3 text-sm text-muted-foreground">{t("empty")}</p>
-          </DropdownMenuGroup>
+      <DropdownMenuContent align="end" className="w-96">
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+          <span className="text-sm font-semibold">{t("label")}</span>
+          {count > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                mark(
+                  items.filter((item) => !item.read).map((item) => item.key),
+                  false,
+                )
+              }
+            >
+              <CheckCheckIcon />
+              {t("markAllRead")}
+            </Button>
+          ) : null}
+        </div>
+        {items.length === 0 ? (
+          <p className="px-2 py-3 text-sm text-muted-foreground">{t("empty")}</p>
         ) : null}
-        {approvalItems.length > 0 ? (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>{t("approvalsTitle")}</DropdownMenuLabel>
-            {approvalItems.map((item) => (
-              <DropdownMenuItem
-                key={item.id}
-                render={<Link href="/attendance/requests" />}
-                className="flex flex-col items-start gap-0.5"
-              >
-                <span className="font-medium">{item.name}</span>
-                <span className="text-xs text-muted-foreground">{item.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        ) : null}
-        {alerts.length > 0 ? (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>{t("attendanceTitle")}</DropdownMenuLabel>
-            {alerts.map((alert) => (
-              <DropdownMenuItem
-                key={alert.id}
-                render={<Link href="/attendance" />}
-                className="flex flex-col items-start gap-0.5"
-              >
-                <span className="font-medium">{alert.employeeName}</span>
-                <span className="text-xs text-muted-foreground">
-                  {t(`attendanceKinds.${alert.kind}`)}
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        ) : null}
-        {requests.length > 0 ? (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>{t("closeTitle")}</DropdownMenuLabel>
-            {requests.map((request) => (
-              <DropdownMenuItem
-                key={request.requestId}
-                render={<Link href={`/orders/${request.orderId}?tab=production`} />}
-                className="flex flex-col items-start gap-0.5"
-              >
-                <span className="font-medium">
-                  {t("closeItem", {
-                    number: request.orderNumber,
-                    good: formatDecimal(request.good),
-                    quantity: formatDecimal(request.quantity),
-                    unit: tUnits(request.unit),
-                  })}
-                </span>
-                <span className="line-clamp-2 text-xs text-muted-foreground">
-                  {t("closeBy", { name: request.requestedBy ?? "—", reason: request.reason })}
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        ) : null}
+        {GROUPS.map((group) => {
+          const groupItems = items.filter((item) => item.group === group);
+          if (groupItems.length === 0) return null;
+          return (
+            <DropdownMenuGroup key={group}>
+              <DropdownMenuLabel>{titles[group]}</DropdownMenuLabel>
+              {groupItems.map((item) => (
+                <div
+                  key={item.key}
+                  className="group/item flex items-start gap-1"
+                  data-testid="notification-item"
+                  data-read={item.read ? "true" : "false"}
+                >
+                  <DropdownMenuItem
+                    render={<Link href={item.href} />}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      open(item);
+                    }}
+                    className="flex min-w-0 flex-1 items-start gap-2"
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "mt-1.5 size-2 shrink-0 rounded-full",
+                        item.read ? "bg-transparent" : "bg-primary",
+                      )}
+                    />
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className={cn(item.read ? "font-normal" : "font-semibold")}>
+                        {item.title}
+                      </span>
+                      <span className="line-clamp-2 text-xs text-muted-foreground">
+                        {item.detail}
+                      </span>
+                      {item.read ? null : <span className="sr-only">{t("unread")}</span>}
+                    </span>
+                  </DropdownMenuItem>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="mt-1 shrink-0 text-muted-foreground"
+                    onClick={() => {
+                      toast.dismiss(item.key);
+                      mark([item.key], true);
+                    }}
+                    aria-label={t("remove", { title: item.title })}
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
+              ))}
+            </DropdownMenuGroup>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

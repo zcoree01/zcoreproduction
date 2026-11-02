@@ -1901,6 +1901,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_reads: {
+        Row: {
+          dismissed_at: string | null
+          item_key: string
+          organization_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string | null
+          item_key: string
+          organization_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string | null
+          item_key?: string
+          organization_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_reads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_reads_organization_id_user_id_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       operation_types: {
         Row: {
           archived_at: string | null
@@ -5968,6 +6007,10 @@ export type Database = {
           name: string
           status: string
         }[]
+      }
+      mark_notifications: {
+        Args: { p_dismiss: boolean; p_keys: string[]; p_org_id: string }
+        Returns: undefined
       }
       move_tool: {
         Args: {

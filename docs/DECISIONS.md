@@ -406,3 +406,25 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 - **Editor** `/dashboard/edit`: role picker, cards in the dashboard grid (drag or arrows to reorder, wide / narrow, ✕ to remove), "Dodaj widget" by group, "Vrati zadano". "Uloga: X" is shown next to "Sačuvaj"; switching roles with unsaved changes asks first.
 
 **Consequences:** New widgets are app code plus a catalog entry; saved layouts need no migration. Downtime by reason counts each event's time inside the 30-day window if the event ended within the last 7 days (an event that started earlier counts fully).
+
+## D-038 — Notifications: pop-ups with Otvori / ✕, bell with read state (2026-11-03)
+
+**Context:** The product owner: pop-ups need "Otvori" and ✕; the bell needs "mark all as read" at the top, ✕ next to every item, and a click on an item opens it.
+**Decision:**
+
+- Bell items stay derived from pending work: close requests, attendance alerts, requests to decide. Keys are `close:<id>`, `alert:<id>`, `approval:<id>`.
+- **State per user:** `notification_reads` (organization, user, key, read_at, dismissed_at), only through `mark_notifications(p_org_id, p_keys, p_dismiss)`. The RPC is idempotent, takes at most 200 keys and only the caller's own rows. Removing implies read, and a removed item never comes back by being marked read again. RLS lets a user see only their own rows.
+- **Bell:**
+  - the counter shows unread items;
+  - unread items are bold with a dot;
+  - "Označi sve kao pročitano" sits next to the title;
+  - every item has ✕ (removed from this user's bell);
+  - a click marks the item read and opens it.
+- **Pop-ups:**
+  - shown only for unread items not shown before;
+  - they stay until closed;
+  - they sit bottom-right so they do not cover the page header;
+  - they offer "Otvori" (read + open) and ✕ (read).
+- Writes happen in the background (optimistic). A failed write only means the item shows as unread again after a reload.
+
+**Consequences:** Removing an item from the bell does not decide it. The request still waits on its own page. `notification_reads` grows by one row per seen item per user; it can be pruned later (e.g. rows whose item is resolved).

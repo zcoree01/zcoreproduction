@@ -2327,7 +2327,10 @@
       "day_off": "Slobodan dan",
       "correction": "Ispravka prisustva",
       "interruption": "Prekid odsustva"
-    }
+    },
+    "markAllRead": "Označi sve kao pročitano",
+    "remove": "Ukloni obavještenje: {title}",
+    "unread": "nepročitano"
   },
   "productionDay": {
     "title": "Pregled proizvodnje",

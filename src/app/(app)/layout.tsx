@@ -13,6 +13,7 @@ import { requireMember } from "@/lib/auth/session";
 import { getNavigation } from "@/lib/navigation/server";
 import { listPendingRequests } from "@/modules/attendance/absence-queries";
 import { listAttendanceAlerts } from "@/modules/attendance/queries";
+import { getNotificationState } from "@/modules/notifications/queries";
 import { listPendingCloseRequests } from "@/modules/production-reporting/queries";
 import { getCurrentSupportSession, listPendingSupportRequests } from "@/modules/support/queries";
 import { AppSidebar } from "./app-sidebar";
@@ -61,12 +62,16 @@ async function AppShell({ children }: { children: ReactNode }) {
   const decider =
     access.modules.has("attendance") &&
     (access.permissions.has("absences.manage") || access.permissions.has("attendance.manage"));
-  const [pendingCloses, attendanceAlerts, approvals] = await Promise.all([
+  const bell = approver || attendanceManager || decider;
+  const [pendingCloses, attendanceAlerts, approvals, notificationState] = await Promise.all([
     approver ? listPendingCloseRequests(member.organization.id) : Promise.resolve([]),
     attendanceManager ? listAttendanceAlerts(member.organization.id) : Promise.resolve([]),
     decider
       ? listPendingRequests(member.organization.id)
       : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
+    bell
+      ? getNotificationState(member.organization.id)
+      : Promise.resolve({ read: [], dismissed: [] }),
   ]);
   // Zcore support account: banner with the end of the approved time.
   const supportSession = member.isSupport
@@ -118,11 +123,12 @@ async function AppShell({ children }: { children: ReactNode }) {
           organizationName={member.organization.name}
           groups={groups}
           actions={
-            approver || attendanceManager || decider ? (
+            bell ? (
               <CloseRequestBell
                 initial={pendingCloses}
                 initialAlerts={attendanceAlerts}
                 initialApprovals={approvals}
+                initialState={notificationState}
                 closes={approver}
                 attendance={attendanceManager}
                 approvals={decider}
