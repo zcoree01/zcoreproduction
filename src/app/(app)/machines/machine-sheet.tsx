@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -50,6 +51,8 @@ const EMPTY: MachineFormValues = {
   status: "available",
   notes: "",
   cycleTimeUnit: "",
+  runsUnattended: false,
+  capacityHours: "",
 };
 
 function toFormValues(machine: MachineRow): MachineFormValues {
@@ -63,6 +66,8 @@ function toFormValues(machine: MachineRow): MachineFormValues {
     status: machine.status,
     notes: machine.notes ?? "",
     cycleTimeUnit: machine.cycleTimeUnit ?? "",
+    runsUnattended: machine.runsUnattended,
+    capacityHours: machine.capacityHours ?? "",
   };
 }
 
@@ -285,6 +290,42 @@ function MachineForm({
                   <NativeSelectOption value="s">{t("cycleTimeUnitS")}</NativeSelectOption>
                 </NativeSelect>
                 <FieldDescription>{t("cycleTimeUnitHint")}</FieldDescription>
+              </Field>
+            )}
+          />
+          <Controller
+            name="runsUnattended"
+            control={form.control}
+            render={({ field }) => (
+              <Field orientation="horizontal">
+                <Checkbox
+                  id="machine-runsUnattended"
+                  checked={field.value}
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                />
+                <div className="flex flex-col gap-1">
+                  <FieldLabel htmlFor="machine-runsUnattended">{t("runsUnattended")}</FieldLabel>
+                  <FieldDescription>{t("runsUnattendedHint")}</FieldDescription>
+                </div>
+              </Field>
+            )}
+          />
+          <Controller
+            name="capacityHours"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid || undefined}>
+                <FieldLabel htmlFor="machine-capacityHours">{t("capacityHours")}</FieldLabel>
+                <Input
+                  {...field}
+                  id="machine-capacityHours"
+                  inputMode="decimal"
+                  aria-invalid={fieldState.invalid || undefined}
+                />
+                <FieldDescription>{t("capacityHoursHint")}</FieldDescription>
+                {fieldState.invalid ? (
+                  <FieldError>{t("fieldErrors.capacityHours")}</FieldError>
+                ) : null}
               </Field>
             )}
           />

@@ -165,7 +165,7 @@ describe("buildNavigation", () => {
   it("shows production orders and the production overview to readers", () => {
     expect(ids(buildNavigation("app", access(["core", "production"], ["orders.read"])))).toEqual([
       ["overview", ["dashboard"]],
-      ["production", ["orders", "production-day"]],
+      ["production", ["orders", "planning", "production-day"]],
     ]);
   });
 

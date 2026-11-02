@@ -1,6 +1,7 @@
 import {
   BuildingIcon,
   CalendarDaysIcon,
+  CalendarRangeIcon,
   ClipboardListIcon,
   ClockIcon,
   CogIcon,
@@ -26,6 +27,7 @@ import type { NavIconKey } from "@/lib/navigation/registry";
 // Icons are resolved on the client side of the boundary (components are not serializable).
 const ICONS: Record<NavIconKey, LucideIcon> = {
   dashboard: LayoutDashboardIcon,
+  planning: CalendarRangeIcon,
   users: UsersIcon,
   home: HouseIcon,
   machine: CogIcon,

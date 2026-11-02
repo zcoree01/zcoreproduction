@@ -16,6 +16,18 @@ export function formatDay(date: string): string {
   return `${Number(day)}.${Number(month)}.${year}.`;
 }
 
+/** Calendar date "2026-10-29" as "29.10." (see formatDay). */
+export function formatShortDay(date: string): string {
+  const [, month, day] = date.split("-");
+  return `${Number(day)}.${Number(month)}.`;
+}
+
+/** Number with at most one decimal and a decimal comma ("6,5"), without Intl. */
+export function formatOneDecimal(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return (Object.is(rounded, -0) ? 0 : rounded).toString().replace(".", ",");
+}
+
 /** datetime-local value "2026-10-29T08:05" as "29.10. 08:05" (see formatDay). */
 export function formatLocalDateTime(local: string): string {
   const [date = "", time = ""] = local.split("T");

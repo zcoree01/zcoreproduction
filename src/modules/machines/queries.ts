@@ -1,4 +1,5 @@
 import "server-only";
+import { decimalFromDb } from "@/lib/decimal";
 import { pageRange, toSearchPattern } from "@/lib/data-table/params";
 import { createClient } from "@/lib/supabase/server";
 import type { MachineListParams } from "./list-params";
@@ -16,13 +17,16 @@ export type MachineRow = {
   statusChangedAt: string;
   notes: string | null;
   cycleTimeUnit: "min" | "s" | null;
+  runsUnattended: boolean;
+  /** Hours per day as a decimal string; null = default. */
+  capacityHours: string | null;
   archived: boolean;
 };
 
 export type MachinePage = { rows: MachineRow[]; total: number };
 
 const COLUMNS =
-  "id, code, name, type_id, type_name, manufacturer, model, location_id, location_name, status, status_changed_at, notes, archived_at, cycle_time_unit";
+  "id, code, name, type_id, type_name, manufacturer, model, location_id, location_name, status, status_changed_at, notes, archived_at, cycle_time_unit, runs_unattended, capacity_hours";
 
 type DirectoryRow = {
   id: string | null;
@@ -39,6 +43,8 @@ type DirectoryRow = {
   notes: string | null;
   archived_at: string | null;
   cycle_time_unit: string | null;
+  runs_unattended: boolean | null;
+  capacity_hours: number | null;
 };
 
 function toMachineRow(row: DirectoryRow): MachineRow[] {
@@ -61,6 +67,8 @@ function toMachineRow(row: DirectoryRow): MachineRow[] {
       notes: row.notes,
       cycleTimeUnit:
         row.cycle_time_unit === "min" || row.cycle_time_unit === "s" ? row.cycle_time_unit : null,
+      runsUnattended: row.runs_unattended ?? false,
+      capacityHours: decimalFromDb(row.capacity_hours),
       archived: row.archived_at !== null,
     },
   ];

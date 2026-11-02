@@ -1618,6 +1618,80 @@ export type Database = {
         }
         Relationships: []
       }
+      machine_downtimes: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          ends_on: string | null
+          id: string
+          machine_id: string
+          note: string | null
+          organization_id: string
+          reason_id: string | null
+          reason_kind: string | null
+          starts_on: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          machine_id: string
+          note?: string | null
+          organization_id: string
+          reason_id?: string | null
+          reason_kind?: string | null
+          starts_on: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          machine_id?: string
+          note?: string | null
+          organization_id?: string
+          reason_id?: string | null
+          reason_kind?: string | null
+          starts_on?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_downtimes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_downtimes_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "machine_downtimes_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "machine_downtimes_organization_id_reason_kind_reason_id_fkey"
+            columns: ["organization_id", "reason_kind", "reason_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["organization_id", "kind", "id"]
+          },
+        ]
+      }
       machine_inserts: {
         Row: {
           edges_used: number
@@ -1670,6 +1744,7 @@ export type Database = {
       machines: {
         Row: {
           archived_at: string | null
+          capacity_hours: number | null
           code: string
           created_at: string
           cycle_time_unit: string | null
@@ -1681,6 +1756,7 @@ export type Database = {
           name: string
           notes: string | null
           organization_id: string
+          runs_unattended: boolean
           status: string
           status_changed_at: string
           status_changed_by: string | null
@@ -1690,6 +1766,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          capacity_hours?: number | null
           code: string
           created_at?: string
           cycle_time_unit?: string | null
@@ -1701,6 +1778,7 @@ export type Database = {
           name: string
           notes?: string | null
           organization_id: string
+          runs_unattended?: boolean
           status?: string
           status_changed_at?: string
           status_changed_by?: string | null
@@ -1710,6 +1788,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          capacity_hours?: number | null
           code?: string
           created_at?: string
           cycle_time_unit?: string | null
@@ -1721,6 +1800,7 @@ export type Database = {
           name?: string
           notes?: string | null
           organization_id?: string
+          runs_unattended?: boolean
           status?: string
           status_changed_at?: string
           status_changed_by?: string | null
@@ -2773,6 +2853,8 @@ export type Database = {
           cycle_time_s: number | null
           description: string | null
           external_company: string | null
+          external_cost: number | null
+          external_days: number | null
           id: string
           machine_id: string | null
           machine_type_id: string | null
@@ -2781,6 +2863,9 @@ export type Database = {
           operation_type_id: string
           order_id: string
           organization_id: string
+          plan_added_at: string | null
+          plan_day: string | null
+          plan_position: number | null
           planned_end: string | null
           planned_start: string | null
           sequence: number
@@ -2797,6 +2882,8 @@ export type Database = {
           cycle_time_s?: number | null
           description?: string | null
           external_company?: string | null
+          external_cost?: number | null
+          external_days?: number | null
           id?: string
           machine_id?: string | null
           machine_type_id?: string | null
@@ -2805,6 +2892,9 @@ export type Database = {
           operation_type_id: string
           order_id: string
           organization_id: string
+          plan_added_at?: string | null
+          plan_day?: string | null
+          plan_position?: number | null
           planned_end?: string | null
           planned_start?: string | null
           sequence: number
@@ -2821,6 +2911,8 @@ export type Database = {
           cycle_time_s?: number | null
           description?: string | null
           external_company?: string | null
+          external_cost?: number | null
+          external_days?: number | null
           id?: string
           machine_id?: string | null
           machine_type_id?: string | null
@@ -2829,6 +2921,9 @@ export type Database = {
           operation_type_id?: string
           order_id?: string
           organization_id?: string
+          plan_added_at?: string | null
+          plan_day?: string | null
+          plan_position?: number | null
           planned_end?: string | null
           planned_start?: string | null
           sequence?: number
@@ -5156,6 +5251,7 @@ export type Database = {
       machine_directory: {
         Row: {
           archived_at: string | null
+          capacity_hours: number | null
           code: string | null
           created_at: string | null
           cycle_time_unit: string | null
@@ -5167,6 +5263,7 @@ export type Database = {
           name: string | null
           notes: string | null
           organization_id: string | null
+          runs_unattended: boolean | null
           status: string | null
           status_changed_at: string | null
           type_id: string | null
@@ -5352,6 +5449,10 @@ export type Database = {
           description: string | null
           downtime_seconds: number | null
           external_company: string | null
+          external_cost: number | null
+          external_days: number | null
+          external_received_at: string | null
+          external_sent_at: string | null
           good_quantity: number | null
           id: string | null
           input_quantity: number | null
@@ -5372,6 +5473,9 @@ export type Database = {
           order_id: string | null
           organization_id: string | null
           overlap_count: number | null
+          plan_added_at: string | null
+          plan_day: string | null
+          plan_position: number | null
           planned_end: string | null
           planned_seconds: number | null
           planned_start: string | null
@@ -5646,6 +5750,10 @@ export type Database = {
       apply_rotations: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: number
+      }
+      archive_machine_downtime: {
+        Args: { p_id: string; p_org_id: string }
+        Returns: undefined
       }
       assign_order_operation: {
         Args: {
@@ -6118,6 +6226,10 @@ export type Database = {
           requester_name: string
         }[]
       }
+      plan_operations: {
+        Args: { p_moves: Json; p_org_id: string }
+        Returns: undefined
+      }
       platform_begin_support: {
         Args: { p_request_id: string }
         Returns: {
@@ -6337,6 +6449,10 @@ export type Database = {
         }
         Returns: string
       }
+      record_external_result: {
+        Args: { p_cost: number; p_days: number; p_operation_id: string }
+        Returns: undefined
+      }
       record_tool_change: {
         Args: {
           p_idempotency_key: string
@@ -6506,6 +6622,18 @@ export type Database = {
           p_year: number
         }
         Returns: undefined
+      }
+      save_machine_downtime: {
+        Args: {
+          p_ends_on: string
+          p_id: string
+          p_machine_id: string
+          p_note: string
+          p_org_id: string
+          p_reason_id: string
+          p_starts_on: string
+        }
+        Returns: string
       }
       save_org_holiday: {
         Args: {

@@ -24,6 +24,7 @@ export type NavLabelKey =
   | "orders"
   | "floorOperations"
   | "inspections"
+  | "planning"
   | "productionDay"
   | "attendance"
   | "shiftSettings"
@@ -53,6 +54,7 @@ export type NavLabelKey =
   | "tools";
 export type NavIconKey =
   | "dashboard"
+  | "planning"
   | "users"
   | "home"
   | "machine"
@@ -129,6 +131,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     href: "/orders",
     label: "orders",
     icon: "order",
+    module: "production",
+    permission: "orders.read",
+    surface: "app",
+    section: "production",
+  },
+  {
+    id: "planning",
+    href: "/planning",
+    label: "planning",
+    icon: "planning",
     module: "production",
     permission: "orders.read",
     surface: "app",

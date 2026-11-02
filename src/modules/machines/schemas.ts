@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ActionResult } from "@/lib/actions/result";
-import { optionalText, optionalUuid, requiredText } from "@/lib/forms";
+import { optionalDecimal, optionalText, optionalUuid, requiredText } from "@/lib/forms";
+import { numericParam } from "@/lib/supabase/numeric";
 
 // Must match the CHECK on public.machines.status.
 export const MACHINE_STATUSES = [
@@ -27,6 +28,10 @@ export const machineSchema = z.object({
   notes: optionalText(2000),
   // "" = organization default (Postavke proizvodnje).
   cycleTimeUnit: z.enum(["", "min", "s"]).transform((value) => value || null),
+  // Runs on after the operator leaves (EDM over night); planning (D-041).
+  runsUnattended: z.boolean(),
+  // Hours per day; "" = 24 h when unattended, otherwise the organization's hours.
+  capacityHours: optionalDecimal({ maxScale: 2, max: "24", exclusiveMin: true }),
 });
 
 export type MachineInput = z.infer<typeof machineSchema>;
@@ -42,6 +47,8 @@ export const MACHINE_FIELDS = [
   "status",
   "notes",
   "cycleTimeUnit",
+  "runsUnattended",
+  "capacityHours",
 ] as const;
 
 export type MachineField = (typeof MACHINE_FIELDS)[number];
@@ -60,5 +67,7 @@ export function toMachineRow(input: MachineInput) {
     status: input.status,
     notes: input.notes,
     cycle_time_unit: input.cycleTimeUnit,
+    runs_unattended: input.runsUnattended,
+    capacity_hours: numericParam(input.capacityHours),
   };
 }

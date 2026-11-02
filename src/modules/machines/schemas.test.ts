@@ -14,6 +14,8 @@ const VALID = {
   status: "available",
   notes: "  ",
   cycleTimeUnit: "",
+  runsUnattended: false,
+  capacityHours: "",
 };
 
 describe("machineSchema", () => {
@@ -28,12 +30,21 @@ describe("machineSchema", () => {
       status: "available",
       notes: null,
       cycleTimeUnit: null,
+      runsUnattended: false,
+      capacityHours: null,
     });
   });
 
   it("keeps a machine-specific cycle time unit", () => {
     expect(machineSchema.parse({ ...VALID, cycleTimeUnit: "s" }).cycleTimeUnit).toBe("s");
     expect(machineSchema.safeParse({ ...VALID, cycleTimeUnit: "h" }).success).toBe(false);
+  });
+
+  it("takes unattended machines and their hours per day (more than 0, at most 24)", () => {
+    const edm = machineSchema.parse({ ...VALID, runsUnattended: true, capacityHours: "20,5" });
+    expect(edm).toMatchObject({ runsUnattended: true, capacityHours: "20.5" });
+    expect(machineSchema.safeParse({ ...VALID, capacityHours: "0" }).success).toBe(false);
+    expect(machineSchema.safeParse({ ...VALID, capacityHours: "25" }).success).toBe(false);
   });
 
   it("requires code, name and a known status", () => {
@@ -57,6 +68,8 @@ describe("machineSchema", () => {
       status: "available",
       notes: null,
       cycle_time_unit: null,
+      runs_unattended: false,
+      capacity_hours: null,
     });
   });
 });

@@ -459,6 +459,56 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** On a computer the attachment is one drag. If the product owner later registers an Outlook (Azure) app, a "connected Outlook" option that creates the draft with the attachment can be added without changing this.
 
+## D-041 — Production planning by days (2026-11-04)
+
+**Context:** The product owner's answers (2026-11-03, corrected 2026-11-04): the head of production places orders on machines by hand, sorted by priority and due date, and may change due dates and priorities. Machines can run without an operator (an EDM job of 20 h started at 14:00 runs on after the operator leaves at 15:00), but **a job is never without a responsible operator**. One worker may run several machines. Planned and actual cycle times are both shown, to compare them. External operations (hardening…): the days are entered when the pieces come back and do not count as our production time; only their price matters. The board is by days (not hours), with drag and drop plus arrows. Lateness is a warning only. Machine downtime has an optional end. On an overloaded day the program marks it and **asks** whether to move work to another day itself, by priority and by what was added last.
+
+**Decision:**
+
+- **Data** (`20261104100000_production_planning`, `20261104110000_plan_operations_machine_first`):
+  - `production_order_operations.plan_day` / `plan_position` / `plan_added_at`: the day, the order within the machine's day, and when the operation was put into that day.
+  - `machines.runs_unattended`, `machines.capacity_hours`: hours per day; null = 24 h when unattended, otherwise the organization's `work_hours_per_day`. Both are set in the machine form.
+  - `machine_downtimes`: from a day, to a day or null = until further notice; reason from the downtime catalog; archived, not deleted.
+  - `external_days` / `external_cost` on external operations, entered after receipt.
+  - The old `planned_start` / `planned_end` of the assignment sheet stay as they were.
+- **RPCs:**
+  - `plan_operations(org, moves)` (orders.manage, one transaction, up to 500 moves) refuses:
+    - external operations and inspections;
+    - closed orders and done operations;
+    - a started operation moved to another machine;
+    - a planned operation without an operator (`operator_required`);
+    - an operator not qualified for the machine.
+  - The machine is written before the operators.
+  - A move proposed by the program (`auto`) keeps `plan_added_at`.
+  - Other RPCs: `record_external_result` (only when the operation is done), `save_machine_downtime` and `archive_machine_downtime` (orders.manage or machines.manage).
+- **Schedule** (`src/modules/planning/rules.ts`, pure):
+  - Each machine works through its planned operations day by day, in position order.
+  - A long job runs on into the next days: on an unattended machine also through nights and non-working days; otherwise it waits for the next working day.
+  - A new job starts only on a working day (Monday–Friday without holidays for everybody) without downtime.
+  - A day is **overloaded** when an operation planned on it cannot start on it.
+  - Started work and work planned on past days count from today. Idle days are skipped, so work planned far ahead is scheduled too.
+  - Durations are the remaining setup plus the remaining pieces × cycle. "By actual cycle" uses this operation's reports, otherwise the last 5 finished runs of the same routing step, otherwise the plan.
+- **Moving work:** "Prebaci posao u sljedeće dane" is asked, never automatic. From the earliest overloaded day, the program moves the **lowest priority first and, among equal priorities, the operation added last** to the end of the next day the machine can start work, repeating until every day fits.
+  - Priority comes before "added last", so an urgent order is never pushed out because it was planned later.
+  - The server computes the moves again from the current plan.
+- **Operators:**
+  - Dropping a card on another machine, or a card without an operator, asks for the operator; only workers qualified for that machine are offered.
+  - Operator load per day: on an unattended machine only the setup counts, otherwise the machine time. Every assigned operator counts in full. Approved absences are marked.
+- **Warnings** (never blocking):
+  - the order ends after its due date;
+  - the operation cannot start on its day;
+  - the operation is planned before the previous operation of the order ends, or the previous one is not planned;
+  - no operator;
+  - a day in the past;
+  - an earlier external operation is not back yet.
+- **Screens:**
+  - `/planning` (orders.read; changes need orders.manage). Two weeks of machines × days, "Nije u planu" sorted by priority and due date, load bar per day, continuation of long jobs, downtime hatched, operator load table.
+  - Per card: "Premjesti…", "Operateri…", "Hitnost i rok…", "Ukloni iz plana". A card dragged back to "Nije u planu" leaves the plan.
+  - Order operations tab: "Trajanje i cijena" for a received external operation; the days suggested from shipping to receipt.
+- Dates and numbers on the board are formatted without Intl (`formatShortDay`, `formatOneDecimal`), so server and browser render the same text.
+
+**Consequences:** Planning is by days only (no hours, no automatic scheduling). Priority/slack on orders still uses `work_hours_per_day`, not the plan. Machine downtime does not change the machine status. The operator load does not use the shift schedule yet (only the work hours per day and approved absences).
+
 ## D-042 — Speed: permission sets in RLS, one render per action, optimistic status (2026-11-02)
 
 **Context:** Product owner (2026-11-02): the app works but is slow, above all when changing statuses ("nije instant"). Measured on the linked project: the order list view averaged 237 ms, the order operations view 211 ms (max 5 s), the floor queue 175 ms, on ~125 orders. Cause: every RLS policy called `private.has_permission(organization_id, key)` once per row, and the per-row helpers of the directory views (`order_schedule`, `operation_overlaps`) ran their own queries under RLS again (10× slower than without RLS). On the client, every status change rendered the page twice: the server action's `revalidatePath` already returns the re-rendered page, and the component then called `router.refresh()` for a second full render.

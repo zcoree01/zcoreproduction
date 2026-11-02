@@ -395,6 +395,9 @@ export type OrderOperation = {
   runSeconds: string;
   workerSeconds: string;
   downtimeSeconds: string;
+  /** External operation: days and price entered when the pieces came back (D-041). */
+  externalDays: number | null;
+  externalCost: string | null;
   archived: boolean;
 };
 
@@ -472,6 +475,8 @@ export async function listOrderOperations(
         runSeconds: decimalFromDb(row.run_seconds) ?? "0",
         workerSeconds: decimalFromDb(row.worker_seconds) ?? "0",
         downtimeSeconds: decimalFromDb(row.downtime_seconds) ?? "0",
+        externalDays: row.external_days,
+        externalCost: decimalFromDb(row.external_cost),
         archived: row.archived_at !== null,
       },
     ];

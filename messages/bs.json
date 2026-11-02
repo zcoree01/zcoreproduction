@@ -75,6 +75,7 @@
     "orders": "Radni nalozi",
     "floorOperations": "Nalozi",
     "inspections": "Kontrola (pogon)",
+    "planning": "Planiranje",
     "productionDay": "Pregled proizvodnje",
     "attendance": "Prisustvo",
     "shiftSettings": "Smjene i radno vrijeme",
@@ -453,13 +454,19 @@
         "model": "Najviše 100 znakova.",
         "status": "Odaberite status.",
         "notes": "Najviše 2000 znakova.",
-        "cycleTimeUnit": "Odaberite jedinicu iz liste."
+        "cycleTimeUnit": "Odaberite jedinicu iz liste.",
+        "capacityHours": "Upiši broj sati između 0 i 24.",
+        "runsUnattended": "Odaberi da li mašina radi bez operatera."
       },
       "cycleTimeUnit": "Jedinica ciklusa",
       "cycleTimeUnitDefault": "Prema postavkama firme",
       "cycleTimeUnitMin": "Minute",
       "cycleTimeUnitS": "Sekunde",
-      "cycleTimeUnitHint": "Automatske mašine obično u sekundama, pojedinačna proizvodnja u minutama."
+      "cycleTimeUnitHint": "Automatske mašine obično u sekundama, pojedinačna proizvodnja u minutama.",
+      "runsUnattended": "Radi bez operatera",
+      "runsUnattendedHint": "Npr. erozimat: operater postavi program i ode, mašina radi dok ne završi. Posao i dalje ima odgovornog operatera.",
+      "capacityHours": "Kapacitet (h/dan)",
+      "capacityHoursHint": "Prazno = 24 h ako radi bez operatera, inače radno vrijeme iz postavki proizvodnje."
     }
   },
   "employeeStatus": {
@@ -4750,6 +4757,168 @@
       "location_not_found": "Lokacija nije pronađena.",
       "machine_not_found": "Mašina nije pronađena.",
       "module_disabled": "Modul magacina nije uključen."
+    }
+  },
+  "planning": {
+    "title": "Planiranje proizvodnje",
+    "description": "Raspored operacija po mašinama i danima. Prevuci karticu na drugi dan ili mašinu, ili koristi strelice za redoslijed u danu.",
+    "deniedDescription": "Za plan proizvodnje potrebno je pravo čitanja radnih naloga.",
+    "previous": "Prethodne 2 sedmice",
+    "next": "Sljedeće 2 sedmice",
+    "today": "Danas",
+    "basis": {
+      "label": "Računaj po",
+      "planned": "planiranom ciklusu",
+      "actual": "stvarnom ciklusu",
+      "hint": "Stvarni ciklus: iz prijava na ovoj operaciji, inače iz zadnjih 5 završenih istih operacija. Bez podataka se koristi planirani."
+    },
+    "machine": "Mašina",
+    "unattended": "Radi bez operatera",
+    "unattendedHint": "Mašina radi i kad operater ode (npr. erozija preko noći); operater je potreban za pripremu, a posao uvijek ima odgovornog operatera.",
+    "capacity": "{hours} h/dan",
+    "load": "{used} / {capacity} h",
+    "carried": "nastavak",
+    "continuing": "Nastavak: {label}",
+    "nonWorking": "Neradni dan",
+    "down": "Zastoj",
+    "overloaded": "Preopterećeno",
+    "overloadedHint": "Bar jedna operacija ovog dana ne može početi jer je mašina zauzeta, u zastoju ili je neradni dan.",
+    "emptyMachines": "Nema aktivnih mašina. Dodaj mašine da bi planirao proizvodnju.",
+    "unplanned": {
+      "title": "Nije u planu",
+      "count": "{count, plural, one {# operacija} few {# operacije} other {# operacija}}",
+      "empty": "Sve operacije otvorenih naloga su u planu.",
+      "hint": "Složeno po hitnosti i roku. Prevuci karticu na mašinu i dan."
+    },
+    "card": {
+      "planned": "Plan {hours} h",
+      "actual": "Stvarno {hours} h",
+      "deviation": "{value} %",
+      "actualOwn": "po prijavama na ovoj operaciji",
+      "actualHistory": "po ranijim izradama",
+      "noOperator": "bez operatera",
+      "due": "Rok {date}",
+      "ends": "Završetak {date}",
+      "endsUnknown": "Završetak nepoznat",
+      "waitingExternal": "Čeka vanjsku operaciju: {name}",
+      "inProgress": "U radu",
+      "moveUp": "Pomjeri gore",
+      "moveDown": "Pomjeri dolje",
+      "menu": "Akcije za operaciju",
+      "openOrder": "Otvori nalog",
+      "move": "Premjesti…",
+      "operators": "Operateri…",
+      "orderPlanning": "Hitnost i rok…",
+      "unplan": "Ukloni iz plana",
+      "drag": "Prevuci"
+    },
+    "warnings": {
+      "late": "Nalog kasni: završetak {end}, rok {due}",
+      "lateUnknown": "Nalog neće biti završen na vrijeme (završetak nepoznat), rok {due}",
+      "cannot_start": "Ne može početi ovog dana, najranije {day}",
+      "cannotStartNever": "Ne može početi (mašina u zastoju do daljnjeg)",
+      "before_previous": "Prethodna operacija završava {day}",
+      "beforePreviousUnknown": "Prethodna operacija nema poznat završetak",
+      "previous_unplanned": "Prethodna operacija naloga nije u planu",
+      "no_operator": "Nema operatera",
+      "past_day": "Planirano za prošli dan, a nije završeno"
+    },
+    "overload": {
+      "title": "Preopterećeni dani",
+      "description": "Neke operacije ne mogu početi planiranog dana. Program može sam prebaciti posao u sljedeće dane: prvo manje hitno, pa ono što je zadnje dodano.",
+      "apply": "Prebaci posao u sljedeće dane",
+      "confirmTitle": "Prebaciti posao u sljedeće dane?",
+      "confirmDescription": "{count, plural, one {Prebacuje se # operacija} few {Prebacuju se # operacije} other {Prebacuje se # operacija}}: {list}",
+      "confirm": "Prebaci",
+      "machineLine": "{machine}: {list}",
+      "move": "{label} → {to}",
+      "done": "{count, plural, one {Prebačena # operacija} few {Prebačene # operacije} other {Prebačeno # operacija}}.",
+      "nothing": "Nema ništa za prebaciti."
+    },
+    "move": {
+      "title": "Premjesti operaciju",
+      "operatorsTitle": "Operateri operacije",
+      "description": "{order} · {operation}",
+      "machine": "Mašina",
+      "day": "Dan",
+      "operators": "Odgovorni operater",
+      "operatorsHint": "Posao mora imati operatera i kad mašina radi sama. Prikazani su radnici osposobljeni za ovu mašinu.",
+      "noQualified": "Nijedan aktivan radnik nije osposobljen za ovu mašinu. Dodaj mašinu radniku u Zaposleni.",
+      "absent": "odsutan",
+      "busy": "{hours} h tog dana",
+      "save": "Sačuvaj",
+      "chooseOperator": "Izaberi bar jednog operatera."
+    },
+    "orderPlanning": {
+      "title": "Hitnost i rok naloga",
+      "priority": "Hitnost",
+      "automatic": "Automatski (iz roka)",
+      "dueDate": "Rok",
+      "save": "Sačuvaj"
+    },
+    "downtime": {
+      "button": "Zastoj mašine",
+      "title": "Zastoj mašine",
+      "description": "Mašina ne radi od izabranog dana. Kraj upiši ako je poznat.",
+      "machine": "Mašina",
+      "startsOn": "Od",
+      "endsOn": "Do (zadnji dan zastoja)",
+      "untilFurther": "Do daljnjeg (kraj nije poznat)",
+      "reason": "Razlog",
+      "noReason": "Bez razloga",
+      "note": "Napomena",
+      "save": "Sačuvaj zastoj",
+      "list": "Zastoji",
+      "period": "{from} – {to}",
+      "periodOpen": "od {from}, do daljnjeg",
+      "endToday": "Završi danas",
+      "edit": "Uredi",
+      "remove": "Ukloni",
+      "removeTitle": "Ukloniti zastoj?",
+      "removeDescription": "Zastoj je unesen greškom; ostaje zapisan u historiji.",
+      "saved": "Zastoj je sačuvan.",
+      "removed": "Zastoj je uklonjen."
+    },
+    "workers": {
+      "title": "Opterećenje operatera",
+      "description": "Vrijeme operatera po danu: na mašinama koje rade same računa se samo priprema. Crveno = više od {hours} h.",
+      "empty": "Nijedan operater nema planiranog posla u ovom periodu.",
+      "absent": "odsutan",
+      "hours": "{hours} h"
+    },
+    "saved": "Plan je sačuvan.",
+    "errors": {
+      "invalid": "Podaci nisu ispravni.",
+      "denied": "Nemaš pravo mijenjati plan.",
+      "not_found": "Operacija ili mašina više ne postoji. Osvježi stranicu.",
+      "unexpected": "Plan nije sačuvan. Pokušaj ponovo.",
+      "operator_required": "Operacija u planu mora imati operatera.",
+      "worker_not_qualified": "Operater nije osposobljen za ovu mašinu.",
+      "operation_started": "Operacija je počela; ne može na drugu mašinu.",
+      "operation_closed": "Operacija ili nalog je završen.",
+      "not_machine_operation": "Vanjske operacije i kontrole se ne planiraju na mašinama.",
+      "external_not_received": "Komadi još nisu vraćeni."
+    },
+    "external": {
+      "title": "Vanjska operacija",
+      "button": "Trajanje i cijena",
+      "description": "Upiši kad se komadi vrate. Ne računa se u naše vrijeme izrade.",
+      "days": "Trajalo dana",
+      "daysHint": "Od slanja do prijema: {days} d.",
+      "cost": "Cijena (KM)",
+      "save": "Sačuvaj",
+      "summary": "{days, plural, one {# dan} few {# dana} other {# dana}}",
+      "costSummary": "{cost} KM",
+      "saved": "Sačuvano."
+    },
+    "weekdays": {
+      "1": "Pon",
+      "2": "Uto",
+      "3": "Sri",
+      "4": "Čet",
+      "5": "Pet",
+      "6": "Sub",
+      "7": "Ned"
     }
   }
 }

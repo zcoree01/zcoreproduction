@@ -60,6 +60,7 @@ import {
 import type { OperationType } from "@/modules/products/queries";
 import { resolveCycleUnit, secondsToUnit, type TimeUnit } from "@/modules/products/rules";
 import { AssignmentSheet, type AssignmentOptions } from "./assignment-sheet";
+import { ExternalResult } from "./external-result";
 import { OrderOperationSheet } from "./order-operation-sheet";
 
 const muted = <span className="text-muted-foreground">—</span>;
@@ -272,7 +273,7 @@ export function OperationsPanel({
                       <Duration seconds={op.plannedSeconds} />
                     </TableCell>
                     <TableCell>
-                      <OperationProduction op={op} />
+                      <OperationProduction op={op} canManage={canManage} />
                     </TableCell>
                     <TableCell>
                       {statusChanges && targets.length > 0 ? (
@@ -397,7 +398,7 @@ export function OperationsPanel({
 }
 
 /** Reported pieces and actual times of an operation (machine time ≠ worker time). */
-function OperationProduction({ op }: { op: OrderOperation }) {
+function OperationProduction({ op, canManage }: { op: OrderOperation; canManage: boolean }) {
   const t = useTranslations("orders.operations.production");
   const reported = addDecimals([op.goodQuantity, op.scrapQuantity], 3) !== "0";
   const worked = op.runSeconds !== "0" || op.workerSeconds !== "0";
@@ -405,13 +406,19 @@ function OperationProduction({ op }: { op: OrderOperation }) {
   const actualCycle = op.type.isExternal ? null : actualCycleSeconds(op);
   const deviation = cycleDeviationPercent(actualCycle, op.cycleTimeS);
   if (op.type.isExternal) {
-    // Shipped ("in progress") until received: time at the other company.
-    return op.runSeconds === "0" ? (
-      <span className="text-sm text-muted-foreground">—</span>
-    ) : (
-      <span className="text-xs text-muted-foreground tabular-nums">
-        {t("atSupplier")} <Duration seconds={op.runSeconds} />
-      </span>
+    // Shipped ("in progress") until received: time at the other company,
+    // then the days and price entered on receipt (not our production time).
+    return (
+      <div className="flex flex-col gap-1">
+        {op.runSeconds === "0" ? (
+          <span className="text-sm text-muted-foreground">—</span>
+        ) : (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {t("atSupplier")} <Duration seconds={op.runSeconds} />
+          </span>
+        )}
+        <ExternalResult op={op} canManage={canManage} />
+      </div>
     );
   }
   if (!reported && !worked) {
