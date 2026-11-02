@@ -106,6 +106,28 @@ export async function getProductionDay(
   timeZone: string,
 ): Promise<ProductionDay | null> {
   const { from, to } = dayRange(date, timeZone);
+  return getProductionRange(organizationId, from, to);
+}
+
+/** Like getProductionDay for the days firstDate … lastDate (dashboard). */
+export async function getProductionPeriod(
+  organizationId: string,
+  firstDate: string,
+  lastDate: string,
+  timeZone: string,
+): Promise<ProductionDay | null> {
+  return getProductionRange(
+    organizationId,
+    dayRange(firstDate, timeZone).from,
+    dayRange(lastDate, timeZone).to,
+  );
+}
+
+async function getProductionRange(
+  organizationId: string,
+  from: string,
+  to: string,
+): Promise<ProductionDay | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("production_day", {
     p_org_id: organizationId,

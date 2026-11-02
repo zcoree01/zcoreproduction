@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** mostly done (open: edit / deactivate users, organization settings screen, own domain with subdomains, separate test database). **Phase 2 — Manufacturing foundation** done: machines, employees, catalogs, customers, materials, products / parts, production orders with operations, assignments and status tracking. **Phase 3 — Shop-floor reporting** done: start / pause / finish, good and scrap in parts, inspections, closing with a shortage, downtime, tool changes, the foreman's day overview, and the **shifts and working time module** (shifts and breaks, clock-in / clock-out on the phone and on a kiosk tablet, schedule with crews and rotations, absences, leave balance, corrections, calculation of regular / overtime / night / weekend / holiday hours, net pay, monthly overview with Excel / CSV export and the payroll specification). Company registration, the shared company directory, the platform admin and support access are done as well (D-026, D-028). **Phase 4 — Inventory** started: part A of the material warehouse is done (stock items, locations, movement ledger, receipts with certificates, transfers, corrections with approval, value by moving average, pairing products with stock items, D-031) part B (material of production orders: requirement, reservation, issue with offcuts, returns, consumption, "Treba rezanje", D-032) and part C (stock counts, warnings, QR labels, mobile warehouse, D-033): the material warehouse is complete; finished goods and delivery notes (D-034) and the tool warehouse with inserts on tool changes (D-035) are done: **Phase 4 is complete**. **Deployed** on Vercel (production from `main`, https://zcoreproduction.vercel.app, region `dub1`, D-036); the own domain `*.zcore.ba` comes when the product owner buys it. **Next:** see "Next step".
+**Phase 1 — Foundation** mostly done (open: edit / deactivate users, organization settings screen, own domain with subdomains, separate test database). **Phase 2 — Manufacturing foundation** done: machines, employees, catalogs, customers, materials, products / parts, production orders with operations, assignments and status tracking. **Phase 3 — Shop-floor reporting** done: start / pause / finish, good and scrap in parts, inspections, closing with a shortage, downtime, tool changes, the foreman's day overview, and the **shifts and working time module** (shifts and breaks, clock-in / clock-out on the phone and on a kiosk tablet, schedule with crews and rotations, absences, leave balance, corrections, calculation of regular / overtime / night / weekend / holiday hours, net pay, monthly overview with Excel / CSV export and the payroll specification). Company registration, the shared company directory, the platform admin and support access are done as well (D-026, D-028). **Phase 4 — Inventory** started: part A of the material warehouse is done (stock items, locations, movement ledger, receipts with certificates, transfers, corrections with approval, value by moving average, pairing products with stock items, D-031) part B (material of production orders: requirement, reservation, issue with offcuts, returns, consumption, "Treba rezanje", D-032) and part C (stock counts, warnings, QR labels, mobile warehouse, D-033): the material warehouse is complete; finished goods and delivery notes (D-034) and the tool warehouse with inserts on tool changes (D-035) are done: **Phase 4 is complete**. **Deployed** on Vercel (production from `main`, https://zcoreproduction.vercel.app, region `dub1`, D-036); the own domain `*.zcore.ba` comes when the product owner buys it. **Phase 5 — Operational intelligence** started: configurable dashboard per role (D-037). **Next:** see "Next step".
 
 ## Implemented
 
@@ -88,6 +88,10 @@ Progress log. Read at session start, update at session end. Newest entry on top.
   - RPCs `save_crew`, `set_crew_archived`, `save_rotation`, `set_rotation_archived`, `assign_rotation`, `end_rotation_assignment`, `apply_rotations` (range ≤ 62 days; manual days stay; own rotation beats the crew's), `set_schedule_entries`, `copy_schedule_week`, `schedule_range`, `my_schedule`.
   - Screens: `/attendance/schedule` "Raspored" (week / month grid, crew filter, click a day → shift or day off, "Primijeni rotacije", "Kopiraj na sljedeću sedmicu", manual days marked), `/attendance/crews` "Ekipe i rotacije" (crews with members, rotations with a day-by-day pattern, assignments with end); the worker sees "Moj raspored" (next 14 days) on `/floor/attendance`.
   - Demo: crews A (Omer Operater) and B (Benjamin Bravar) on "Sedmična izmjena I/II", a week apart, written for six weeks.
+- **Dashboard** (`20261103100000_dashboard_layouts`, D-037):
+  - Permission `dashboard.manage`; table `dashboard_layouts`; RPCs `save_dashboard_layout` / `reset_dashboard_layout`.
+  - 17 widgets across production, attendance and inventory, filtered by module and permission. The catalog and the defaults per role are in `src/modules/dashboard/widgets.ts`.
+  - `/dashboard/edit`: per role add / remove / reorder (drag or arrows) / wide or narrow; save shows "Uloga: X"; reset to default.
 - **Tool warehouse** (`20261102140000_tools`, D-035):
   - Permissions `tools.read` / `tools.manage`; `tools`, `tool_movements` (view `tool_balances`), `machine_inserts`; `production_tool_changes.tool_id / insert_action / edge_no`.
   - RPCs `move_tool` (receipt, issue to a machine, return, transfer, scrap), `record_tool_change_with_tool` (new insert from the machine or next edge), `floor_operation_tools`.
@@ -226,7 +230,12 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 ## Next step
 
 0. **Own domain (when the product owner has bought `zcore.ba`):** add `zcore.ba` and the wildcard `*.zcore.ba` to the Vercel project, set the DNS records (wildcard needs Vercel nameservers), check the production env vars and the Supabase Auth URLs, then test the kiosk (camera / NFC over HTTPS), scanning and the mobile warehouse on the shop floor.
-1. **Phase 5 (recommended while the domain is pending):** planning, completion forecasts, dashboards and reports (see item 7).
+1. **Phase 5, agreed order with the product owner (2026-11-03):**
+   - a. dashboard (done, D-037);
+   - b. notifications: toasts with "Otvori" and ✕, bell with "Označi sve kao pročitano" and ✕ per item, a click opens the item;
+   - c. new delivery note as a split view: the form on the left, a live paper preview on the right; issue, send by e-mail (real sending with a PDF attachment, provider to set up with the product owner), print original + copy;
+   - d. planning: the head of production assigns orders to machines, sorted by priority and due date, and may change due dates and priorities. Machines can run without an operator, and one worker may run several machines. Forecast from both planned and actual cycle times, compared. External operations: days entered when the pieces come back, not counted as our time (only their price). Board by days with drag and drop, plus arrows. Late orders get a warning only. Machine downtime with an optional known end;
+   - e. reports.
 2. **Test isolation:** separate Supabase project for `test:db` / e2e and add them to CI with GitHub secrets.
 3. **Complete user management** (`/admin/users`): edit full name and role, deactivate / reactivate (archive membership, with `ConfirmDialog`), audit entries, `users.manage`; unit + e2e tests. (Password reset and forced change on first login are done, D-022.)
 4. **Org settings** (`org.settings.manage`): timezone and other organization-wide settings (company data are done, D-026).
@@ -235,6 +244,11 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 7. **Reports and analytics:** productivity per machine / worker / order over periods (good per hour, actual vs planned time, downtime by reason, scrap by reason), export.
 
 ## Log
+
+### 2026-11-03 — Dashboard per role (Phase 5)
+
+- Product owner asked to start Phase 5 with a full dashboard configurable per role (role named next to save), then notifications, the delivery note editor, planning (answers recorded under "Next step"). D-037. Migration `20261103100000_dashboard_layouts` applied; types regenerated.
+- Verified: `npx vitest run src/modules/dashboard` (10), `npx vitest run --config vitest.db.config.mts tests/db/dashboard.test.ts tests/db/tenant-isolation.test.ts` (37), `npx playwright test e2e/dashboard.spec.ts` (admin edits the HR dashboard: add, remove, move, save, reset). Screenshots of the dashboard and the editor were checked (wide widgets left holes in the grid, now filled with dense flow). Full checks below.
 
 ### 2026-11-02 — Pushed to GitHub, deploy state
 

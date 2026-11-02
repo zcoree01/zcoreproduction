@@ -105,8 +105,160 @@
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
-    "noModulesTitle": "Nema aktivnih modula",
-    "noModulesDescription": "Moduli za proizvodnju i skladište još nisu uključeni za vašu firmu."
+    "edit": "Uredi dashboard",
+    "open": "Otvori",
+    "more": "i još {count}",
+    "emptyTitle": "Dashboard je prazan",
+    "emptyDescription": "Za vašu ulogu još nije izabran nijedan widget. Obratite se administratoru.",
+    "emptyDescriptionAdmin": "Za ovu ulogu nema widgeta. Kliknite \"Uredi dashboard\" i dodajte ih.",
+    "openOrders": "Otvoreni nalozi",
+    "overdue": "Rok prošao",
+    "behind": "U zaostatku",
+    "good": "Dobro",
+    "scrap": "Škart",
+    "date": "Datum",
+    "downtime": "Zastoji",
+    "toolChanges": "Izmjene alata",
+    "openDowntime": "{count, plural, one {# mašina je trenutno u zastoju} few {# mašine su trenutno u zastoju} other {# mašina je trenutno u zastoju}}",
+    "noDueWarnings": "Nijedan nalog ne kasni niti mu se bliži rok.",
+    "noOrdersInProgress": "Nijedan nalog trenutno nije u radu.",
+    "noMachines": "Nema aktivnih mašina.",
+    "nobodyWorking": "Niko trenutno ne radi",
+    "downNow": "Zastoj: {reason}",
+    "trendTotal": "Zadnjih {days} dana: {good} dobrih komada",
+    "trendAria": "Dobri komadi po danu, zadnjih {days} dana",
+    "trendTip": "{date}: {good} dobrih, {scrap} škarta",
+    "noReports": "U ovom periodu nema prijava proizvodnje.",
+    "lastDays": "Zadnjih {days} dana",
+    "noDowntime": "Nema zastoja.",
+    "scrapPeriod": "Zadnjih {days} dana: {scrap} kom škarta ({rate} %)",
+    "noScrap": "Nema škarta.",
+    "noReason": "Bez razloga",
+    "pieces": "{count} kom",
+    "noCloseRequests": "Nema zahtjeva za zatvaranje.",
+    "closeRow": "{good} od {quantity} {unit} dobrih",
+    "attendanceRest": "Očekuje se: {expected} · otišlo: {left} · na odsustvu: {onLeave}",
+    "noRequests": "Nema zahtjeva za odobrenje.",
+    "toolsAboveMinimum": "Svi alati su iznad minimuma.",
+    "insertsInUse": "Pločice u upotrebi",
+    "edge": "ivica {used}/{edges}",
+    "noFinishedGoods": "Nema gotovih proizvoda na stanju.",
+    "finishedRow": "{pieces} kom · {orders, plural, one {# nalog} few {# naloga} other {# naloga}}",
+    "noDeliveryNotes": "Još nema otpremnica.",
+    "widgets": {
+      "orders_overview": {
+        "title": "Nalozi po statusu",
+        "description": "Broj otvorenih naloga po statusu, koliko ih je prešlo rok i koliko kasni."
+      },
+      "output_today": {
+        "title": "Proizvodnja danas",
+        "description": "Dobri komadi, škart, zastoji i izmjene alata danas."
+      },
+      "orders_due": {
+        "title": "Rokovi",
+        "description": "Nalozi kojima je prošao rok, koji kasne ili im se bliži rok."
+      },
+      "orders_in_progress": {
+        "title": "Nalozi u radu",
+        "description": "Napredak naloga u radu, operacija i mašina na kojoj su."
+      },
+      "machines_now": {
+        "title": "Mašine sada",
+        "description": "Status svake mašine, ko na njoj radi i da li je u zastoju."
+      },
+      "output_trend": {
+        "title": "Proizvodnja po danima",
+        "description": "Dobri komadi po danu u zadnjih 14 dana."
+      },
+      "downtime_reasons": {
+        "title": "Zastoji po razlogu",
+        "description": "Trajanje zastoja po razlogu u zadnjih 7 dana."
+      },
+      "scrap_reasons": {
+        "title": "Škart po razlogu",
+        "description": "Škart i stopa škarta po razlogu u zadnjih 30 dana."
+      },
+      "close_requests": {
+        "title": "Zahtjevi za zatvaranje",
+        "description": "Nalozi koje treba zatvoriti s manjkom komada."
+      },
+      "attendance_today": {
+        "title": "Prisustvo danas",
+        "description": "Ko je u firmi, ko kasni i ko nije došao."
+      },
+      "attendance_requests": {
+        "title": "Zahtjevi radnika",
+        "description": "Odsustva, bolovanja i ispravke prisustva koje čekaju odluku."
+      },
+      "stock_below_minimum": {
+        "title": "Materijal ispod minimuma",
+        "description": "Artikli magacina kojih ima manje od minimalne zalihe."
+      },
+      "material_shortages": {
+        "title": "Nalozi kojima fali materijal",
+        "description": "Pušteni nalozi koji nisu pokriveni materijalom."
+      },
+      "inventory_approvals": {
+        "title": "Magacin na potvrdu",
+        "description": "Korekcije stanja i popisi koji čekaju potvrdu."
+      },
+      "tools_status": {
+        "title": "Alati",
+        "description": "Alati ispod minimuma i pločice u upotrebi po mašinama."
+      },
+      "finished_goods": {
+        "title": "Gotovi proizvodi",
+        "description": "Komadi na stanju gotovih proizvoda po kupcu."
+      },
+      "recent_delivery_notes": {
+        "title": "Zadnje otpremnice",
+        "description": "Posljednje izdate otpremnice."
+      }
+    },
+    "editor": {
+      "title": "Uređivanje dashboarda",
+      "description": "Izaberite ulogu, pa dodajte, uklonite i poredajte widgete. Svako vidi samo widgete za koje ima dozvolu.",
+      "deniedDescription": "Za uređivanje dashboarda potrebna je dozvola administratora.",
+      "role": "Uloga",
+      "roleLabel": "Uloga:",
+      "save": "Sačuvaj",
+      "saved": "Dashboard za ulogu \"{role}\" je sačuvan.",
+      "back": "Nazad na dashboard",
+      "customLayout": "Prilagođen raspored",
+      "defaultLayout": "Zadani raspored",
+      "unsaved": "ima nesačuvanih izmjena",
+      "reset": "Vrati zadano",
+      "resetTitle": "Vratiti zadani dashboard za ulogu \"{role}\"?",
+      "resetDescription": "Prilagođeni raspored se briše i uloga dobija zadane widgete.",
+      "resetDone": "Uloga \"{role}\" ima ponovo zadani dashboard.",
+      "layoutTitle": "Dashboard uloge \"{role}\" ({count, plural, one {# widget} few {# widgeta} other {# widgeta}})",
+      "layoutEmpty": "Nema widgeta. Dodajte ih iz liste ispod.",
+      "remove": "Ukloni {widget}",
+      "moveEarlier": "Pomjeri naprijed",
+      "moveLater": "Pomjeri nazad",
+      "makeWide": "Široki",
+      "makeNormal": "Uski",
+      "moduleOff": "Modul nije uključen, widget se neće prikazati.",
+      "noPermission": "Uloga nema dozvolu za ove podatke, widget se neće prikazati.",
+      "addTitle": "Dodaj widget",
+      "addShort": "Dodaj",
+      "add": "Dodaj {widget}",
+      "allAdded": "Svi widgeti su već na dashboardu.",
+      "groups": {
+        "production": "Proizvodnja",
+        "attendance": "Prisustvo",
+        "inventory": "Magacin"
+      },
+      "discardTitle": "Odbaciti nesačuvane izmjene?",
+      "discardDescription": "Izmjene dashboarda za ulogu \"{role}\" nisu sačuvane.",
+      "discard": "Odbaci",
+      "errors": {
+        "denied": "Nemate dozvolu za uređivanje dashboarda.",
+        "invalid": "Raspored nije ispravan.",
+        "not_found": "Uloga nije pronađena.",
+        "unexpected": "Došlo je do greške. Pokušajte ponovo."
+      }
+    }
   },
   "floor": {
     "welcome": "Zdravo, {name}",

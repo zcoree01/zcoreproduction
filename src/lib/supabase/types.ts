@@ -893,6 +893,51 @@ export type Database = {
           },
         ]
       }
+      dashboard_layouts: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role_id: string
+          updated_at: string
+          updated_by: string | null
+          widgets: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role_id: string
+          updated_at?: string
+          updated_by?: string | null
+          widgets: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          widgets?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_layouts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_layouts_organization_id_role_id_fkey"
+            columns: ["organization_id", "role_id"]
+            isOneToOne: true
+            referencedRelation: "roles"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       delivery_note_lines: {
         Row: {
           customer_position: string | null
@@ -6359,6 +6404,10 @@ export type Database = {
         }
         Returns: string
       }
+      reset_dashboard_layout: {
+        Args: { p_org_id: string; p_role_id: string }
+        Returns: undefined
+      }
       resolve_attendance_alert: {
         Args: { p_alert_id: string; p_note?: string }
         Returns: undefined
@@ -6383,6 +6432,10 @@ export type Database = {
           p_org_id: string
         }
         Returns: Json
+      }
+      save_dashboard_layout: {
+        Args: { p_org_id: string; p_role_id: string; p_widgets: Json }
+        Returns: undefined
       }
       save_employee: {
         Args: {

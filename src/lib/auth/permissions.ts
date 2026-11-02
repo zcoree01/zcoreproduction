@@ -41,6 +41,7 @@ export const PERMISSION_KEYS = [
   "finished_goods.manage",
   "tools.read",
   "tools.manage",
+  "dashboard.manage",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

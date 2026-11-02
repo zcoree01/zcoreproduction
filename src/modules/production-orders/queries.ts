@@ -219,6 +219,22 @@ export async function listOrdersPage(
   return { total: count ?? 0, rows: data.flatMap(toOrderRow) };
 }
 
+/** Orders not yet completed, cancelled or archived, most urgent first (dashboard). */
+export async function listOpenOrders(organizationId: string): Promise<OrderRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("production_order_directory")
+    .select(LIST_COLUMNS)
+    .eq("organization_id", organizationId)
+    .not("status", "in", "(completed,cancelled,archived)")
+    .order("effective_priority")
+    .order("due_date")
+    .order("order_number")
+    .limit(500);
+  if (error) throw error;
+  return data.flatMap(toOrderRow);
+}
+
 /**
  * Orders of one customer (customer page), newest first, filtered by order
  * number / part number, urgency and status (incl. "close requested").

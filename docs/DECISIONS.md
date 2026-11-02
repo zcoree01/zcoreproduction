@@ -388,3 +388,21 @@ Next.js renders a server action's `redirect()` by fetching the target route from
 **Context:** The app felt slow: the Supabase project runs in `eu-west-1` (Ireland) while Vercel functions ran in the default US region, so every server render, server action and proxy call crossed the Atlantic several times (each page makes several database round trips).
 **Decision:** `vercel.json` sets `"regions": ["dub1"]` (Dublin), the Vercel region next to `eu-west-1`. Kept in git so every deploy uses it.
 **Consequences:** If the database ever moves, move the function region with it. Users in BiH are also closer to Dublin than to the US.
+
+## D-037 — Configurable dashboard per role (2026-11-03)
+
+**Context:** Phase 5 starts with the dashboard. The product owner asked for a dashboard with everything that can be shown, and for the admin to add and remove widgets per role, with the role named next to the save button.
+**Decision:**
+
+- **Permission** `dashboard.manage` (core, admin). Zcore support works as the company admin (D-028), so it can configure dashboards too.
+- **Layouts** `dashboard_layouts`: one ordered list `[{key, size}]` per role (`normal` / `wide`). The database checks only the shape (`private.dashboard_widgets_valid`: an array of at most 40 objects with exactly `key` and `size`, keys distinct). The widget catalog lives in the app (`src/modules/dashboard/widgets.ts`), and keys the app no longer knows are skipped when reading. Writes go only through `save_dashboard_layout` / `reset_dashboard_layout` (permission, role of the same organization, audit by trigger). Members read their organization's layouts.
+- **Defaults:** a role without a row uses the app's default for its system key: admin / director everything, head of production production, warehouse inventory, quality inspector output and scrap, HR attendance; custom roles start empty.
+- **Visibility:** a member sees a widget only if the module is on **and** the member holds one of the widget's permissions. A layout never grants data access, and RLS still applies to every query. The editor marks widgets the role will not see ("Modul nije uključen", "Uloga nema dozvolu").
+- **Widgets (17):**
+  - production: orders by status, output today, due dates, orders in progress, machines now, output per day (14 days), downtime by reason (7 days), scrap by reason (30 days), close requests;
+  - attendance: today, requests to decide;
+  - inventory: below minimum, orders short of material, to approve, tools, finished goods, recent delivery notes.
+- **Loading:** each widget loads inside its own Suspense. Shared loaders (open orders, today's production, last 30 days of reports via `production_day` over a range) are cached per request.
+- **Editor** `/dashboard/edit`: role picker, cards in the dashboard grid (drag or arrows to reorder, wide / narrow, ✕ to remove), "Dodaj widget" by group, "Vrati zadano". "Uloga: X" is shown next to "Sačuvaj"; switching roles with unsaved changes asks first.
+
+**Consequences:** New widgets are app code plus a catalog entry; saved layouts need no migration. Downtime by reason counts each event's time inside the 30-day window if the event ended within the last 7 days (an event that started earlier counts fully).
