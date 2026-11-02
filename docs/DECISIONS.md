@@ -458,3 +458,17 @@ The product owner chose the free variant ("logičnija mi je").
 - No tokens or e-mail credentials are stored; nothing is sent by the app itself.
 
 **Consequences:** On a computer the attachment is one drag. If the product owner later registers an Outlook (Azure) app, a "connected Outlook" option that creates the draft with the attachment can be added without changing this.
+
+## D-042 — Speed: permission sets in RLS, one render per action, optimistic status (2026-11-02)
+
+**Context:** Product owner (2026-11-02): the app works but is slow, above all when changing statuses ("nije instant"). Measured on the linked project: the order list view averaged 237 ms, the order operations view 211 ms (max 5 s), the floor queue 175 ms, on ~125 orders. Cause: every RLS policy called `private.has_permission(organization_id, key)` once per row, and the per-row helpers of the directory views (`order_schedule`, `operation_overlaps`) ran their own queries under RLS again (10× slower than without RLS). On the client, every status change rendered the page twice: the server action's `revalidatePath` already returns the re-rendered page, and the component then called `router.refresh()` for a second full render.
+**Decision:**
+
+- **`private.permitted_org_ids(key)`**: the caller's organizations holding the permission, with exactly the conditions of `has_permission`. Policies use `organization_id in (select private.permitted_org_ids(key))`, a hashed subplan evaluated once per statement. Migration `20261104120000_rls_permission_sets` rewrites every public policy of the plain form (catalog_items writes, whose key depends on the row, stay). New policies must use this form, not `has_permission(organization_id, …)`. Order list: 115 ms → ~40 ms for the same rows in the test transaction.
+- `order_schedule` and `operation_overlaps` run as definer (reached only through rows the caller can see; one machine = one organization). FK covering indexes from the advisor.
+- **No `router.refresh()` after a server action that revalidates** (checked in Next's action handler: a revalidating action renders the current page in the same response). Kept: kiosk activation (cookie, no revalidation), the clock button's stale-state error branch, polling refreshes.
+- **Optimistic UI (`useOptimistic`)** for order status (header badge via `OrderStatusProvider`), operation status (orders → Operacije) and the worker's start / pause / report on the floor. Display only: the server's answer replaces it, an error rolls it back; the database still decides every transition. A confirmation text ("Operacija je završena.", toasts) appears only after the server confirmed, and forms stay open while sending, so nobody leaves a screen believing an unsaved report was saved (an e2e run caught exactly that).
+- Order detail page reads the order together with the access check and everything else in one parallel round.
+- Security headers for every response: `X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'`, `nosniff`, `strict-origin-when-cross-origin`, `Permissions-Policy` (camera and NFC for the app only).
+
+**Consequences:** A status change costs one round trip and shows at once. The security review of the same day found no tenant leak (all tables RLS, no anon table grants, definer functions check membership/permission, views `security_invoker`, private buckets, column-level update grants). Open: leaked-password protection in Supabase Auth (dashboard setting), `/support/exit` is a GET (sign-out CSRF, low impact).

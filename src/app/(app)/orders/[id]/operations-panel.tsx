@@ -11,8 +11,7 @@ import {
   WorkflowIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Duration } from "@/components/shared/duration";
@@ -85,13 +84,18 @@ export function OperationsPanel({
   const t = useTranslations("orders.operations");
   const tStatus = useTranslations("operationStatus");
   const tExternal = useTranslations("externalOperationStatus");
-  const router = useRouter();
   const [assigning, setAssigning] = useState<OrderOperation | null>(null);
   const [editing, setEditing] = useState<OrderOperation | "new" | null>(null);
   const [removing, setRemoving] = useState<OrderOperation | null>(null);
   const [, startTransition] = useTransition();
 
-  const active = operations.filter((op) => !op.archived);
+  // The new status shows at once; the server's answer replaces it (or rolls it back).
+  const [shown, showStatus] = useOptimistic(
+    operations,
+    (current, change: { id: string; status: OperationStatus }) =>
+      current.map((op) => (op.id === change.id ? { ...op, status: change.status } : op)),
+  );
+  const active = shown.filter((op) => !op.archived);
   const closed = CLOSED_STATUSES.includes(orderStatus);
   const routing = canManage && canChangeRouting(orderStatus);
   const planning = canManage && canEditPlanning(orderStatus);
@@ -113,6 +117,7 @@ export function OperationsPanel({
 
   const changeStatus = (op: OrderOperation, status: OperationStatus) =>
     startTransition(async () => {
+      showStatus({ id: op.id, status });
       const result = await setOperationStatusAction(op.id, status);
       if (result.ok) {
         toast.success(
@@ -121,7 +126,6 @@ export function OperationsPanel({
             status: op.type.isExternal ? tExternal(status) : tStatus(status),
           }),
         );
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }
@@ -381,7 +385,6 @@ export function OperationsPanel({
               const result = await setOperationArchivedAction(removing.id, true);
               if (result.ok) {
                 toast.success(t("removedToast", { code: removing.type.code }));
-                router.refresh();
               } else {
                 toast.error(t(`errors.${result.error}`));
               }

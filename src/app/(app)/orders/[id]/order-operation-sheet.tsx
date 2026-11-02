@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -73,7 +72,6 @@ function OperationForm({
 }: Props & { onDone: () => void }) {
   const t = useTranslations("orders.operationForm");
   const tField = useTranslations("products.operations.form");
-  const router = useRouter();
   const [formError, setFormError] = useState<FormError | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -126,7 +124,6 @@ function OperationForm({
       if (result.ok) {
         toast.success(operation ? t("updatedToast") : t("createdToast"));
         onDone();
-        router.refresh();
         return;
       }
       if (result.error === "invalid" && result.fields.length > 0) {

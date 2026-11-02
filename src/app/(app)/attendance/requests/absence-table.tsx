@@ -2,7 +2,6 @@
 
 import { FileTextIcon, PlusIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge, type StatusTone } from "@/components/shared/status-badge";
@@ -58,7 +57,6 @@ export function AbsenceTable({
   sensitive: boolean;
 }) {
   const t = useTranslations("absences");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const cancel = (absence: AbsenceRow) =>
@@ -67,7 +65,6 @@ export function AbsenceTable({
         const result = await cancelAbsenceAction(absence.id, "");
         if (result.ok) {
           toast.success(t("cancelledToast"));
-          router.refresh();
         } else toast.error(t(`errors.${result.error}`));
       } catch {
         toast.error(t("errors.offline"));
@@ -189,7 +186,6 @@ function EntryForm({
   onDone: () => void;
 }) {
   const t = useTranslations("absences");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [employeeId, setEmployeeId] = useState("");
   const [kind, setKind] = useState<AbsenceKind>("vacation");
@@ -216,7 +212,6 @@ function EntryForm({
           return;
         }
         toast.success(t("enteredToast"));
-        router.refresh();
         onDone();
       } catch {
         toast.error(t("errors.offline"));

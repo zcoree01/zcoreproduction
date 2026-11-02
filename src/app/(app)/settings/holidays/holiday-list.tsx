@@ -2,7 +2,6 @@
 
 import { ArchiveIcon, CalendarPlusIcon, DownloadIcon, RotateCcwIcon, SaveIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -36,7 +35,6 @@ export function HolidayList({
   scopes: Record<string, "all" | "selected">;
 }) {
   const t = useTranslations("holidays");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [newName, setNewName] = useState("");
   const [newDate, setNewDate] = useState(`${year}-01-01`);
@@ -47,7 +45,6 @@ export function HolidayList({
         const result = await action();
         if (result.ok) {
           toast.success(success);
-          router.refresh();
         } else toast.error(t(`errors.${result.error}`));
       } catch {
         toast.error(t("errors.unexpected"));

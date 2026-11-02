@@ -2,7 +2,6 @@
 
 import { BanIcon, KeyRoundIcon, PlusIcon, TabletIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -42,7 +41,6 @@ export function KioskList({
   kioskUrl: string;
 }) {
   const t = useTranslations("kioskSettings");
-  const router = useRouter();
   const [name, setName] = useState("");
   const [activation, setActivation] = useState<(Activation & { name: string }) | null>(null);
   const [revoking, setRevoking] = useState<KioskRow | null>(null);
@@ -54,7 +52,6 @@ export function KioskList({
       if (result.ok) {
         setActivation({ ...result.value, name: kioskName });
         setName("");
-        router.refresh();
       } else toast.error(t(`errors.${result.error}`));
     });
 
@@ -167,7 +164,6 @@ export function KioskList({
           const result = await revokeKioskAction(revoking.id);
           if (result.ok) {
             toast.success(t("revokedToast"));
-            router.refresh();
           } else toast.error(t(`errors.${result.error}`));
         }}
       />

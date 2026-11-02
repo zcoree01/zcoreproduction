@@ -2,7 +2,6 @@
 
 import { CheckIcon, LogOutIcon, XIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge, type StatusTone } from "@/components/shared/status-badge";
@@ -36,7 +35,6 @@ export function SupportRequests({ requests }: { requests: SupportRequest[] }) {
 function SupportRequestItem({ request }: { request: SupportRequest }) {
   const t = useTranslations("support");
   const format = useFormatter();
-  const router = useRouter();
   const [minutes, setMinutes] = useState<(typeof SUPPORT_DURATIONS)[number]>(60);
   const [note, setNote] = useState("");
   const [rejecting, setRejecting] = useState(false);
@@ -47,7 +45,6 @@ function SupportRequestItem({ request }: { request: SupportRequest }) {
       const result = await action();
       if (result.ok) {
         toast.success(success);
-        router.refresh();
       } else {
         toast.error(t(`errors.${(result.error ?? "unexpected") as "unexpected"}`));
       }

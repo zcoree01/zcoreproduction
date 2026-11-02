@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +77,6 @@ export function DeliverySettingsView({
 }) {
   const t = useTranslations("finishedGoods.settings");
   const [editing, setEditing] = useState<DeliveryTemplate | "new" | null>(null);
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const tErrors = useTranslations("finishedGoods.errors");
 
@@ -87,7 +85,6 @@ export function DeliverySettingsView({
       const result = await archiveTemplateAction(template.id);
       if (result.ok) {
         toast.success(t("templateArchived"));
-        router.refresh();
       } else toast.error(tErrors(result.error));
     });
 
@@ -237,7 +234,6 @@ function NumberSettings({ numbers, today }: { numbers: DeliveryNumberSettings; t
 function LogoSettings({ logo }: { logo: string | null }) {
   const t = useTranslations("finishedGoods.settings");
   const tErrors = useTranslations("finishedGoods.errors");
-  const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
 
@@ -263,7 +259,6 @@ function LogoSettings({ logo }: { logo: string | null }) {
       const result = await registerLogoAction(ticket.path);
       if (result.ok) {
         toast.success(t("logoUploaded"));
-        router.refresh();
       } else toast.error(tErrors(result.error));
       if (input.current) input.current.value = "";
     });
@@ -375,7 +370,6 @@ function TemplateForm({
 }) {
   const t = useTranslations("finishedGoods.settings");
   const tErrors = useTranslations("finishedGoods.errors");
-  const router = useRouter();
   const start = template?.layout ?? DEFAULT_LAYOUT;
   const [name, setName] = useState(template?.name ?? "");
   const [isDefault, setIsDefault] = useState(template?.isDefault ?? false);
@@ -434,7 +428,6 @@ function TemplateForm({
       if (result.ok) {
         toast.success(t("templateSaved"));
         onDone();
-        router.refresh();
       } else setFailed(tErrors(result.error));
     });
   };

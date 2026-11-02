@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm, useFormState } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,7 +35,6 @@ export function CompanyProfileForm({
   lockTaxId: boolean;
 }) {
   const t = useTranslations("companySettings");
-  const router = useRouter();
   const [formError, setFormError] = useState<SaveError | null>(null);
   const [pending, startTransition] = useTransition();
   const form = useForm<CompanyProfileFormValues, unknown, CompanyProfileInput>({
@@ -52,7 +50,6 @@ export function CompanyProfileForm({
       if (result.ok) {
         toast.success(result.status === "claim_pending" ? t("claimSentToast") : t("savedToast"));
         form.reset(form.getValues());
-        router.refresh();
         return;
       }
       if (result.error === "company_owned" || result.error === "tax_id_taken") {

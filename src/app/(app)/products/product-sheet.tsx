@@ -250,8 +250,7 @@ function ProductForm({
         if (!editing) await uploadPending(result.id);
         toast.success(editing ? t("updatedToast", { code }) : t("createdToast", { code }));
         onDone();
-        if (editing) router.refresh();
-        else router.push(`/products/${result.id}`);
+        if (!editing) router.push(`/products/${result.id}`);
         return;
       }
       if (result.error === "part_number_taken" || result.error === "revision_taken") {

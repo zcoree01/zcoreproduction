@@ -2,7 +2,6 @@
 
 import { PencilIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -115,7 +114,6 @@ export function LeaveTable({
 
 function LeaveForm({ row, year, onDone }: { row: Row; year: number; onDone: () => void }) {
   const t = useTranslations("absences");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [hiredOn, setHiredOn] = useState(row.data.hiredOn ?? "");
   const [prior, setPrior] = useState(String(row.data.priorServiceMonths));
@@ -140,7 +138,6 @@ function LeaveForm({ row, year, onDone }: { row: Row; year: number; onDone: () =
           return;
         }
         toast.success(t("leaveSavedToast", { name: row.name }));
-        router.refresh();
         onDone();
       } catch {
         toast.error(t("errors.offline"));

@@ -2,7 +2,6 @@
 
 import { CopyIcon, IdCardIcon, KeyRoundIcon, LockIcon, NfcIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -45,7 +44,6 @@ function subscribeNever() {
  */
 export function CredentialList({ credentials }: { credentials: CredentialRow[] }) {
   const t = useTranslations("kioskSettings");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [pin, setPin] = useState("");
@@ -91,7 +89,6 @@ export function CredentialList({ credentials }: { credentials: CredentialRow[] }
           toast.success(success);
           setEditing(null);
           setPin("");
-          router.refresh();
         } else toast.error(t(`errors.${result.error}`));
       } catch {
         toast.error(t("errors.unexpected"));

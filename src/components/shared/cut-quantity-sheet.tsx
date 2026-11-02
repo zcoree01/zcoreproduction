@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,6 @@ export function CutQuantitySheet({
   side?: "right" | "bottom";
 }) {
   const t = useTranslations("cutting");
-  const router = useRouter();
   const [value, setValue] = useState(suggested.replace(".", ","));
   const [invalid, setInvalid] = useState(false);
   // One key per opened sheet: a double tap or a retry never reports twice.
@@ -73,7 +71,6 @@ export function CutQuantitySheet({
         toast.success(t("doneToast", { number: orderNumber }));
         onOpenChange(false);
         setKey(crypto.randomUUID());
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }

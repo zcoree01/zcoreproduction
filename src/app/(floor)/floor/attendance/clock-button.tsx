@@ -31,7 +31,6 @@ export function ClockButton({ direction }: { direction: "in" | "out" }) {
       if (result.ok) {
         toast.success(t(direction === "in" ? "inToast" : "outToast"));
         setIdempotencyKey(crypto.randomUUID());
-        router.refresh();
         return;
       }
       toast.error(t(`errors.${result.error}`));

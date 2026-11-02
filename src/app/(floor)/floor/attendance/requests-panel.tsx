@@ -9,7 +9,6 @@ import {
   XIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge, type StatusTone } from "@/components/shared/status-badge";
@@ -81,7 +80,6 @@ function isDocumentType(type: string): type is keyof typeof ABSENCE_DOCUMENT_TYP
  */
 export function RequestsPanel(props: Props) {
   const t = useTranslations("absences");
-  const router = useRouter();
   const [sheet, setSheet] = useState<"leave" | "sick" | "closeSick" | "interrupt" | null>(null);
   const [, startTransition] = useTransition();
   // An open sick leave can only be closed; a running absence only interrupted.
@@ -103,7 +101,6 @@ export function RequestsPanel(props: Props) {
     ) ?? null;
   const done = () => {
     setSheet(null);
-    router.refresh();
   };
 
   const cancel = (action: () => Promise<RequestActionResult>) =>
@@ -112,7 +109,6 @@ export function RequestsPanel(props: Props) {
         const result = await action();
         if (result.ok) {
           toast.success(t("cancelledToast"));
-          router.refresh();
         } else toast.error(t(`errors.${result.error}`));
       } catch {
         toast.error(t("errors.offline"));
@@ -514,7 +510,6 @@ export function CorrectionButton({
   label: "fix" | "add";
 }) {
   const t = useTranslations("absences");
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -535,7 +530,6 @@ export function CorrectionButton({
               target={target}
               onDone={() => {
                 setOpen(false);
-                router.refresh();
               }}
             />
           ) : null}

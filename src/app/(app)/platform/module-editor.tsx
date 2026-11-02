@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -30,7 +29,6 @@ export function ModuleEditor({
   // Modules added later show their key until they get a name.
   const label =
     module.key === "production" || module.key === "attendance" ? tModule(module.key) : module.key;
-  const router = useRouter();
   const [enabled, setEnabled] = useState(module.enabled);
   const [until, setUntil] = useState(initialUntilDay);
   const [pending, startTransition] = useTransition();
@@ -47,7 +45,6 @@ export function ModuleEditor({
       });
       if (result.ok) {
         toast.success(t("savedToast", { module: label }));
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }

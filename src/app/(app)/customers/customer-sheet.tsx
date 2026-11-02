@@ -163,8 +163,7 @@ function CustomerForm({ customer, onDone }: { customer: CustomerRow | null; onDo
           },
         );
         onDone();
-        if (customer) router.refresh();
-        else router.push(`/customers/${result.id}`);
+        if (!customer) router.push(`/customers/${result.id}`);
         return;
       }
       if (result.error === "name_taken") {

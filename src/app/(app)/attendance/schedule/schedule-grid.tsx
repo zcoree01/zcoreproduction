@@ -93,7 +93,6 @@ export function ScheduleGrid(props: Props) {
       }
       if (result.ok) {
         toast.success(success(result.count ?? 0));
-        router.refresh();
       } else {
         toast.error(
           t(

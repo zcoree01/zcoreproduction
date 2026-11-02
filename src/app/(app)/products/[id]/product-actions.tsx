@@ -99,7 +99,6 @@ export function SetCurrentRevisionButton({
   revision: string;
 }) {
   const t = useTranslations("products");
-  const router = useRouter();
   return (
     <ConfirmDialog
       trigger={
@@ -115,7 +114,6 @@ export function SetCurrentRevisionButton({
         const result = await setCurrentRevisionAction(revisionId);
         if (result.ok) {
           toast.success(t("detail.setCurrentToast", { revision }));
-          router.refresh();
         } else {
           toast.error(t(`errors.${result.error}`));
         }
@@ -138,7 +136,6 @@ export function ProductActions({
   options: ProductFormOptions;
 }) {
   const t = useTranslations("products");
-  const router = useRouter();
   const [sheet, setSheet] = useState<"edit" | "revision" | "copy" | null>(null);
   const [archiving, setArchiving] = useState(false);
   const [, startTransition] = useTransition();
@@ -148,7 +145,6 @@ export function ProductActions({
       const result = await setProductArchivedAction(product.id, false);
       if (result.ok) {
         toast.success(t("restoredToast", { code: product.partNumber }));
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }
@@ -232,7 +228,6 @@ export function ProductActions({
           const result = await setProductArchivedAction(product.id, true);
           if (result.ok) {
             toast.success(t("archivedToast", { code: product.partNumber }));
-            router.refresh();
           } else {
             toast.error(t(`errors.${result.error}`));
           }
@@ -271,7 +266,6 @@ function NewRevisionForm({
         toast.success(t("revisionForm.createdToast", { revision: values.revision.toUpperCase() }));
         onDone();
         router.push(`/products/${product.id}`);
-        router.refresh();
         return;
       }
       if (result.error === "revision_taken" || result.error === "invalid") {

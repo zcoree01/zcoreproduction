@@ -2,7 +2,6 @@
 
 import { CheckIcon, XIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +47,6 @@ function ChangeRequestItem({ request }: { request: ChangeRequestView }) {
   const t = useTranslations("changeRequests");
   const tField = useTranslations("companyFields");
   const format = useFormatter();
-  const router = useRouter();
   const [note, setNote] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -68,7 +66,6 @@ function ChangeRequestItem({ request }: { request: ChangeRequestView }) {
       const result = await decideCompanyChangeAction({ requestId: request.id, approve, note });
       if (result.ok) {
         toast.success(approve ? t("approvedToast") : t("rejectedToast"));
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }

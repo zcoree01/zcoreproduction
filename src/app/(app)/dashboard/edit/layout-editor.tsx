@@ -103,7 +103,6 @@ export function LayoutEditor({
       }
       setDirty(false);
       toast.success(t("editor.saved", { role: roleLabel }));
-      router.refresh();
     });
 
   const reset = async () => {
@@ -114,7 +113,6 @@ export function LayoutEditor({
     }
     toast.success(t("editor.resetDone", { role: roleLabel }));
     setDirty(false);
-    router.refresh();
   };
 
   const warning = (key: WidgetKey): string | null => {

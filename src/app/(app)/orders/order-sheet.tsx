@@ -790,7 +790,6 @@ function EditOrderForm({
 }) {
   const t = useTranslations("orders.form");
   const tUnits = useTranslations("productUnits");
-  const router = useRouter();
   const [formError, setFormError] = useState<FormError | null>(null);
   const [pending, startTransition] = useTransition();
   const form = useForm<UpdateOrderFormValues, unknown, UpdateOrderInput>({
@@ -812,7 +811,6 @@ function EditOrderForm({
       if (result.ok) {
         toast.success(t("updatedToast", { number: order.orderNumber }));
         onDone();
-        router.refresh();
         return;
       }
       applyResult(

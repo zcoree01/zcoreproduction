@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CutQuantitySheet } from "@/components/shared/cut-quantity-sheet";
@@ -36,7 +35,6 @@ export function MaterialStatusButtons({
 }) {
   const t = useTranslations("floorOrders.material");
   const tStatus = useTranslations("orderStatus");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [cutting, setCutting] = useState(false);
   const allowed = allowedOrderTargets(status, { manage: false, material: true });
@@ -48,7 +46,6 @@ export function MaterialStatusButtons({
         toast.success(
           t("changedToast", { number: orderNumber, status: t(`labels.${to}` as "labels.ready") }),
         );
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }

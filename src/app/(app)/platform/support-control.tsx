@@ -53,7 +53,6 @@ export function SupportControl({
   const done = (result: { ok: boolean; error?: string }, success: string) => {
     if (result.ok) {
       toast.success(success);
-      router.refresh();
     } else {
       toast.error(t(`errors.${(result.error ?? "unexpected") as "unexpected"}`));
     }

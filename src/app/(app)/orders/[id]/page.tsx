@@ -4,7 +4,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
-import { OrderStatusBadge, PriorityBadge } from "@/components/shared/order-badges";
+import { PriorityBadge } from "@/components/shared/order-badges";
 import { OrderProgress } from "@/components/shared/order-progress";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
@@ -40,6 +40,7 @@ import { OrderAttachmentsPanel } from "./attachments-panel";
 import { OrderHistoryPanel } from "./history-panel";
 import { OperationsPanel } from "./operations-panel";
 import { OrderActions, OrderStatusControl } from "./order-actions";
+import { OrderStatusProvider, ShownOrderStatusBadge } from "./order-status-context";
 import { FinishedGoodsCard } from "./finished-goods-card";
 import { MaterialPanel } from "./material-panel";
 import { OrderTabs } from "./order-tabs";
@@ -64,23 +65,22 @@ async function OrderContent({
   const member = await requireMember();
   const organizationId = member.organization.id;
   const timezone = member.organization.timezone;
-  const [t, tUnits, tInventory, format, access] = await Promise.all([
+  const orderId = z.uuid().safeParse((await params).id);
+  const tab = parseOrderTab(await searchParams);
+  // The order is read together with the access check (RLS guards it either way).
+  const [t, tUnits, tInventory, format, access, order] = await Promise.all([
     getTranslations("orders"),
     getTranslations("productUnits"),
     getTranslations("inventory"),
     getFormatter(),
     getMemberAccess(member),
+    orderId.success ? getOrder(organizationId, orderId.data) : Promise.resolve(null),
   ]);
 
   if (!access.modules.has("production")) return <ModuleDisabled />;
   if (!access.permissions.has("orders.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
-
-  const { id } = await params;
-  const tab = parseOrderTab(await searchParams);
-  const orderId = z.uuid().safeParse(id);
-  const order = orderId.success ? await getOrder(organizationId, orderId.data) : null;
   if (!order) {
     return (
       <EmptyState
@@ -109,39 +109,45 @@ async function OrderContent({
     inventory &&
     (access.permissions.has("inventory.read") || access.permissions.has("products.manage"));
   const canReadFinished = inventory && access.permissions.has("finished_goods.read");
-  const finished = canReadFinished ? await getOrderFinishedGoods(organizationId, order.id) : null;
-  const [material, stockItems, stockLocations, inventorySettings] = await Promise.all([
-    canReadStock && order.customer
-      ? getOrderMaterial(organizationId, order.id, order.stockItemId, order.customer.id)
-      : Promise.resolve(null),
-    canPickStock ? listStockItemOptions(organizationId) : Promise.resolve([]),
-    canReadStock ? listStockLocations(organizationId) : Promise.resolve([]),
-    canReadStock ? getInventorySettings(organizationId) : Promise.resolve(null),
-  ]);
+  // One round trip for everything that depends only on the order.
   const [
-    operations,
-    production,
-    attachments,
-    statusLog,
-    history,
-    settings,
-    productionSettings,
-    assignment,
-    types,
-    downtimeReasons,
+    [finished, material, stockItems, stockLocations, inventorySettings],
+    [
+      operations,
+      production,
+      attachments,
+      statusLog,
+      history,
+      settings,
+      productionSettings,
+      assignment,
+      types,
+      downtimeReasons,
+    ],
   ] = await Promise.all([
-    listOrderOperations(organizationId, order.id),
-    getOrderProduction(order.id),
-    listOrderAttachments(organizationId, order.id),
-    getOrderStatusLog(order.id),
-    getOrderHistory(order.id),
-    getOrderSettings(organizationId),
-    getProductionSettings(organizationId),
-    canManage
-      ? listAssignmentOptions(organizationId)
-      : Promise.resolve({ machines: [], employees: [] }),
-    canManage ? listOperationTypes(organizationId) : Promise.resolve([]),
-    canManage ? listReasons(organizationId, "downtime_reason") : Promise.resolve([]),
+    Promise.all([
+      canReadFinished ? getOrderFinishedGoods(organizationId, order.id) : Promise.resolve(null),
+      canReadStock && order.customer
+        ? getOrderMaterial(organizationId, order.id, order.stockItemId, order.customer.id)
+        : Promise.resolve(null),
+      canPickStock ? listStockItemOptions(organizationId) : Promise.resolve([]),
+      canReadStock ? listStockLocations(organizationId) : Promise.resolve([]),
+      canReadStock ? getInventorySettings(organizationId) : Promise.resolve(null),
+    ]),
+    Promise.all([
+      listOrderOperations(organizationId, order.id),
+      getOrderProduction(order.id),
+      listOrderAttachments(organizationId, order.id),
+      getOrderStatusLog(order.id),
+      getOrderHistory(order.id),
+      getOrderSettings(organizationId),
+      getProductionSettings(organizationId),
+      canManage
+        ? listAssignmentOptions(organizationId)
+        : Promise.resolve({ machines: [], employees: [] }),
+      canManage ? listOperationTypes(organizationId) : Promise.resolve([]),
+      canManage ? listReasons(organizationId, "downtime_reason") : Promise.resolve([]),
+    ]),
   ]);
   const stamp = (iso: string) =>
     format.dateTime(new Date(iso), { dateStyle: "medium", timeStyle: "short", timeZone: timezone });
@@ -154,7 +160,7 @@ async function OrderContent({
   ).length;
 
   return (
-    <>
+    <OrderStatusProvider status={order.status}>
       <div className="flex flex-col gap-4">
         <Link
           href="/orders"
@@ -169,7 +175,10 @@ async function OrderContent({
               <h1 className="font-mono text-2xl font-semibold tracking-tight">
                 {order.orderNumber}
               </h1>
-              <OrderStatusBadge status={order.status} closeRequested={order.closeRequestPending} />
+              <ShownOrderStatusBadge
+                status={order.status}
+                closeRequested={order.closeRequestPending}
+              />
               <PriorityBadge
                 priority={order.effectivePriority}
                 automatic={settings.priorityMode === "automatic" && order.priority === null}
@@ -352,6 +361,6 @@ async function OrderContent({
           ),
         }}
       />
-    </>
+    </OrderStatusProvider>
   );
 }

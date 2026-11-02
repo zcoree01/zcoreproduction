@@ -9,8 +9,7 @@ import {
   WrenchIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -91,10 +90,14 @@ const NO_RECORDING = new Set([
  * idempotency key until the server confirms, so a resend never counts twice.
  */
 export function WorkPanel(props: Props) {
-  const { work, operationStatus, isInspection } = props;
+  const { isInspection } = props;
   const t = useTranslations("floorWork");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // Start, pause and reports show at once; the server's answer replaces them.
+  const [{ work, operationStatus }, show] = useOptimistic(
+    { work: props.work, operationStatus: props.operationStatus },
+    applyWorkChange,
+  );
   const [sheet, setSheet] = useState<
     "pause" | "report" | "finish" | "close" | "downtime" | "tool" | null
   >(null);
@@ -104,8 +107,9 @@ export function WorkPanel(props: Props) {
   const canRecord =
     !isInspection && operationStatus !== "done" && !NO_RECORDING.has(work.blocked ?? "");
 
-  const run = (action: () => Promise<WorkActionResult>, success: string) =>
+  const run = (action: () => Promise<WorkActionResult>, success: string, change?: WorkChange) =>
     startTransition(async () => {
+      if (change) show(change);
       let result: WorkActionResult;
       try {
         result = await action();
@@ -118,7 +122,6 @@ export function WorkPanel(props: Props) {
         toast.success(success);
         setSheet(null);
         setVersion((current) => current + 1);
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }
@@ -190,6 +193,7 @@ export function WorkPanel(props: Props) {
                 run(
                   () => startWorkAction(props.operationId),
                   t("startedToast", { number: props.orderNumber }),
+                  { kind: "start" },
                 )
               }
             >
@@ -258,7 +262,8 @@ export function WorkPanel(props: Props) {
           ) : null}
         </div>
 
-        {operationStatus === "done" ? (
+        {/* Only once the server confirmed: "done" must not show while the report is on its way. */}
+        {props.operationStatus === "done" ? (
           <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
             {t("doneNote")}
           </p>
@@ -288,7 +293,9 @@ export function WorkPanel(props: Props) {
         reasons={props.downtimeReasons}
         pending={pending}
         onSubmit={(reasonId, notes) =>
-          run(() => pauseWorkAction(props.operationId, { reasonId, notes }), t("pausedToast"))
+          run(() => pauseWorkAction(props.operationId, { reasonId, notes }), t("pausedToast"), {
+            kind: "pause",
+          })
         }
       />
       <ReportSheet
@@ -310,6 +317,7 @@ export function WorkPanel(props: Props) {
           run(
             () => reportQuantityAction(props.operationId, input),
             input.finish ? t("finishedToast") : t("reportedToast"),
+            { kind: "report", good: input.good, scrap: input.scrap, finish: input.finish },
           )
         }
       />
@@ -464,6 +472,36 @@ function PauseSheet({
       </SheetContent>
     </Sheet>
   );
+}
+
+type WorkChange =
+  | { kind: "start" }
+  | { kind: "pause" }
+  | { kind: "report"; good: string; scrap: string; finish: boolean };
+
+type ShownWork = { work: OperationWork; operationStatus: OperationStatus };
+
+function applyWorkChange({ work, operationStatus }: ShownWork, change: WorkChange): ShownWork {
+  switch (change.kind) {
+    case "start":
+      return { work: { ...work, working: true, pause: null }, operationStatus: "in_progress" };
+    case "pause":
+      return { work: { ...work, working: false }, operationStatus: "paused" };
+    case "report": {
+      const good = addDecimals([work.good_quantity, change.good || "0"]);
+      const scrap = addDecimals([work.scrap_quantity, change.scrap || "0"]);
+      return {
+        work: {
+          ...work,
+          good_quantity: good,
+          scrap_quantity: scrap,
+          remaining_quantity: remainingQuantity(work.input_quantity, good, scrap),
+          working: change.finish ? false : work.working,
+        },
+        operationStatus: change.finish ? "done" : operationStatus,
+      };
+    }
+  }
 }
 
 type ReportSubmit = {

@@ -9,7 +9,6 @@ import {
   WrenchIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -58,7 +57,6 @@ export function ToolList({
   canManage: boolean;
 }) {
   const t = useTranslations("tools");
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ToolRow | "new" | null>(null);
@@ -78,7 +76,6 @@ export function ToolList({
       const result = await setToolArchivedAction(tool.id, archived);
       if (result.ok) {
         toast.success(t(archived ? "archivedToast" : "restoredToast"));
-        router.refresh();
       } else toast.error(t(`errors.${result.error}`));
     });
 
@@ -275,7 +272,6 @@ function ToolForm({
   onDone: () => void;
 }) {
   const t = useTranslations("tools");
-  const router = useRouter();
   const [code, setCode] = useState(tool?.code ?? "");
   const [name, setName] = useState(tool?.name ?? "");
   const [kind, setKind] = useState<ToolKind>(tool?.kind ?? "tool");
@@ -307,7 +303,6 @@ function ToolForm({
       if (result.ok) {
         toast.success(t("form.saved"));
         onDone();
-        router.refresh();
       } else setFailure({ error: result.error, fields: result.fields });
     });
   };
@@ -434,7 +429,6 @@ function MoveForm({
   onDone: () => void;
 }) {
   const t = useTranslations("tools");
-  const router = useRouter();
   const [key] = useState(() => crypto.randomUUID());
   const [kind, setKind] = useState<ToolMove>(tool.stock.length === 0 ? "receipt" : "issue");
   const [quantity, setQuantity] = useState("1");
@@ -465,7 +459,6 @@ function MoveForm({
       if (result.ok) {
         toast.success(t("moveForm.done"));
         onDone();
-        router.refresh();
       } else setFailure({ error: result.error, fields: result.fields });
     });
   };

@@ -2,7 +2,6 @@
 
 import { ArchiveIcon, PencilIcon, RotateCcwIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -13,7 +12,6 @@ import { CustomerSheet } from "../customer-sheet";
 
 export function CustomerActions({ customer }: { customer: CustomerRow }) {
   const t = useTranslations("customers");
-  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -21,7 +19,6 @@ export function CustomerActions({ customer }: { customer: CustomerRow }) {
     const result = await setCustomerArchivedAction(customer.id, archived);
     if (result.ok) {
       toast.success(t(archived ? "archivedToast" : "restoredToast", { name: customer.name }));
-      router.refresh();
     } else {
       toast.error(t(`form.errors.${result.error}`));
     }

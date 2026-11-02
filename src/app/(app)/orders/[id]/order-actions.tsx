@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -50,6 +49,7 @@ import {
   type StatusActor,
 } from "@/modules/production-orders/status-rules";
 import { CopyOrderSheet, EditOrderSheet, type OrderStockItemChoice } from "../order-sheet";
+import { useShowOrderStatus } from "./order-status-context";
 
 /** Status change: allowed targets for the member; cancelling asks for a reason. */
 export function OrderStatusControl({
@@ -75,20 +75,20 @@ export function OrderStatusControl({
 }) {
   const t = useTranslations("orders.status");
   const tStatus = useTranslations("orderStatus");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [cancelling, setCancelling] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [cutting, setCutting] = useState(false);
+  const showStatus = useShowOrderStatus();
   const targets = allowedOrderTargets(status, actor);
   if (targets.length === 0) return null;
 
   const change = (to: OrderStatus, reason?: string) =>
     startTransition(async () => {
+      showStatus(to);
       const result = await setOrderStatusAction(orderId, { status: to, reason: reason ?? "" });
       if (result.ok) {
         toast.success(t("changedToast", { number: orderNumber, status: tStatus(to) }));
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }
@@ -308,7 +308,6 @@ function ReplaceDrawingsSheet({
   order: OrderDetail;
 }) {
   const t = useTranslations("orders.drawings");
-  const router = useRouter();
   const others = order.revisions.filter((r) => r.id !== order.revisionId);
   const [revisionId, setRevisionId] = useState(others[0]?.id ?? "");
   const [pending, startTransition] = useTransition();
@@ -323,7 +322,6 @@ function ReplaceDrawingsSheet({
       if (result.ok) {
         toast.success(t("replacedToast", { number: order.orderNumber }));
         onOpenChange(false);
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }

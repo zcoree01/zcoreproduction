@@ -2,7 +2,6 @@
 
 import { XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import { cancelDeliveryNoteAction } from "@/modules/finished-goods/actions";
 
 export function CancelNoteButton({ noteId, number }: { noteId: string; number: string }) {
   const t = useTranslations("finishedGoods");
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +31,6 @@ export function CancelNoteButton({ noteId, number }: { noteId: string; number: s
       if (result.ok) {
         toast.success(t("notes.cancelled"));
         setOpen(false);
-        router.refresh();
       } else {
         setError(t(`errors.${result.error}`));
       }

@@ -2,7 +2,6 @@
 
 import { ArrowUpFromLineIcon, ScanLineIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { compareDecimals } from "@/lib/decimal";
@@ -26,7 +25,6 @@ export function OrderIssueScreen({
 }) {
   const t = useTranslations("floorWarehouse.order");
   const format = useStockFormat();
-  const router = useRouter();
   const [scanning, setScanning] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [lotId, setLotId] = useState<string | undefined>(undefined);
@@ -99,7 +97,6 @@ export function OrderIssueScreen({
             open={issuing}
             onClose={() => {
               setIssuing(false);
-              router.refresh();
             }}
             order={order}
             material={material}

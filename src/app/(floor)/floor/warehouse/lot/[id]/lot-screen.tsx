@@ -2,7 +2,6 @@
 
 import { ArrowRightLeftIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,6 @@ export function LotScreen({
 }) {
   const t = useTranslations("floorWarehouse.lot");
   const format = useStockFormat();
-  const router = useRouter();
   const [moving, setMoving] = useState<StockBalanceRow | null>(null);
 
   return (
@@ -84,7 +82,6 @@ export function LotScreen({
         locations={locations}
         onClose={() => {
           setMoving(null);
-          router.refresh();
         }}
       />
     </div>

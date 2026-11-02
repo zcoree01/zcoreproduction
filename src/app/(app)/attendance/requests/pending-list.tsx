@@ -2,7 +2,6 @@
 
 import { CheckIcon, FileTextIcon, InboxIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -109,7 +108,6 @@ function Decision({
   testId: string;
 }) {
   const t = useTranslations("absences");
-  const router = useRouter();
   const [decisionNote, setDecisionNote] = useState("");
   const [pending, startTransition] = useTransition();
   const hasNote = decisionNote.trim() !== "";
@@ -120,7 +118,6 @@ function Decision({
         const result = await decide(approve, decisionNote);
         if (result.ok) {
           toast.success(t(approve ? "approvedToast" : "rejectedToast"));
-          router.refresh();
         } else toast.error(t(`errors.${result.error}`));
       } catch {
         toast.error(t("errors.offline"));

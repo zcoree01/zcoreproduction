@@ -11,7 +11,6 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -233,7 +232,6 @@ function UploadCard({
   operations: ProductOperation[];
 }) {
   const t = useTranslations("products.attachments");
-  const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState<AttachmentKind>(
     mainDrawings.length > 0 ? "machine_drawing" : "main_drawing",
@@ -270,7 +268,6 @@ function UploadCard({
       setFile(null);
       setTitle("");
       if (fileInput.current) fileInput.current.value = "";
-      router.refresh();
     });
   };
 

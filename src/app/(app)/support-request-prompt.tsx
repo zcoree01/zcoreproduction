@@ -2,7 +2,7 @@
 
 import { ShieldQuestionIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -33,7 +33,6 @@ const POLL_MS = 10_000;
 export function SupportRequestPrompt({ initial }: { initial: PendingSupportRequest[] }) {
   const t = useTranslations("support.prompt");
   const tSupport = useTranslations("support");
-  const router = useRouter();
   const pathname = usePathname();
   const [requests, setRequests] = useState(initial);
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set());
@@ -73,7 +72,6 @@ export function SupportRequestPrompt({ initial }: { initial: PendingSupportReque
         setRequests((list) => list.filter((request) => request.id !== current.id));
         setRejecting(false);
         setNote("");
-        router.refresh();
       } else {
         toast.error(tSupport(`errors.${result.error}`));
       }

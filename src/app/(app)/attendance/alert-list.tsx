@@ -2,7 +2,6 @@
 
 import { CheckIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ function AlertItem({
   alert: Row;
   t: ReturnType<typeof useTranslations<"attendanceBoard">>;
 }) {
-  const router = useRouter();
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -46,7 +44,6 @@ function AlertItem({
       }
       if (result.ok) {
         toast.success(t("resolvedToast", { name: alert.employeeName }));
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }

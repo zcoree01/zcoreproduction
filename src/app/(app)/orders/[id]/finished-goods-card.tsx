@@ -3,7 +3,6 @@
 import { PackageCheckIcon, TruckIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -34,7 +33,6 @@ export function FinishedGoodsCard({
 }) {
   const t = useTranslations("finishedGoods.order");
   const tErrors = useTranslations("finishedGoods.errors");
-  const router = useRouter();
   const open = receivable(goodQuantity, stock.received);
   const [key, setKey] = useState(() => crypto.randomUUID());
   const [quantity, setQuantity] = useState(formatDecimal(open));
@@ -50,7 +48,6 @@ export function FinishedGoodsCard({
       if (result.ok) {
         toast.success(t("received_toast"));
         setKey(crypto.randomUUID());
-        router.refresh();
       } else {
         setInvalid(tErrors(result.error));
       }

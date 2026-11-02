@@ -2,7 +2,6 @@
 
 import { CheckIcon, PlusIcon, SendIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { SearchSelect } from "@/components/shared/search-select";
@@ -50,7 +49,6 @@ export function CountEntry({
 }) {
   const t = useTranslations("inventory.counts");
   const tErrors = useTranslations("inventory.errors");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [cancelling, setCancelling] = useState(false);
   const [note, setNote] = useState("");
@@ -66,7 +64,6 @@ export function CountEntry({
       const result = await action();
       if (result.ok) {
         toast.success(done);
-        router.refresh();
       } else {
         toast.error(tErrors((result.error ?? "unexpected") as "unexpected"));
       }
@@ -167,7 +164,6 @@ function CountLineRow({ line, editable }: { line: StockCountLine; editable: bool
   const tUnits = useTranslations("inventory.units");
   const tErrors = useTranslations("inventory.errors");
   const format = useStockFormat();
-  const router = useRouter();
   const [value, setValue] = useState(countedText(line));
   const [invalid, setInvalid] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -183,8 +179,8 @@ function CountLineRow({ line, editable }: { line: StockCountLine; editable: bool
     setInvalid(false);
     startTransition(async () => {
       const result = await setCountLineAction({ lineId: line.id, counted: value });
-      if (result.ok) router.refresh();
-      else if (result.error === "invalid" || result.error === "invalid_line") setInvalid(true);
+      if (result.ok) return;
+      if (result.error === "invalid" || result.error === "invalid_line") setInvalid(true);
       else toast.error(tErrors(result.error));
     });
   };
@@ -256,7 +252,6 @@ function FoundLineForm({ count, items }: { count: StockCountDetail; items: Stock
   const t = useTranslations("inventory.counts");
   const tErrors = useTranslations("inventory.errors");
   const tUnits = useTranslations("inventory.units");
-  const router = useRouter();
   const choices = count.itemId ? items.filter((i) => i.id === count.itemId) : items;
   const [itemId, setItemId] = useState(choices.length === 1 ? (choices[0]?.id ?? "") : "");
   const item = choices.find((i) => i.id === itemId);
@@ -289,7 +284,6 @@ function FoundLineForm({ count, items }: { count: StockCountDetail; items: Stock
       });
       if (result.ok) {
         toast.success(t("foundAdded"));
-        router.refresh();
       } else if (result.fields.length > 0) {
         setFields(result.fields);
       } else {

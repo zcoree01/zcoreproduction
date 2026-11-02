@@ -2,7 +2,6 @@
 
 import { PencilIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,6 @@ export function CorrectionEntry({
   defaultDay: string;
 }) {
   const t = useTranslations("absences");
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const first = sessions.at(-1);
@@ -78,7 +76,6 @@ export function CorrectionEntry({
         setIdempotencyKey(crypto.randomUUID());
         setReason("");
         setOpen(false);
-        router.refresh();
       } catch {
         toast.error(t("errors.offline"));
       }

@@ -2,7 +2,6 @@
 
 import { SettingsIcon, Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,6 @@ export function EmployeeSettingsButton(props: {
 }) {
   const t = useTranslations("monthly");
   const tDays = useTranslations("schedule");
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [ownWeekend, setOwnWeekend] = useState(props.ownWeekend);
@@ -66,7 +64,6 @@ export function EmployeeSettingsButton(props: {
         const result = await action();
         if (result.ok) {
           toast.success(success);
-          router.refresh();
         } else {
           toast.error(
             t(

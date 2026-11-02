@@ -253,6 +253,13 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-02 — Speed and security review (D-042)
+
+- Product owner: status changes are slow. Measured with `pg_stat_statements` / `EXPLAIN ANALYZE` as a real member: per-row `has_permission` in RLS and per-row view helpers under RLS. Migration `20261104120000_rls_permission_sets` (applied): `private.permitted_org_ids`, all plain-form policies rewritten, two helpers as definer, FK indexes, notification_reads initplan. Generated types unchanged.
+- Client: `router.refresh()` removed after revalidating actions (~60 places, one render per action instead of two); `useOptimistic` for order status, operation status and the floor work panel; order detail page reads in one parallel round; security headers in `next.config.ts`.
+- Security review: no leak found (RLS on all tables, no anon grants, definer functions check membership / permission, `security_invoker` views, private buckets, column-level update grants, service role only after a permission check). Open: leaked-password protection (dashboard), `/support/exit` is a GET.
+- Checks: `format:check`, `npm run check` (468 unit tests), `npm run build` green. `test:db` after the migration: all 21 files green in clean runs (the first runs collided with a parallel session on the shared fixture and with the Auth sign-in rate limit). E2E: 61/68 in the full run; of the 7, four passed on rerun (slow dev server / auth limit), `reporting.spec` exposed that the optimistic "done" note showed before the server confirmed (fixed, 3/3 green), `orders.spec` "warehouse … material statuses" failed because demo order RN1-4326-001 had been moved to "ready" by the product owner while testing; set back to "waiting_material" through `set_production_order_status` (its operations stay done), then `orders.spec` 4/4 green. RN1-4326-003 stays in "cutting" (no way back to draft; no test uses it).
+
 ### 2026-11-03 — Delivery notes by e-mail (free variant); full e2e run
 
 - Product owner proposed connecting Gmail / Outlook. Gmail drafts with attachments need a paid Google security assessment, so the product owner chose the free variant: share sheet with the PDF, or web mail with the PDF downloaded (D-040). Dependency `@react-pdf/renderer` 4.9.0; Noto Sans fonts (OFL) in `src/assets/fonts`, traced into the PDF route.

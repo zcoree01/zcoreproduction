@@ -18,6 +18,25 @@ const nextConfig: NextConfig = {
   // Delivery note PDFs (D-040): react-pdf runs as a plain Node package, and
   // its fonts are read from disk, so they must ship with the function.
   serverExternalPackages: ["@react-pdf/renderer"],
+  // No framing by other sites (clickjacking), no MIME sniffing, no full URLs
+  // in referrers; camera (QR / kiosk) and NFC only for the app itself.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(self), microphone=(), geolocation=(), payment=(), nfc=(self)",
+          },
+        ],
+      },
+    ];
+  },
   outputFileTracingIncludes: {
     "/inventory/delivery-notes/[id]/pdf": ["./src/assets/fonts/**"],
   },

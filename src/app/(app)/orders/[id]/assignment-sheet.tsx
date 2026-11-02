@@ -2,7 +2,6 @@
 
 import { TriangleAlertIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -77,7 +76,6 @@ function AssignmentForm({
   onDone: () => void;
 }) {
   const t = useTranslations("orders.assignment");
-  const router = useRouter();
   const [machineId, setMachineId] = useState(operation.machine?.id ?? "");
   const [workerIds, setWorkerIds] = useState<string[]>(
     operation.workers.map((worker) => worker.employeeId),
@@ -140,7 +138,6 @@ function AssignmentForm({
         );
       }
       onDone();
-      router.refresh();
     });
   };
 

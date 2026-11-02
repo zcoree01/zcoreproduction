@@ -2,7 +2,6 @@
 
 import { KeyRoundIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import { setOwnPinAction } from "@/modules/attendance/kiosk-admin";
 /** The worker sets the 4-digit PIN for the kiosk tablet at the entrance. */
 export function KioskPinCard({ pinSet }: { pinSet: boolean }) {
   const t = useTranslations("kioskPin");
-  const router = useRouter();
   const [pin, setPin] = useState("");
   const [repeat, setRepeat] = useState("");
   const [pending, startTransition] = useTransition();
@@ -28,7 +26,6 @@ export function KioskPinCard({ pinSet }: { pinSet: boolean }) {
           toast.success(t("savedToast"));
           setPin("");
           setRepeat("");
-          router.refresh();
         } else toast.error(t(`errors.${result.error}`));
       } catch {
         toast.error(t("errors.unexpected"));

@@ -9,7 +9,6 @@ import {
   XIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Duration } from "@/components/shared/duration";
@@ -109,7 +108,6 @@ export function ProductionPanel({
   >(null);
   // New key and empty form after every confirmed save.
   const [version, setVersion] = useState(0);
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const pendingRequest = production.closeRequests.find((row) => row.status === "pending");
@@ -140,7 +138,6 @@ export function ProductionPanel({
         toast.success(success);
         setDialog(null);
         setVersion((current) => current + 1);
-        router.refresh();
       } else {
         toast.error(t(`errors.${result.error}`));
       }

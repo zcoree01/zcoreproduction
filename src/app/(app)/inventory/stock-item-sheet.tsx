@@ -180,7 +180,6 @@ function StockItemForm({
         toast.success(t("itemForm.saved"));
         onDone();
         if (!item) router.push(`/inventory/${result.id}`);
-        else router.refresh();
       } else if (result.error === "code_taken") {
         form.setError("code", { type: "server", message: t("errors.code_taken") });
       } else if (result.error === "invalid" && result.fields.length > 0) {
