@@ -1573,6 +1573,55 @@ export type Database = {
         }
         Relationships: []
       }
+      machine_inserts: {
+        Row: {
+          edges_used: number
+          machine_id: string
+          opened_at: string
+          organization_id: string
+          tool_id: string
+          updated_at: string
+        }
+        Insert: {
+          edges_used: number
+          machine_id: string
+          opened_at?: string
+          organization_id: string
+          tool_id: string
+          updated_at?: string
+        }
+        Update: {
+          edges_used?: number
+          machine_id?: string
+          opened_at?: string
+          organization_id?: string
+          tool_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_inserts_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "machine_inserts_organization_id_machine_id_fkey"
+            columns: ["organization_id", "machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "machine_inserts_organization_id_tool_id_fkey"
+            columns: ["organization_id", "tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       machines: {
         Row: {
           archived_at: string | null
@@ -3103,9 +3152,11 @@ export type Database = {
         Row: {
           changed_at: string
           duration_min: number | null
+          edge_no: number | null
           employee_id: string | null
           id: string
           idempotency_key: string
+          insert_action: string | null
           insert_name: string | null
           machine_id: string | null
           notes: string | null
@@ -3116,13 +3167,16 @@ export type Database = {
           reason_kind: string | null
           reported_by: string | null
           tool: string
+          tool_id: string | null
         }
         Insert: {
           changed_at?: string
           duration_min?: number | null
+          edge_no?: number | null
           employee_id?: string | null
           id?: string
           idempotency_key: string
+          insert_action?: string | null
           insert_name?: string | null
           machine_id?: string | null
           notes?: string | null
@@ -3133,13 +3187,16 @@ export type Database = {
           reason_kind?: string | null
           reported_by?: string | null
           tool: string
+          tool_id?: string | null
         }
         Update: {
           changed_at?: string
           duration_min?: number | null
+          edge_no?: number | null
           employee_id?: string | null
           id?: string
           idempotency_key?: string
+          insert_action?: string | null
           insert_name?: string | null
           machine_id?: string | null
           notes?: string | null
@@ -3150,6 +3207,7 @@ export type Database = {
           reason_kind?: string | null
           reported_by?: string | null
           tool?: string
+          tool_id?: string | null
         }
         Relationships: [
           {
@@ -3214,6 +3272,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_items"
             referencedColumns: ["organization_id", "kind", "id"]
+          },
+          {
+            foreignKeyName: "production_tool_changes_tool_fkey"
+            columns: ["organization_id", "tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["organization_id", "id"]
           },
         ]
       }
@@ -4791,6 +4856,147 @@ export type Database = {
           },
         ]
       }
+      tool_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          idempotency_key: string
+          kind: string
+          location_id: string
+          organization_id: string
+          quantity: number
+          reason: string | null
+          tool_change_id: string | null
+          tool_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key: string
+          kind: string
+          location_id: string
+          organization_id: string
+          quantity: number
+          reason?: string | null
+          tool_change_id?: string | null
+          tool_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idempotency_key?: string
+          kind?: string
+          location_id?: string
+          organization_id?: string
+          quantity?: number
+          reason?: string | null
+          tool_change_id?: string | null
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_movements_organization_id_location_id_fkey"
+            columns: ["organization_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "tool_movements_organization_id_tool_change_id_fkey"
+            columns: ["organization_id", "tool_change_id"]
+            isOneToOne: false
+            referencedRelation: "production_tool_changes"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "tool_movements_organization_id_tool_id_fkey"
+            columns: ["organization_id", "tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      tools: {
+        Row: {
+          archived_at: string | null
+          code: string
+          created_at: string
+          cutting_edges: number | null
+          home_machine_id: string | null
+          id: string
+          kind: string
+          min_stock: number | null
+          name: string
+          notes: string | null
+          organization_id: string
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          code: string
+          created_at?: string
+          cutting_edges?: number | null
+          home_machine_id?: string | null
+          id?: string
+          kind: string
+          min_stock?: number | null
+          name: string
+          notes?: string | null
+          organization_id: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          code?: string
+          created_at?: string
+          cutting_edges?: number | null
+          home_machine_id?: string | null
+          id?: string
+          kind?: string
+          min_stock?: number | null
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tools_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tools_organization_id_home_machine_id_fkey"
+            columns: ["organization_id", "home_machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_directory"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "tools_organization_id_home_machine_id_fkey"
+            columns: ["organization_id", "home_machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
     }
     Views: {
       employee_directory: {
@@ -5308,6 +5514,37 @@ export type Database = {
           },
         ]
       }
+      tool_balances: {
+        Row: {
+          location_id: string | null
+          organization_id: string | null
+          quantity: number | null
+          tool_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_movements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_movements_organization_id_location_id_fkey"
+            columns: ["organization_id", "location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "tool_movements_organization_id_tool_id_fkey"
+            columns: ["organization_id", "tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
     }
     Functions: {
       absences_range: {
@@ -5596,6 +5833,18 @@ export type Database = {
           working: boolean
         }[]
       }
+      floor_operation_tools: {
+        Args: { p_operation_id: string }
+        Returns: {
+          at_machine: number
+          code: string
+          cutting_edges: number
+          edges_used: number
+          kind: string
+          name: string
+          tool_id: string
+        }[]
+      }
       floor_operation_work: { Args: { p_operation_id: string }; Returns: Json }
       floor_order: { Args: { p_order_id: string }; Returns: Json }
       floor_order_material: { Args: { p_operation_id: string }; Returns: Json }
@@ -5674,6 +5923,20 @@ export type Database = {
           name: string
           status: string
         }[]
+      }
+      move_tool: {
+        Args: {
+          p_from?: string
+          p_idempotency_key: string
+          p_kind: string
+          p_machine_id?: string
+          p_org_id: string
+          p_quantity: number
+          p_reason?: string
+          p_to?: string
+          p_tool_id: string
+        }
+        Returns: undefined
       }
       my_attendance: {
         Args: { p_from: string; p_org_id: string; p_to: string }
@@ -5995,6 +6258,18 @@ export type Database = {
           p_operation_id: string
           p_reason_id: string
           p_tool: string
+        }
+        Returns: string
+      }
+      record_tool_change_with_tool: {
+        Args: {
+          p_idempotency_key: string
+          p_insert_action: string
+          p_minutes: number
+          p_notes: string
+          p_operation_id: string
+          p_reason_id: string
+          p_tool_id: string
         }
         Returns: string
       }

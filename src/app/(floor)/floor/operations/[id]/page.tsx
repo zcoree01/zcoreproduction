@@ -20,6 +20,7 @@ import { requireMember } from "@/lib/auth/session";
 import { formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { getFloorOrderMaterial } from "@/modules/inventory/queries";
+import { listFloorTools } from "@/modules/tools/queries";
 import { toDisplayQuantity } from "@/modules/inventory/rules";
 import { getFloorOperation } from "@/modules/production-orders/floor";
 import { barPlan } from "@/modules/production-orders/rules";
@@ -125,14 +126,15 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
 
   const { order, operation, operations, attachments } = result;
   const reporting = !operation.is_cutting && !operation.is_external;
-  const [work, downtimeReasons, scrapReasons, toolReasons] = reporting
+  const [work, downtimeReasons, scrapReasons, toolReasons, tools] = reporting
     ? await Promise.all([
         getOperationWork(operation.id),
         listReasons(member.organization.id, "downtime_reason"),
         listReasons(member.organization.id, "scrap_reason"),
         listReasons(member.organization.id, "tool_change_reason"),
+        access.modules.has("inventory") ? listFloorTools(operation.id) : Promise.resolve([]),
       ])
-    : [null, [], [], []];
+    : [null, [], [], [], []];
   // Material issued to this order (inventory, D-032): the worker sees lot and heat.
   const issued = access.modules.has("inventory") ? await getFloorOrderMaterial(operation.id) : null;
   const plan = barPlan({
@@ -296,6 +298,7 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
           downtimeReasons={downtimeReasons}
           scrapReasons={scrapReasons}
           toolReasons={toolReasons}
+          tools={tools}
         />
       ) : null}
 

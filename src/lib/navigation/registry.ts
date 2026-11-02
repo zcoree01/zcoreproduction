@@ -49,7 +49,8 @@ export type NavLabelKey =
   | "floorWarehouse"
   | "finishedGoods"
   | "deliveryNotes"
-  | "deliverySettings";
+  | "deliverySettings"
+  | "tools";
 export type NavIconKey =
   | "dashboard"
   | "users"
@@ -270,6 +271,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "receipt",
     module: "inventory",
     permission: "finished_goods.read",
+    surface: "app",
+    section: "inventory",
+  },
+  {
+    id: "tools",
+    href: "/inventory/tools",
+    label: "tools",
+    icon: "operation",
+    module: "inventory",
+    permission: "tools.read",
     surface: "app",
     section: "inventory",
   },

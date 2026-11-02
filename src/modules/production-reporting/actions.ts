@@ -17,6 +17,7 @@ import {
   pauseSchema,
   reportSchema,
   toolChangeSchema,
+  catalogToolChangeSchema,
   voidReportSchema,
   WORK_ERRORS,
   type WorkActionResult,
@@ -261,6 +262,31 @@ export async function recordToolChangeAction(
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return mapError(error, "record tool change");
+  revalidateWorkScreens();
+  return { ok: true };
+}
+
+/** Tool change with a catalog tool: a new insert leaves the machine's stock (D-035). */
+export async function recordCatalogToolChangeAction(
+  operationId: unknown,
+  input: unknown,
+): Promise<WorkActionResult> {
+  await requireMember();
+  const parsedId = id.safeParse(operationId);
+  const parsed = catalogToolChangeSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) return fail("invalid");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_tool_change_with_tool", {
+    p_operation_id: parsedId.data,
+    p_tool_id: parsed.data.toolId,
+    p_insert_action: nullableParam(parsed.data.insertAction),
+    p_reason_id: parsed.data.reasonId,
+    p_minutes: nullableParam(parsed.data.minutes ? numericParam(parsed.data.minutes) : null),
+    p_notes: nullableParam(parsed.data.notes),
+    p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (error) return mapError(error, "record catalog tool change");
   revalidateWorkScreens();
   return { ok: true };
 }

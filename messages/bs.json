@@ -100,7 +100,8 @@
     "floorWarehouse": "Magacin",
     "finishedGoods": "Gotovi proizvodi",
     "deliveryNotes": "Otpremnice",
-    "deliverySettings": "Postavke otpremnica"
+    "deliverySettings": "Postavke otpremnica",
+    "tools": "Alati"
   },
   "dashboard": {
     "welcome": "Dobrodošli, {name}",
@@ -1837,7 +1838,12 @@
         "tool_required": "Unesite alat.",
         "tool_change_reason_required": "Izaberite razlog promjene alata.",
         "inspection_has_no_tools": "Kontrola nema alate.",
-        "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad."
+        "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad.",
+        "tool_not_found": "Alat nije pronađen.",
+        "insert_action_required": "Za pločicu izaberite nova ili postojeća (sljedeća ivica).",
+        "no_insert_in_use": "Na mašini još nema pločice u upotrebi: izaberite novu.",
+        "no_edges_left": "Sve rezne ivice ove pločice su potrošene: izaberite novu.",
+        "negative_stock": "Na mašini nema zaduženih pločica ovog tipa. Zadužite ih iz magacina alata."
       },
       "summary": {
         "good": "Gotovo (dobro)",
@@ -1984,7 +1990,12 @@
       "tool_required": "Unesite alat.",
       "tool_change_reason_required": "Izaberite razlog promjene alata.",
       "inspection_has_no_tools": "Kontrola nema alate.",
-      "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad."
+      "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad.",
+      "tool_not_found": "Alat nije pronađen.",
+      "insert_action_required": "Za pločicu izaberite nova ili postojeća (sljedeća ivica).",
+      "no_insert_in_use": "Na mašini još nema pločice u upotrebi: izaberite novu.",
+      "no_edges_left": "Sve rezne ivice ove pločice su potrošene: izaberite novu.",
+      "negative_stock": "Na mašini nema zaduženih pločica ovog tipa. Zadužite ih iz magacina alata."
     }
   },
   "floorWork": {
@@ -2087,7 +2098,12 @@
       "tool_required": "Unesite alat.",
       "tool_change_reason_required": "Izaberite razlog promjene alata.",
       "inspection_has_no_tools": "Kontrola nema alate.",
-      "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad."
+      "not_clocked_in": "Prvo prijavite dolazak na posao (Dolazak), pa počnite rad.",
+      "tool_not_found": "Alat nije pronađen.",
+      "insert_action_required": "Za pločicu izaberite nova ili postojeća (sljedeća ivica).",
+      "no_insert_in_use": "Na mašini još nema pločice u upotrebi: izaberite novu.",
+      "no_edges_left": "Sve rezne ivice ove pločice su potrošene: izaberite novu.",
+      "negative_stock": "Na mašini nema zaduženih pločica ovog tipa. Zadužite ih iz magacina alata."
     },
     "downtime": "Zastoj",
     "downtimeTitle": "Unos zastoja",
@@ -2107,7 +2123,17 @@
     "toolRequired": "Unesite alat.",
     "toolMinutes": "Trajanje (min, nije obavezno)",
     "toolConfirm": "Sačuvaj promjenu alata",
-    "toolToast": "Promjena alata je zabilježena."
+    "toolToast": "Promjena alata je zabilježena.",
+    "toolFromCatalog": "Alat",
+    "toolCatalogPlaceholder": "Izaberite alat",
+    "toolOther": "Drugi alat (upis)",
+    "toolAtMachine": "{code} · {name} — na mašini {count} kom",
+    "insertChoice": "Pločica",
+    "insertNew": "Nova pločica",
+    "insertNext": "Postojeća – sljedeća ivica",
+    "insertEdges": "Trenutna pločica: ivica {used} od {edges}",
+    "insertNone": "Na mašini još nema pločice u upotrebi.",
+    "insertNewHint": "Uzima se 1 kom sa zaduženja mašine (na mašini: {count})."
   },
   "externalOperationStatus": {
     "waiting": "Čeka",
@@ -4456,6 +4482,92 @@
       "customerTemplate": "Šablon za {customer}",
       "templateDefaultOption": "Zadani",
       "customerSaved": "Šablon kupca je sačuvan."
+    }
+  },
+  "tools": {
+    "title": "Alati",
+    "description": "Gdje je koji alat: magacin alata ili mašina. Pločice se troše na mašini pri izmjeni alata.",
+    "deniedDescription": "Za alate je potrebna dozvola za pregled alata.",
+    "add": "Novi alat",
+    "showArchived": "Prikaži arhivirane",
+    "search": "Traži šifru ili naziv",
+    "emptyTitle": "Još nema alata",
+    "emptyDescription": "Dodajte alat ili pločicu, pa ga primite u magacin alata.",
+    "kinds": {
+      "tool": "Alat",
+      "insert": "Pločica"
+    },
+    "columns": {
+      "code": "Šifra",
+      "name": "Naziv",
+      "kind": "Vrsta",
+      "where": "Gdje je",
+      "total": "Ukupno",
+      "actions": "Radnje"
+    },
+    "pieces": "{count} kom",
+    "nowhere": "nema na stanju",
+    "home": "Stalno na mašini {machine}",
+    "edges": "{edges} rezne ivice",
+    "inUse": "{machine}: ivica {used}/{edges}",
+    "belowMinimum": "Ispod minimuma",
+    "archived": "Arhiviran",
+    "edit": "Uredi",
+    "archive": "Arhiviraj",
+    "restore": "Vrati",
+    "archivedToast": "Alat je arhiviran.",
+    "restoredToast": "Alat je vraćen.",
+    "move": "Kretanje",
+    "form": {
+      "titleNew": "Novi alat",
+      "titleEdit": "Uredi alat",
+      "description": "Alati se vode u komadima po lokaciji. Pločica ima broj reznih ivica.",
+      "code": "Šifra",
+      "name": "Naziv",
+      "kind": "Vrsta",
+      "cuttingEdges": "Broj reznih ivica",
+      "homeMachine": "Matična mašina (alat ostaje kod nje)",
+      "homeMachineNone": "Bez matične mašine",
+      "minStock": "Minimalna zaliha (kom)",
+      "supplier": "Dobavljač",
+      "notes": "Napomena",
+      "save": "Sačuvaj",
+      "saved": "Alat je sačuvan."
+    },
+    "moveForm": {
+      "title": "Kretanje: {tool}",
+      "description": "Svako kretanje se bilježi; stanje ne može ići u minus.",
+      "kind": "Vrsta kretanja",
+      "kinds": {
+        "receipt": "Prijem u magacin",
+        "issue": "Izdaj na mašinu",
+        "return": "Vrati s mašine",
+        "transfer": "Prenos",
+        "scrap": "Otpis (istrošen / lom)"
+      },
+      "quantity": "Broj komada",
+      "from": "Sa lokacije",
+      "fromPlaceholder": "Izaberite lokaciju",
+      "to": "Na lokaciju",
+      "machine": "Mašina",
+      "machinePlaceholder": "Izaberite mašinu",
+      "reason": "Razlog",
+      "submit": "Knjiži",
+      "done": "Kretanje je knjiženo."
+    },
+    "errors": {
+      "invalid": "Provjerite unesene podatke.",
+      "denied": "Nemate dozvolu za ovu radnju.",
+      "not_found": "Alat nije pronađen.",
+      "unexpected": "Došlo je do greške. Pokušajte ponovo.",
+      "code_taken": "Ova šifra se već koristi.",
+      "tool_not_found": "Alat nije pronađen ili je arhiviran.",
+      "negative_stock": "Na toj lokaciji nema toliko komada.",
+      "invalid_line": "Količina ili lokacije nisu ispravne.",
+      "reason_required": "Unesite razlog.",
+      "location_not_found": "Lokacija nije pronađena.",
+      "machine_not_found": "Mašina nije pronađena.",
+      "module_disabled": "Modul magacina nije uključen."
     }
   }
 }

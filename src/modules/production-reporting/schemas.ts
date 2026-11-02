@@ -83,6 +83,11 @@ export const WORK_ERRORS = [
   "tool_required",
   "tool_change_reason_required",
   "inspection_has_no_tools",
+  "tool_not_found",
+  "insert_action_required",
+  "no_insert_in_use",
+  "no_edges_left",
+  "negative_stock",
 ] as const;
 export type WorkError = (typeof WORK_ERRORS)[number];
 
@@ -120,3 +125,15 @@ export const toolChangeSchema = z.object({
   idempotencyKey: z.uuid(),
 });
 export type ToolChangeInput = z.infer<typeof toolChangeSchema>;
+
+/** Tool change with a tool of the catalog (D-035); inserts need new / next edge. */
+export const catalogToolChangeSchema = z.object({
+  toolId: z.uuid(),
+  insertAction: z
+    .union([z.literal(""), z.enum(["new", "next_edge"])])
+    .transform((value) => value || null),
+  reasonId: z.uuid(),
+  minutes: minutes("1440"),
+  notes: optionalText(500),
+  idempotencyKey: z.uuid(),
+});

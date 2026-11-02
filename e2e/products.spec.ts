@@ -23,7 +23,7 @@ test("head of production opens a product with its routing and customer", async (
   await login(page, demoUser("head_of_production"), DEMO_ORG.slug);
   await expectPath(page, "/dashboard");
 
-  await page.locator("[data-slot=sidebar]").getByRole("link", { name: "Proizvodi" }).click();
+  await page.locator("[data-slot=sidebar]").getByRole("link", { name: "Proizvodi", exact: true }).click();
   await expectPath(page, "/products");
   await page.getByRole("searchbox", { name: /Pretraži/ }).fill("4711");
   await expect(page).toHaveURL(/q=4711/);

@@ -34,12 +34,15 @@ import { cn } from "@/lib/utils";
 import {
   pauseWorkAction,
   recordDowntimeAction,
+  recordCatalogToolChangeAction,
   recordToolChangeAction,
   reportQuantityAction,
   requestCloseAction,
   startWorkAction,
 } from "@/modules/production-reporting/actions";
 import type { OperationWork, Reason } from "@/modules/production-reporting/queries";
+import type { FloorTool } from "@/modules/tools/queries";
+import { nextEdge } from "@/modules/tools/schemas";
 import {
   hasShortage,
   remainingQuantity,
@@ -64,6 +67,8 @@ type Props = {
   downtimeReasons: Reason[];
   scrapReasons: Reason[];
   toolReasons: Reason[];
+  /** Tool catalog with what is at this machine (empty: tools as free text, D-035). */
+  tools: FloorTool[];
 };
 
 /** Blocks that rule out recording downtime or tool changes on the operation. */
@@ -323,9 +328,13 @@ export function WorkPanel(props: Props) {
         open={sheet === "tool"}
         onOpenChange={(open) => setSheet(open ? "tool" : null)}
         reasons={props.toolReasons}
+        tools={props.tools}
         pending={pending}
         onSubmit={(input) =>
           run(() => recordToolChangeAction(props.operationId, input), t("toolToast"))
+        }
+        onSubmitCatalog={(input) =>
+          run(() => recordCatalogToolChangeAction(props.operationId, input), t("toolToast"))
         }
       />
       <CloseSheet
@@ -856,17 +865,25 @@ function DowntimeSheet({
   );
 }
 
-/** Tool / insert change: tool as text, reason, optional duration. */
+const OTHER_TOOL = "other";
+
+/**
+ * Tool / insert change: a tool of the catalog (inserts: new or next edge) or,
+ * as before, a tool as text; reason and optional duration.
+ */
 function ToolChangeSheet({
   open,
   onOpenChange,
   reasons,
+  tools,
   pending,
   onSubmit,
+  onSubmitCatalog,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reasons: Reason[];
+  tools: FloorTool[];
   pending: boolean;
   onSubmit: (input: {
     tool: string;
@@ -876,8 +893,19 @@ function ToolChangeSheet({
     notes: string;
     idempotencyKey: string;
   }) => void;
+  onSubmitCatalog: (input: {
+    toolId: string;
+    insertAction: "" | "new" | "next_edge";
+    reasonId: string;
+    minutes: string;
+    notes: string;
+    idempotencyKey: string;
+  }) => void;
 }) {
   const t = useTranslations("floorWork");
+  const [toolId, setToolId] = useState(tools.length > 0 ? "" : OTHER_TOOL);
+  const catalogTool = tools.find((candidate) => candidate.id === toolId) ?? null;
+  const [insertAction, setInsertAction] = useState<"new" | "next_edge">("new");
   const [tool, setTool] = useState("");
   const [insert, setInsert] = useState("");
   const [reasonId, setReasonId] = useState("");
@@ -893,32 +921,105 @@ function ToolChangeSheet({
           <SheetDescription>{t("toolDescription")}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-          <Field>
-            <FieldLabel htmlFor="tool-name">{t("tool")}</FieldLabel>
-            <Input
-              id="tool-name"
-              autoComplete="off"
-              className="h-12 text-base"
-              placeholder={t("toolPlaceholder")}
-              maxLength={200}
-              value={tool}
-              onChange={(event) => {
-                setTool(event.target.value);
-                setError(null);
-              }}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="tool-insert">{t("insert")}</FieldLabel>
-            <Input
-              id="tool-insert"
-              autoComplete="off"
-              className="h-12 text-base"
-              maxLength={200}
-              value={insert}
-              onChange={(event) => setInsert(event.target.value)}
-            />
-          </Field>
+          {tools.length > 0 ? (
+            <Field>
+              <FieldLabel htmlFor="tool-catalog">{t("toolFromCatalog")}</FieldLabel>
+              <NativeSelect
+                id="tool-catalog"
+                className="h-12 w-full text-base"
+                value={toolId}
+                onChange={(event) => {
+                  setToolId(event.target.value);
+                  setError(null);
+                  const chosen = tools.find((candidate) => candidate.id === event.target.value);
+                  setInsertAction(
+                    chosen && nextEdge(chosen.edgesUsed, chosen.cuttingEdges ?? 0) !== null
+                      ? "next_edge"
+                      : "new",
+                  );
+                }}
+              >
+                <NativeSelectOption value="">{t("toolCatalogPlaceholder")}</NativeSelectOption>
+                {tools.map((candidate) => (
+                  <NativeSelectOption key={candidate.id} value={candidate.id}>
+                    {t("toolAtMachine", {
+                      code: candidate.code,
+                      name: candidate.name,
+                      count: candidate.atMachine,
+                    })}
+                  </NativeSelectOption>
+                ))}
+                <NativeSelectOption value={OTHER_TOOL}>{t("toolOther")}</NativeSelectOption>
+              </NativeSelect>
+            </Field>
+          ) : null}
+          {catalogTool?.kind === "insert" && catalogTool.cuttingEdges ? (
+            <Field>
+              <FieldLabel>{t("insertChoice")}</FieldLabel>
+              <p className="text-sm text-muted-foreground">
+                {catalogTool.edgesUsed
+                  ? t("insertEdges", {
+                      used: catalogTool.edgesUsed,
+                      edges: catalogTool.cuttingEdges,
+                    })
+                  : t("insertNone")}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["new", "next_edge"] as const).map((value) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    size="lg"
+                    className="h-12"
+                    variant={insertAction === value ? "default" : "outline"}
+                    aria-pressed={insertAction === value}
+                    disabled={
+                      value === "next_edge" &&
+                      nextEdge(catalogTool.edgesUsed, catalogTool.cuttingEdges ?? 0) === null
+                    }
+                    onClick={() => setInsertAction(value)}
+                  >
+                    {t(value === "new" ? "insertNew" : "insertNext")}
+                  </Button>
+                ))}
+              </div>
+              {insertAction === "new" ? (
+                <FieldDescription>
+                  {t("insertNewHint", { count: catalogTool.atMachine })}
+                </FieldDescription>
+              ) : null}
+            </Field>
+          ) : null}
+          {toolId === OTHER_TOOL ? (
+            <>
+              <Field>
+                <FieldLabel htmlFor="tool-name">{t("tool")}</FieldLabel>
+                <Input
+                  id="tool-name"
+                  autoComplete="off"
+                  className="h-12 text-base"
+                  placeholder={t("toolPlaceholder")}
+                  maxLength={200}
+                  value={tool}
+                  onChange={(event) => {
+                    setTool(event.target.value);
+                    setError(null);
+                  }}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="tool-insert">{t("insert")}</FieldLabel>
+                <Input
+                  id="tool-insert"
+                  autoComplete="off"
+                  className="h-12 text-base"
+                  maxLength={200}
+                  value={insert}
+                  onChange={(event) => setInsert(event.target.value)}
+                />
+              </Field>
+            </>
+          ) : null}
           <ReasonButtons
             reasons={reasons}
             value={reasonId}
@@ -959,10 +1060,22 @@ function ToolChangeSheet({
             className="h-12 text-base"
             disabled={pending}
             onClick={() => {
-              if (tool.trim() === "") return setError(t("toolRequired"));
+              if (toolId === "" || (toolId === OTHER_TOOL && tool.trim() === "")) {
+                return setError(t("toolRequired"));
+              }
               if (!reasonId) return setError(t("toolReasonRequired"));
               const parsed = minutes.trim() === "" ? "" : parseMinutes(minutes);
               if (parsed === null) return setError(t("minutesInvalid"));
+              if (catalogTool) {
+                return onSubmitCatalog({
+                  toolId: catalogTool.id,
+                  insertAction: catalogTool.kind === "insert" ? insertAction : "",
+                  reasonId,
+                  minutes: parsed,
+                  notes,
+                  idempotencyKey: key,
+                });
+              }
               onSubmit({ tool, insert, reasonId, minutes: parsed, notes, idempotencyKey: key });
             }}
           >
