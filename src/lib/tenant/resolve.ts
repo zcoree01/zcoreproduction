@@ -2,6 +2,20 @@ import { orgSlugSchema } from "@/lib/auth/username";
 
 export const ROOT_DOMAIN = "zcore.ba";
 
+/**
+ * Registration host (D-047): zcore.ba itself is the public website; new
+ * companies register on app.zcore.ba and every company signs in on its own
+ * <slug>.zcore.ba.
+ */
+export const REGISTRATION_HOST = `app.${ROOT_DOMAIN}`;
+
+/** Paths served on the registration host; everything else goes to /registracija. */
+export const REGISTRATION_HOST_PATHS: ReadonlySet<string> = new Set([
+  "/registracija",
+  "/login",
+  "/login/firma",
+]);
+
 // Request header set by proxy.ts for server code. Always overwritten there,
 // so a client cannot inject it.
 export const TENANT_HEADER = "x-zcore-tenant";
@@ -49,6 +63,26 @@ function subdomainSlug(hostname: string, parentDomain: string): string | null {
   const label = hostname.slice(0, -(parentDomain.length + 1));
   if (label.includes(".") || RESERVED_SUBDOMAINS.has(label)) return null;
   return validSlug(label);
+}
+
+export function isRegistrationHost(host: string | null): boolean {
+  return host !== null && hostnameOf(host) === REGISTRATION_HOST;
+}
+
+/**
+ * Sign-in page of a company: https://<slug>.zcore.ba/login in production,
+ * /login?org=<slug> on hosts without tenant subdomains (localhost, previews).
+ */
+export function companyLoginUrl(input: {
+  host: string;
+  protocol: string | null;
+  slug: string;
+}): string {
+  const hostname = hostnameOf(input.host);
+  if (hostname === ROOT_DOMAIN || hostname.endsWith(`.${ROOT_DOMAIN}`)) {
+    return `https://${input.slug}.${ROOT_DOMAIN}/login`;
+  }
+  return tenantUrl({ ...input, path: "/login" });
 }
 
 /** IPv4 address of a private network (10/8, 172.16/12, 192.168/16). */

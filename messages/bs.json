@@ -34,8 +34,8 @@
       "password": "Lozinka",
       "submit": "Prijavi se",
       "submitting": "Prijava…",
-      "noTenantTitle": "Otvorite adresu svoje firme",
-      "noTenantDescription": "Prijava je moguća samo preko adrese vaše firme, npr. firma.zcore.ba.",
+      "noTenantTitle": "Prijava u vašu firmu",
+      "noTenantDescription": "Upišite adresu svoje firme, npr. mojafirma za mojafirma.zcore.ba.",
       "unknownTenantTitle": "Firma nije pronađena",
       "unknownTenantDescription": "Provjerite adresu ili se obratite administratoru.",
       "errors": {
@@ -47,7 +47,11 @@
       "usernameRequired": "Unesite korisničko ime.",
       "passwordRequired": "Unesite lozinku.",
       "sessionReplaced": "Odjavljeni ste jer se ovaj korisnik prijavio na drugom uređaju. Korisnik može biti prijavljen samo na jednom uređaju.",
-      "forgotPassword": "Zaboravili ste lozinku? Obratite se administratoru da vam postavi novu privremenu lozinku."
+      "forgotPassword": "Zaboravili ste lozinku? Obratite se administratoru da vam postavi novu privremenu lozinku.",
+      "companyAddress": "Adresa firme",
+      "companyPlaceholder": "mojafirma",
+      "companyContinue": "Nastavi na prijavu",
+      "companyUnknown": "Firma s tom adresom ne postoji. Provjerite adresu ili se obratite administratoru."
     }
   },
   "nav": {

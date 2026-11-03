@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { requestHost, resolveTenant, tenantUrl } from "./resolve";
+import {
+  companyLoginUrl,
+  isRegistrationHost,
+  requestHost,
+  resolveTenant,
+  tenantUrl,
+} from "./resolve";
 
 describe("requestHost", () => {
   const headers = (values: Record<string, string>) => new Headers(values);
@@ -136,5 +142,24 @@ describe("tenantUrl", () => {
     expect(
       tenantUrl({ host: "zcore-git-x.vercel.app", protocol: "https", slug: "demo", path }),
     ).toBe("https://zcore-git-x.vercel.app/floor/operations/abc?org=demo");
+  });
+});
+
+describe("registration host", () => {
+  it("is app.zcore.ba only", () => {
+    expect(isRegistrationHost("app.zcore.ba")).toBe(true);
+    expect(isRegistrationHost("APP.zcore.ba:443")).toBe(true);
+    expect(isRegistrationHost("demo.zcore.ba")).toBe(false);
+    expect(isRegistrationHost("zcore.ba")).toBe(false);
+    expect(isRegistrationHost(null)).toBe(false);
+  });
+
+  it("sends a company to its own sign-in page", () => {
+    expect(companyLoginUrl({ host: "app.zcore.ba", protocol: "https", slug: "demo" })).toBe(
+      "https://demo.zcore.ba/login",
+    );
+    expect(companyLoginUrl({ host: "localhost:3000", protocol: "http", slug: "demo" })).toBe(
+      "http://localhost:3000/login?org=demo",
+    );
   });
 });

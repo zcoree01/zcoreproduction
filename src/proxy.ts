@@ -5,7 +5,14 @@ import { decideRoute, SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
 import { slugFromAuthEmail } from "@/lib/auth/username";
 import { getPublicEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
-import { requestHost, resolveTenant, TENANT_COOKIE, TENANT_HEADER } from "@/lib/tenant/resolve";
+import {
+  isRegistrationHost,
+  REGISTRATION_HOST_PATHS,
+  requestHost,
+  resolveTenant,
+  TENANT_COOKIE,
+  TENANT_HEADER,
+} from "@/lib/tenant/resolve";
 
 /**
  * 1. Resolves the tenant (subdomain, or ?org on dev hosts) and forwards it to
@@ -20,6 +27,17 @@ import { requestHost, resolveTenant, TENANT_COOKIE, TENANT_HEADER } from "@/lib/
  * membership and permissions on every request.
  */
 export async function proxy(request: NextRequest) {
+  // app.zcore.ba only registers companies and finds a company's address (D-047).
+  if (
+    isRegistrationHost(requestHost(request.headers)) &&
+    !REGISTRATION_HOST_PATHS.has(request.nextUrl.pathname)
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/registracija";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   const tenant = resolveTenant({
     host: requestHost(request.headers),
     orgParam: request.nextUrl.searchParams.get("org"),

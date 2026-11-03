@@ -17,6 +17,7 @@ export const PUBLIC_PATHS: ReadonlySet<string> = new Set([
   SUPPORT_EXIT_PATH,
   SUPPORT_STATUS_PATH,
   "/registracija",
+  "/login/firma",
   "/kiosk",
 ]);
 

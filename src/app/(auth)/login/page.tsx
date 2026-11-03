@@ -4,7 +4,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/page-skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
 import { firstParam, type SearchParamsRecord } from "@/lib/data-table/params";
 import { getTenantSlug } from "@/lib/tenant/server";
@@ -45,17 +48,56 @@ async function LoginCard({ searchParams }: { searchParams: Promise<SearchParamsR
   const slug = await getTenantSlug();
   const organizationName = slug ? await getLoginOrganizationName(slug) : null;
 
+  if (slug && !organizationName) {
+    return (
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">{t("unknownTenantTitle")}</CardTitle>
+          <CardDescription>{t("unknownTenantDescription")}</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
   if (!slug || !organizationName) {
+    // No company in the address (app.zcore.ba): ask for it (D-047).
+    const params = await searchParams;
+    const unknown = firstParam(params.firma) === "nepoznata";
     return (
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">
-            {t(slug ? "unknownTenantTitle" : "noTenantTitle")}
+            <h1>{t("noTenantTitle")}</h1>
           </CardTitle>
-          <CardDescription>
-            {t(slug ? "unknownTenantDescription" : "noTenantDescription")}
-          </CardDescription>
+          <CardDescription>{t("noTenantDescription")}</CardDescription>
         </CardHeader>
+        <CardContent>
+          <form action="/login/firma" className="flex flex-col gap-4">
+            {unknown ? (
+              <Alert variant="destructive">
+                <AlertDescription>{t("companyUnknown")}</AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="company-address">{t("companyAddress")}</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="company-address"
+                  name="adresa"
+                  required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  defaultValue={firstParam(params.adresa) ?? ""}
+                  placeholder={t("companyPlaceholder")}
+                />
+                <span className="shrink-0 font-mono text-sm text-muted-foreground">.zcore.ba</span>
+              </div>
+            </div>
+            <Button type="submit" className="w-full">
+              {t("companyContinue")}
+            </Button>
+          </form>
+        </CardContent>
       </Card>
     );
   }

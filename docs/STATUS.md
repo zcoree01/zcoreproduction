@@ -239,7 +239,7 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Next step
 
-0. **Own domain (when the product owner has bought `zcore.ba`):** add `zcore.ba` and the wildcard `*.zcore.ba` to the Vercel project, set the DNS records (wildcard needs Vercel nameservers), check the production env vars and the Supabase Auth URLs, then test the kiosk (camera / NFC over HTTPS), scanning and the mobile warehouse on the shop floor.
+0. **Domain (bought 2026-11-08, D-047):** `zcore.ba` = website, `app.zcore.ba` = registration, `<slug>.zcore.ba` = company sign-in. Product owner: move the nameservers of `zcore.ba` to Vercel (ns1/ns2.vercel-dns.com), recreate the website and e-mail records in Vercel DNS, add `app.zcore.ba` and `*.zcore.ba` to the Vercel project. Then: check DNS / SSL, sign-in on `demo.zcore.ba`, registration and support on the real domain, kiosk camera / NFC, scanning and the mobile warehouse over HTTPS.
 1. **Phase 5, agreed order with the product owner (2026-11-03):**
    - a. dashboard (done, D-037);
    - b. notifications (done, D-038): toasts with "Otvori" and ✕, bell with "Označi sve kao pročitano" and ✕ per item, a click opens the item;
@@ -254,6 +254,11 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 7. **Reports follow-ups:** shift performance done (D-045); tool prices for tool cost, labour / overhead rates in the order cost, saved report views.
 
 ## Log
+
+### 2026-11-08 — Domain plan (D-047)
+
+- `app.zcore.ba` only registers and finds a company's address; sign-in stays on `<slug>.zcore.ba`; website on `zcore.ba`. DNS still pending (domain not yet resolvable on 2026-11-08).
+- Checks: unit `resolve` tests, e2e `company-address` 2/2.
 
 ### 2026-11-08 — Role editor (D-046)
 

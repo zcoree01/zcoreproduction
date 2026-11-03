@@ -625,3 +625,24 @@ The product owner chose the free variant ("logičnija mi je").
 - Custom roles appear in the user forms. Their dashboard starts empty (D-037), and their home is `/dashboard`.
 
 **Consequences:** System roles cannot be adjusted directly; a company copies them. A custom role named like a system role is refused only against the stored name of the system role.
+
+## D-047 — Domain: website on zcore.ba, registration on app.zcore.ba (2026-11-08)
+
+**Context:** The product owner bought `zcore.ba`. The root domain is the company website (hosted elsewhere). The app should take new registrations on `app.zcore.ba`, and every company keeps signing in on its own `<slug>.zcore.ba` (D-009).
+
+**Decision:**
+
+- **`app.zcore.ba`** (`REGISTRATION_HOST`) serves only:
+  - `/registracija`;
+  - `/login`, a "Adresa firme" form;
+  - `/login/firma`, which checks the address with `get_login_organization` and redirects to `https://<slug>.zcore.ba/login`, or back with "firma ne postoji".
+
+  Every other path on that host redirects to `/registracija` (proxy). `app` was already a reserved subdomain, so it is never a tenant.
+
+- **Company sign-in:** stays on `<slug>.zcore.ba`, unchanged. A sign-in page without a company (also localhost without `?org`) shows the address form.
+- **DNS:** a wildcard (`*.zcore.ba`) on Vercel needs Vercel's nameservers.
+  - The zone `zcore.ba` therefore moves to Vercel DNS.
+  - The website's records (root A / `www`, e-mail MX / TXT) are recreated there, pointing to the website host.
+  - `app.zcore.ba` and `*.zcore.ba` are domains of the Vercel project.
+
+**Consequences:** The website and the app share one DNS zone at Vercel. A company address is only shown as existing or not (like the login screen).
