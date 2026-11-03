@@ -38,3 +38,16 @@ export type ResetPasswordError = "invalid" | "denied" | "not_found" | "self" | "
 
 export type ResetPasswordResult =
   ({ ok: true } & TempCredentials) | { ok: false; error: ResetPasswordError };
+
+// Editing a member (D-044): full name and role; the username stays.
+export const updateMemberSchema = z.object({
+  fullName: z.string().trim().min(1).max(200),
+  roleId: z.uuid(),
+});
+
+export type UpdateMemberFormValues = z.input<typeof updateMemberSchema>;
+
+export type MemberError =
+  "invalid" | "denied" | "not_found" | "self" | "role_not_found" | "last_manager" | "unexpected";
+
+export type MemberResult = { ok: true } | { ok: false; error: MemberError };

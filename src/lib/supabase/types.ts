@@ -6771,6 +6771,10 @@ export type Database = {
         Args: { p_machine_id: string; p_status: string }
         Returns: undefined
       }
+      set_member_active: {
+        Args: { p_active: boolean; p_org_id: string; p_user_id: string }
+        Returns: undefined
+      }
       set_order_cutting: {
         Args: { p_needs: boolean; p_order_id: string }
         Returns: undefined
@@ -6808,6 +6812,15 @@ export type Database = {
         Returns: undefined
       }
       submit_stock_count: { Args: { p_count_id: string }; Returns: undefined }
+      update_member: {
+        Args: {
+          p_full_name: string
+          p_org_id: string
+          p_role_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       update_product: {
         Args: { p_product: Json; p_product_id: string; p_revision: Json }
         Returns: string

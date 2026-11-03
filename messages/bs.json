@@ -331,7 +331,10 @@
     "noResultsDescription": "Promijenite pretragu ili filtere.",
     "rowActions": {
       "menu": "Akcije za {username}",
-      "resetPassword": "Resetuj lozinku"
+      "resetPassword": "Resetuj lozinku",
+      "edit": "Uredi",
+      "deactivate": "Deaktiviraj",
+      "reactivate": "Aktiviraj ponovo"
     },
     "resetTitle": "Resetovati lozinku za {username}?",
     "resetDescription": "Generisaće se nova privremena lozinka, a korisnik će biti odjavljen sa svih uređaja. Pri sljedećoj prijavi mora postaviti svoju lozinku.",
@@ -341,6 +344,28 @@
       "not_found": "Korisnik nije pronađen.",
       "self": "Svoju lozinku mijenjate u svom profilu.",
       "unexpected": "Lozinka nije resetovana zbog greške. Pokušajte ponovo."
+    },
+    "edit": {
+      "title": "Uredi korisnika",
+      "description": "Korisničko ime {username} ostaje isto.",
+      "roleHint": "Uloga određuje šta korisnik vidi i smije. Promjena važi od sljedećeg učitavanja stranice.",
+      "save": "Sačuvaj",
+      "saved": "Korisnik {username} je sačuvan."
+    },
+    "deactivateTitle": "Deaktivirati {username}?",
+    "deactivateDescription": "Korisnik se odmah odjavljuje na svim uređajima i više se ne može prijaviti. Njegove prijave, historija i radnik ostaju. Može se ponovo aktivirati.",
+    "reactivateTitle": "Ponovo aktivirati {username}?",
+    "reactivateDescription": "Korisnik se ponovo može prijaviti sa svojom lozinkom i ulogom.",
+    "deactivated": "Korisnik {username} je deaktiviran.",
+    "reactivated": "Korisnik {username} je ponovo aktivan.",
+    "memberErrors": {
+      "invalid": "Podaci nisu ispravni.",
+      "denied": "Nemaš pravo upravljati korisnicima.",
+      "not_found": "Korisnik više ne postoji.",
+      "self": "Svoj nalog mijenjaš u „Moj profil“.",
+      "role_not_found": "Uloga više ne postoji.",
+      "last_manager": "Firma mora imati bar jednog aktivnog korisnika koji upravlja korisnicima.",
+      "unexpected": "Nije sačuvano. Pokušaj ponovo."
     }
   },
   "errors": {

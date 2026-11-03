@@ -564,3 +564,26 @@ The product owner chose the free variant ("logičnija mi je").
 - Costs have no overhead, labour rate or setup price.
 - Pieces per operation are not "finished pieces"; those are in the finished goods store.
 - Machine time comes from the operation status. An operation left in progress keeps counting, so utilization can exceed 100 %.
+
+## D-044 — Editing, deactivating and reactivating users (2026-11-06)
+
+**Context:** `/admin/users` could create users and reset passwords, but not change a name or role, nor take an account away from someone who left.
+
+**Decision:**
+
+- **Data:** migration `20261106100000_member_management`, RPCs `update_member(org, user, full_name, role)` and `set_member_active(org, user, active)`. Both run as definer with `users.manage` and always refuse:
+  - oneself (`self`; one's own data stay on the profile page);
+  - the Zcore support account;
+  - other organizations.
+- **Last manager:** the organization always keeps at least one active member, not support, whose role has `users.manage` (`last_manager`).
+  - The caller is always such a member, so in practice this protects against a support session demoting or deactivating the only administrator.
+- **Audit:** each change writes `users.update` (before / after name and role), `users.deactivate` or `users.reactivate`, besides the row audit.
+- **Deactivating:**
+  - Archives the membership, and the server action signs the user out on every device (`revoke_user_sessions`).
+  - The login screen says the account is not active.
+  - The profile, the linked employee, reports and history stay.
+- **Reactivating:** the user signs in again with the same password and role.
+- **Role changes:** apply on the next request, since permissions are read live.
+- **Screen:** the row menu on `/admin/users` offers "Uredi" (full name and role; the username stays), "Resetuj lozinku" (active users only) and "Deaktiviraj" / "Aktiviraj ponovo", each with a confirmation.
+
+**Consequences:** No username change (it is the sign-in and the synthetic e-mail). Custom roles are still created only by scripts (no role editor).

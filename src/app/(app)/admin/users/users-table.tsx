@@ -1,6 +1,14 @@
 "use client";
 
-import { EllipsisIcon, KeyRoundIcon, SearchXIcon, UsersIcon } from "lucide-react";
+import {
+  EllipsisIcon,
+  KeyRoundIcon,
+  PencilIcon,
+  SearchXIcon,
+  UserCheckIcon,
+  UserXIcon,
+  UsersIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -19,12 +27,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { resetUserPasswordAction } from "@/modules/users/actions";
+import { resetUserPasswordAction, setMemberActiveAction } from "@/modules/users/actions";
+import { EditMemberSheet } from "./edit-member-sheet";
 
 export type UserTableRow = {
   userId: string;
   username: string;
   fullName: string | null;
+  roleId: string;
   roleLabel: string;
   active: boolean;
   mustChangePassword: boolean;
@@ -39,6 +49,7 @@ export function UsersTable({
   role,
   status,
   roleOptions,
+  roles,
   canManage,
   currentUserId,
   organizationName,
@@ -51,6 +62,7 @@ export function UsersTable({
   role: string;
   status: string;
   roleOptions: { value: string; label: string }[];
+  roles: { id: string; label: string }[];
   canManage: boolean;
   currentUserId: string;
   organizationName: string;
@@ -59,6 +71,8 @@ export function UsersTable({
   const filtered = query !== "" || role !== "" || status !== "";
   const [resetting, setResetting] = useState<UserTableRow | null>(null);
   const [credentials, setCredentials] = useState<TempCredentialsInfo | null>(null);
+  const [editing, setEditing] = useState<UserTableRow | null>(null);
+  const [toggling, setToggling] = useState<UserTableRow | null>(null);
 
   const columns = useMemo<DataTableColumn<UserTableRow>[]>(
     () => [
@@ -111,9 +125,21 @@ export function UsersTable({
                         <EllipsisIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="min-w-44">
-                        <DropdownMenuItem onClick={() => setResetting(row.original)}>
-                          <KeyRoundIcon />
-                          {t("rowActions.resetPassword")}
+                        <DropdownMenuItem onClick={() => setEditing(row.original)}>
+                          <PencilIcon />
+                          {t("rowActions.edit")}
+                        </DropdownMenuItem>
+                        {row.original.active ? (
+                          <DropdownMenuItem onClick={() => setResetting(row.original)}>
+                            <KeyRoundIcon />
+                            {t("rowActions.resetPassword")}
+                          </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuItem onClick={() => setToggling(row.original)}>
+                          {row.original.active ? <UserXIcon /> : <UserCheckIcon />}
+                          {row.original.active
+                            ? t("rowActions.deactivate")
+                            : t("rowActions.reactivate")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -199,6 +225,36 @@ export function UsersTable({
             }}
           />
           <TempCredentialsDialog credentials={credentials} onClose={() => setCredentials(null)} />
+          <EditMemberSheet member={editing} roles={roles} onClose={() => setEditing(null)} />
+          <ConfirmDialog
+            open={toggling !== null}
+            onOpenChange={(open) => !open && setToggling(null)}
+            title={
+              toggling?.active
+                ? t("deactivateTitle", { username: toggling.username })
+                : t("reactivateTitle", { username: toggling?.username ?? "" })
+            }
+            description={toggling?.active ? t("deactivateDescription") : t("reactivateDescription")}
+            confirmLabel={
+              toggling?.active ? t("rowActions.deactivate") : t("rowActions.reactivate")
+            }
+            destructive={toggling?.active ?? false}
+            onConfirm={async () => {
+              if (!toggling) return;
+              const target = toggling;
+              const result = await setMemberActiveAction(target.userId, !target.active);
+              if (result.ok) {
+                toast.success(
+                  target.active
+                    ? t("deactivated", { username: target.username })
+                    : t("reactivated", { username: target.username }),
+                );
+                setToggling(null);
+              } else {
+                toast.error(t(`memberErrors.${result.error}`));
+              }
+            }}
+          />
         </>
       ) : null}
     </>

@@ -57,6 +57,7 @@ async function UsersContent({ searchParams }: { searchParams: Promise<SearchPara
           userId: row.userId,
           username: row.username,
           fullName: row.fullName,
+          roleId: roles.find((role) => role.key === row.role.key)?.id ?? "",
           roleLabel: roleLabel(row.role),
           active: row.active,
           mustChangePassword: row.mustChangePassword,
@@ -71,6 +72,7 @@ async function UsersContent({ searchParams }: { searchParams: Promise<SearchPara
         role={params.role ?? ""}
         status={params.status ?? ""}
         roleOptions={roles.map((role) => ({ value: role.key, label: roleLabel(role) }))}
+        roles={roles.map((role) => ({ id: role.id, label: roleLabel(role) }))}
       />
     </>
   );

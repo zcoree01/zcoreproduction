@@ -13,7 +13,10 @@ import {
   type CreateUserError,
   type CreateUserField,
   type CreateUserResult,
+  type MemberError,
+  type MemberResult,
   type ResetPasswordResult,
+  updateMemberSchema,
 } from "./schemas";
 import { createUserWithTempPassword } from "./server";
 import { generateTempPassword } from "./temp-password";
@@ -116,4 +119,71 @@ export async function resetUserPasswordAction(userId: unknown): Promise<ResetPas
 
   revalidatePath("/admin/users");
   return { ok: true, username: target.username, password };
+}
+
+function memberError(error: { code?: string; message?: string }): MemberError {
+  if (error.message === "self") return "self";
+  if (error.message === "last_manager") return "last_manager";
+  if (error.message === "role_not_found") return "role_not_found";
+  if (error.code === "42501") return "denied";
+  if (error.code === "P0002") return "not_found";
+  if (error.code === "22023") return "invalid";
+  console.error("member update failed", error);
+  return "unexpected";
+}
+
+/** Full name and role of another member (D-044); update_member checks the rules. */
+export async function updateMemberAction(userId: unknown, input: unknown): Promise<MemberResult> {
+  const member = await requireMember();
+  const organizationId = member.organization.id;
+  if (!(await permitAction(organizationId, "users.manage"))) return { ok: false, error: "denied" };
+  const parsedId = z.uuid().safeParse(userId);
+  const parsed = updateMemberSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) return { ok: false, error: "invalid" };
+  if (parsedId.data === member.userId) return { ok: false, error: "self" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_member", {
+    p_org_id: organizationId,
+    p_user_id: parsedId.data,
+    p_full_name: parsed.data.fullName,
+    p_role_id: parsed.data.roleId,
+  });
+  if (error) return { ok: false, error: memberError(error) };
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
+
+/**
+ * Deactivate (no sign-in, every device signed out) or reactivate another
+ * member (D-044). History, reports and the linked employee stay.
+ */
+export async function setMemberActiveAction(
+  userId: unknown,
+  active: unknown,
+): Promise<MemberResult> {
+  const member = await requireMember();
+  const organizationId = member.organization.id;
+  if (!(await permitAction(organizationId, "users.manage"))) return { ok: false, error: "denied" };
+  const parsedId = z.uuid().safeParse(userId);
+  const parsedActive = z.boolean().safeParse(active);
+  if (!parsedId.success || !parsedActive.success) return { ok: false, error: "invalid" };
+  if (parsedId.data === member.userId) return { ok: false, error: "self" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_member_active", {
+    p_org_id: organizationId,
+    p_user_id: parsedId.data,
+    p_active: parsedActive.data,
+  });
+  if (error) return { ok: false, error: memberError(error) };
+  if (!parsedActive.data) {
+    // Membership checked above (RPC): sign the user out on every device.
+    const revoked = await createAdminClient().rpc("revoke_user_sessions", {
+      p_user_id: parsedId.data,
+    });
+    if (revoked.error) console.error("revoking sessions after deactivation failed", revoked.error);
+  }
+  revalidatePath("/admin/users");
+  return { ok: true };
 }
