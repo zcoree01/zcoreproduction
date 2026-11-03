@@ -522,3 +522,45 @@ The product owner chose the free variant ("logičnija mi je").
 - Security headers for every response: `X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'`, `nosniff`, `strict-origin-when-cross-origin`, `Permissions-Policy` (camera and NFC for the app only).
 
 **Consequences:** A status change costs one round trip and shows at once. The security review of the same day found no tenant leak (all tables RLS, no anon table grants, definer functions check membership/permission, views `security_invoker`, private buckets, column-level update grants). Open: leaked-password protection in Supabase Auth (dashboard setting), `/support/exit` is a GET (sign-out CSRF, low impact).
+
+## D-043 — Reports (2026-11-05)
+
+**Context:** Phase 5 e. The product owner wanted all four report groups in the first round: production and efficiency, machines and downtime, orders and due dates, material / tools and costs. All have filters and an Excel export. The order cost includes machine time, priced with an hourly rate per machine.
+
+**Decision:**
+
+- **Data:**
+  - Migrations `20261105100000_reports`, `20261105110000_reports_without_inspections`.
+  - Permission `reports.read` (production; admin, director, head of production).
+  - `machines.hourly_rate` (KM per machine hour, in the machine form).
+- **RPCs:**
+  - `report_production`, `report_orders`, `report_inventory` (org, first day, last day), at most 367 days.
+  - Each runs as definer behind `reports.read`, so a head of production also sees material values without inventory rights. Each returns facts already split by local day (`private.split_by_day`, organization time zone) and by machine / worker / order / operation.
+  - Machine time is the time the operation was in progress (status history), clipped to the period. Worker time comes from the work sessions. Downtime that crosses midnight is split between the days.
+  - Inspections are not production: their pieces and running time are left out of output and machine time. Their scrap stays in scrap by reason, and the inspector's time stays in worker time.
+- **Figures** (`src/modules/reports/rules.ts`, pure):
+  - **Output** grouped by day / machine / worker / order / customer.
+    - Pieces are counted per operation, so a part that goes through three operations counts three times.
+    - Efficiency = routing time of the reported pieces (cycle × pieces, without setup) ÷ machine time. By worker, the worker's own time is used instead.
+    - Good pieces per hour.
+  - **Machines:**
+    - Capacity = hours per day (D-041) × working days, or × every day for an unattended machine.
+    - Running time, downtime, idle = the rest; utilization = running time ÷ capacity.
+    - Tool changes.
+  - **Orders:** orders completed in the period, due in it, or open and overdue. Days late, the on-time share, the average delay, and on time per customer.
+  - **Costs:**
+    - Cost of a completed order = material (issued − returned, at the moving-average value) + machine hours × hourly rate + external operations (D-041).
+    - The cost is also shown per good piece.
+    - A machine without a rate is marked, so the cost is known to be incomplete.
+  - **Material and tools:** material consumption per item, own stock value today, tools used up / scrapped in pieces.
+- **Screens and export:**
+  - `/reports`: tabs, period (this month, last month, last 30 days, or free), filters in the URL, single-series bar chart with a screen-reader table.
+  - `/reports/export` writes the same figures to Excel, one sheet per table.
+
+**Consequences:**
+
+- Tools have no price, so tool consumption is in pieces only.
+- No shift performance yet: shifts are not on reports.
+- Costs have no overhead, labour rate or setup price.
+- Pieces per operation are not "finished pieces"; those are in the finished goods store.
+- Machine time comes from the operation status. An operation left in progress keeps counting, so utilization can exceed 100 %.

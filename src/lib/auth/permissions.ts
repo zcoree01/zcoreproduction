@@ -42,6 +42,7 @@ export const PERMISSION_KEYS = [
   "tools.read",
   "tools.manage",
   "dashboard.manage",
+  "reports.read",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

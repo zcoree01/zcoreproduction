@@ -20,13 +20,15 @@ export type MachineRow = {
   runsUnattended: boolean;
   /** Hours per day as a decimal string; null = default. */
   capacityHours: string | null;
+  /** KM per machine hour; null = not set. */
+  hourlyRate: string | null;
   archived: boolean;
 };
 
 export type MachinePage = { rows: MachineRow[]; total: number };
 
 const COLUMNS =
-  "id, code, name, type_id, type_name, manufacturer, model, location_id, location_name, status, status_changed_at, notes, archived_at, cycle_time_unit, runs_unattended, capacity_hours";
+  "id, code, name, type_id, type_name, manufacturer, model, location_id, location_name, status, status_changed_at, notes, archived_at, cycle_time_unit, runs_unattended, capacity_hours, hourly_rate";
 
 type DirectoryRow = {
   id: string | null;
@@ -45,6 +47,7 @@ type DirectoryRow = {
   cycle_time_unit: string | null;
   runs_unattended: boolean | null;
   capacity_hours: number | null;
+  hourly_rate: number | null;
 };
 
 function toMachineRow(row: DirectoryRow): MachineRow[] {
@@ -69,6 +72,7 @@ function toMachineRow(row: DirectoryRow): MachineRow[] {
         row.cycle_time_unit === "min" || row.cycle_time_unit === "s" ? row.cycle_time_unit : null,
       runsUnattended: row.runs_unattended ?? false,
       capacityHours: decimalFromDb(row.capacity_hours),
+      hourlyRate: decimalFromDb(row.hourly_rate),
       archived: row.archived_at !== null,
     },
   ];

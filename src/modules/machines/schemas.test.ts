@@ -16,6 +16,7 @@ const VALID = {
   cycleTimeUnit: "",
   runsUnattended: false,
   capacityHours: "",
+  hourlyRate: "",
 };
 
 describe("machineSchema", () => {
@@ -32,6 +33,7 @@ describe("machineSchema", () => {
       cycleTimeUnit: null,
       runsUnattended: false,
       capacityHours: null,
+      hourlyRate: null,
     });
   });
 
@@ -45,6 +47,8 @@ describe("machineSchema", () => {
     expect(edm).toMatchObject({ runsUnattended: true, capacityHours: "20.5" });
     expect(machineSchema.safeParse({ ...VALID, capacityHours: "0" }).success).toBe(false);
     expect(machineSchema.safeParse({ ...VALID, capacityHours: "25" }).success).toBe(false);
+    expect(machineSchema.parse({ ...VALID, hourlyRate: "45,50" }).hourlyRate).toBe("45.5");
+    expect(machineSchema.safeParse({ ...VALID, hourlyRate: "-1" }).success).toBe(false);
   });
 
   it("requires code, name and a known status", () => {
@@ -70,6 +74,7 @@ describe("machineSchema", () => {
       cycle_time_unit: null,
       runs_unattended: false,
       capacity_hours: null,
+      hourly_rate: null,
     });
   });
 });

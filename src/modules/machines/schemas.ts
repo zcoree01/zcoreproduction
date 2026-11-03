@@ -32,6 +32,8 @@ export const machineSchema = z.object({
   runsUnattended: z.boolean(),
   // Hours per day; "" = 24 h when unattended, otherwise the organization's hours.
   capacityHours: optionalDecimal({ maxScale: 2, max: "24", exclusiveMin: true }),
+  // KM per machine hour for the order cost in reports (D-043); "" = not set.
+  hourlyRate: optionalDecimal({ maxScale: 2, max: "100000" }),
 });
 
 export type MachineInput = z.infer<typeof machineSchema>;
@@ -49,6 +51,7 @@ export const MACHINE_FIELDS = [
   "cycleTimeUnit",
   "runsUnattended",
   "capacityHours",
+  "hourlyRate",
 ] as const;
 
 export type MachineField = (typeof MACHINE_FIELDS)[number];
@@ -69,5 +72,6 @@ export function toMachineRow(input: MachineInput) {
     cycle_time_unit: input.cycleTimeUnit,
     runs_unattended: input.runsUnattended,
     capacity_hours: numericParam(input.capacityHours),
+    hourly_rate: numericParam(input.hourlyRate),
   };
 }

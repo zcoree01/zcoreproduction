@@ -1748,6 +1748,7 @@ export type Database = {
           code: string
           created_at: string
           cycle_time_unit: string | null
+          hourly_rate: number | null
           id: string
           location_id: string | null
           location_kind: string | null
@@ -1770,6 +1771,7 @@ export type Database = {
           code: string
           created_at?: string
           cycle_time_unit?: string | null
+          hourly_rate?: number | null
           id?: string
           location_id?: string | null
           location_kind?: string | null
@@ -1792,6 +1794,7 @@ export type Database = {
           code?: string
           created_at?: string
           cycle_time_unit?: string | null
+          hourly_rate?: number | null
           id?: string
           location_id?: string | null
           location_kind?: string | null
@@ -5255,6 +5258,7 @@ export type Database = {
           code: string | null
           created_at: string | null
           cycle_time_unit: string | null
+          hourly_rate: number | null
           id: string | null
           location_id: string | null
           location_name: string | null
@@ -6500,6 +6504,10 @@ export type Database = {
         Args: { p_order_id: string; p_revision_id: string }
         Returns: undefined
       }
+      report_inventory: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: Json
+      }
       report_operation_quantity: {
         Args: {
           p_finish?: boolean
@@ -6510,6 +6518,14 @@ export type Database = {
           p_scrap: number
           p_scrap_reason_id: string
         }
+        Returns: Json
+      }
+      report_orders: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
+        Returns: Json
+      }
+      report_production: {
+        Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
       }
       request_absence: {

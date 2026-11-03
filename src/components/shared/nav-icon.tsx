@@ -2,6 +2,7 @@ import {
   BuildingIcon,
   CalendarDaysIcon,
   CalendarRangeIcon,
+  ChartColumnIcon,
   ClipboardListIcon,
   ClockIcon,
   CogIcon,
@@ -28,6 +29,7 @@ import type { NavIconKey } from "@/lib/navigation/registry";
 const ICONS: Record<NavIconKey, LucideIcon> = {
   dashboard: LayoutDashboardIcon,
   planning: CalendarRangeIcon,
+  reports: ChartColumnIcon,
   users: UsersIcon,
   home: HouseIcon,
   machine: CogIcon,

@@ -53,6 +53,7 @@ const EMPTY: MachineFormValues = {
   cycleTimeUnit: "",
   runsUnattended: false,
   capacityHours: "",
+  hourlyRate: "",
 };
 
 function toFormValues(machine: MachineRow): MachineFormValues {
@@ -68,6 +69,7 @@ function toFormValues(machine: MachineRow): MachineFormValues {
     cycleTimeUnit: machine.cycleTimeUnit ?? "",
     runsUnattended: machine.runsUnattended,
     capacityHours: machine.capacityHours ?? "",
+    hourlyRate: machine.hourlyRate ? machine.hourlyRate.replace(".", ",") : "",
   };
 }
 
@@ -326,6 +328,23 @@ function MachineForm({
                 {fieldState.invalid ? (
                   <FieldError>{t("fieldErrors.capacityHours")}</FieldError>
                 ) : null}
+              </Field>
+            )}
+          />
+          <Controller
+            name="hourlyRate"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid || undefined}>
+                <FieldLabel htmlFor="machine-hourlyRate">{t("hourlyRate")}</FieldLabel>
+                <Input
+                  {...field}
+                  id="machine-hourlyRate"
+                  inputMode="decimal"
+                  aria-invalid={fieldState.invalid || undefined}
+                />
+                <FieldDescription>{t("hourlyRateHint")}</FieldDescription>
+                {fieldState.invalid ? <FieldError>{t("fieldErrors.hourlyRate")}</FieldError> : null}
               </Field>
             )}
           />
