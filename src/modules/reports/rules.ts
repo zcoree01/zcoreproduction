@@ -66,11 +66,13 @@ export type ProductionRow = {
 function labelFor(facts: ProductionFacts, group: ProductionGroup) {
   const machines = new Map(facts.machines.map((m) => [m.id, `${m.code} · ${m.name}`]));
   const employees = new Map(facts.employees.map((e) => [e.id, e.name]));
+  const shifts = new Map(facts.shifts.map((s) => [s.id, `${s.code} · ${s.name}`]));
   const orders = new Map(facts.orders.map((o) => [o.id, o]));
   return (row: {
     day: string;
     machine_id?: string | null;
     employee_id?: string | null;
+    shift_id?: string | null;
     order_id: string;
   }) => {
     switch (group) {
@@ -79,6 +81,10 @@ function labelFor(facts: ProductionFacts, group: ProductionGroup) {
       case "machine":
         return row.machine_id
           ? { key: row.machine_id, label: machines.get(row.machine_id) ?? row.machine_id }
+          : { key: "-", label: "" };
+      case "shift":
+        return row.shift_id
+          ? { key: row.shift_id, label: shifts.get(row.shift_id) ?? row.shift_id }
           : { key: "-", label: "" };
       case "employee":
         return row.employee_id
@@ -127,7 +133,8 @@ export function productionRows(facts: ProductionFacts, group: ProductionGroup): 
     current.scrap.push(fact.scrap);
     current.planned += fact.planned_seconds;
   }
-  const times = group === "employee" ? facts.worker_time : facts.machine_time;
+  // Workers and shifts: the workers' time (machine time has neither).
+  const times = group === "employee" || group === "shift" ? facts.worker_time : facts.machine_time;
   for (const fact of times) {
     const { key, label: text } = label(fact);
     row(key, text).seconds += fact.seconds;

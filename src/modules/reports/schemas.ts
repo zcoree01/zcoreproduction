@@ -5,7 +5,14 @@ import { z } from "zod";
 export const REPORT_TABS = ["production", "machines", "orders", "costs"] as const;
 export type ReportTab = (typeof REPORT_TABS)[number];
 
-export const PRODUCTION_GROUPS = ["day", "machine", "employee", "order", "customer"] as const;
+export const PRODUCTION_GROUPS = [
+  "day",
+  "shift",
+  "machine",
+  "employee",
+  "order",
+  "customer",
+] as const;
 export type ProductionGroup = (typeof PRODUCTION_GROUPS)[number];
 
 /** Longest period one report covers (the database allows 367 days). */

@@ -26,6 +26,7 @@ const OP_B = "88888888-8888-4888-8888-888888888888";
 const CUSTOMER = "99999999-9999-4999-8999-999999999999";
 const MON = "2030-05-06";
 const TUE = "2030-05-07";
+const SHIFT_I = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 const facts: ProductionFacts = {
   output: [
@@ -35,6 +36,7 @@ const facts: ProductionFacts = {
       employee_id: ANA,
       order_id: ORDER_A,
       operation_id: OP_A,
+      shift_id: SHIFT_I,
       good: "40",
       scrap: "2",
       planned_seconds: 3150,
@@ -45,6 +47,7 @@ const facts: ProductionFacts = {
       employee_id: BEN,
       order_id: ORDER_A,
       operation_id: OP_A,
+      shift_id: null,
       good: "20",
       scrap: "0",
       planned_seconds: 1500,
@@ -55,6 +58,7 @@ const facts: ProductionFacts = {
       employee_id: ANA,
       order_id: ORDER_B,
       operation_id: OP_B,
+      shift_id: null,
       good: "5",
       scrap: "1",
       planned_seconds: 7200,
@@ -76,6 +80,7 @@ const facts: ProductionFacts = {
       machine_id: CNC,
       order_id: ORDER_A,
       operation_id: OP_A,
+      shift_id: SHIFT_I,
       seconds: 4000,
     },
     {
@@ -84,6 +89,7 @@ const facts: ProductionFacts = {
       machine_id: CNC,
       order_id: ORDER_A,
       operation_id: OP_A,
+      shift_id: null,
       seconds: 1800,
     },
   ],
@@ -149,6 +155,7 @@ const facts: ProductionFacts = {
     },
   ],
   operations: [],
+  shifts: [{ id: SHIFT_I, code: "I", name: "Prva" }],
 };
 
 describe("production report", () => {
@@ -175,6 +182,16 @@ describe("production report", () => {
         .map((r) => r.label)
         .sort(),
     ).toEqual(["", "Kupac"]);
+  });
+
+  it("groups by shift with the workers' time", () => {
+    const rows = productionRows(facts, "shift");
+    expect(rows.find((r) => r.key === SHIFT_I)).toMatchObject({
+      label: "I · Prva",
+      good: "40",
+      seconds: 4000,
+    });
+    expect(rows.find((r) => r.key === "-")).toMatchObject({ label: "", good: "25", seconds: 1800 });
   });
 
   it("filters by machine, worker and customer", () => {

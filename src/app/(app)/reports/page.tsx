@@ -273,7 +273,7 @@ function ProductionReport({
 }) {
   const total = data.total;
   const max = Math.max(...data.daily.map((day) => Number(day.good)), 0);
-  const byWorker = filters.group === "employee";
+  const byWorker = filters.group === "employee" || filters.group === "shift";
   return (
     <div className="flex flex-col gap-4">
       <dl className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6" data-testid="report-totals">

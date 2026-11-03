@@ -12,7 +12,16 @@ const MARK = "DBQ";
 type Client = SupabaseClient<Database>;
 
 let fx: Fixture;
-const ids = { type: "", machine: "", customer: "", product: "", employee: "", order: "", op: "" };
+const ids = {
+  type: "",
+  machine: "",
+  customer: "",
+  product: "",
+  employee: "",
+  order: "",
+  op: "",
+  shift: "",
+};
 
 async function cleanup(service: Client, orgIds: string[]) {
   const orders = await service
@@ -48,6 +57,17 @@ async function cleanup(service: Client, orgIds: string[]) {
     }
     await service.from("products").delete().in("id", productIds);
   }
+  const staff = await service
+    .from("employees")
+    .select("id")
+    .in("organization_id", orgIds)
+    .like("first_name", `${MARK}%`);
+  const staffIds = (staff.data ?? []).map((row) => row.id);
+  if (staffIds.length > 0) {
+    await service.from("attendance_alerts").delete().in("employee_id", staffIds);
+    await service.from("attendance_sessions").delete().in("employee_id", staffIds);
+  }
+  await service.from("shifts").delete().in("organization_id", orgIds).like("code", `${MARK}%`);
   await service
     .from("employees")
     .delete()
@@ -210,6 +230,35 @@ async function seed() {
     .limit(1)
     .single()
     .throwOnError();
+  // Clocked in for the first shift 07:00–15:00 local.
+  ids.shift = (
+    await s
+      .from("shifts")
+      .insert({
+        organization_id: org,
+        code: `${MARK}I`,
+        name: `${MARK} Prva`,
+        starts_at: "07:00",
+        ends_at: "15:00",
+      })
+      .select("id")
+      .single()
+      .throwOnError()
+  ).data.id;
+  await s
+    .from("attendance_sessions")
+    .insert({
+      organization_id: org,
+      employee_id: ids.employee,
+      shift_id: ids.shift,
+      work_date: "2031-03-03",
+      clock_in_at: "2031-03-03T06:00:00Z",
+      clock_out_at: "2031-03-03T14:00:00Z",
+      clock_in_source: "manual",
+      clock_out_source: "manual",
+      idempotency_key: crypto.randomUUID(),
+    })
+    .throwOnError();
   // 23:30 – 00:30 local: half an hour on each day.
   await s
     .from("production_downtime_events")
@@ -249,7 +298,13 @@ describe("reports", () => {
     const report = data as Record<string, Row[]>;
     const mine = (rows: Row[] | undefined) => (rows ?? []).filter((r) => r.order_id === ids.order);
     expect(mine(report.output)).toEqual([
-      expect.objectContaining({ day: "2031-03-03", good: 10, scrap: 2, planned_seconds: 3600 }),
+      expect.objectContaining({
+        day: "2031-03-03",
+        good: 10,
+        scrap: 2,
+        planned_seconds: 3600,
+        shift_id: ids.shift,
+      }),
     ]);
     expect(mine(report.machine_time)).toEqual([
       expect.objectContaining({ day: "2031-03-03", machine_id: ids.machine, seconds: 7200 }),

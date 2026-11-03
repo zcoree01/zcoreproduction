@@ -29,6 +29,8 @@ const productionSchema = z.object({
       employee_id: id,
       order_id: z.uuid(),
       operation_id: z.uuid(),
+      /** Shift of the worker's attendance at the report (D-045). */
+      shift_id: id.optional().transform((value) => value ?? null),
       good: dec,
       scrap: dec,
       planned_seconds: seconds,
@@ -60,6 +62,7 @@ const productionSchema = z.object({
       machine_id: id,
       order_id: z.uuid(),
       operation_id: z.uuid(),
+      shift_id: id.optional().transform((value) => value ?? null),
       seconds,
     }),
   ),
@@ -105,6 +108,10 @@ const productionSchema = z.object({
     }),
   ),
   operations: z.array(z.object({ id: z.uuid(), code: z.string(), name: z.string() })),
+  shifts: z
+    .array(z.object({ id: z.uuid(), code: z.string(), name: z.string() }))
+    .optional()
+    .transform((value) => value ?? []),
 });
 
 export type ProductionFacts = z.infer<typeof productionSchema>;

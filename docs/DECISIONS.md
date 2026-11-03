@@ -587,3 +587,17 @@ The product owner chose the free variant ("logičnija mi je").
 - **Screen:** the row menu on `/admin/users` offers "Uredi" (full name and role; the username stays), "Resetuj lozinku" (active users only) and "Deaktiviraj" / "Aktiviraj ponovo", each with a confirmation.
 
 **Consequences:** No username change (it is the sign-in and the synthetic e-mail). Custom roles are still created only by scripts (no role editor).
+
+## D-045 — Shift performance in reports (2026-11-07)
+
+**Context:** The reports (D-043) had no shift. Production reports carry no shift of their own, but workers clock in to a recognised shift (attendance, D-021).
+
+**Decision:**
+
+- No new column. A production report and a work session belong to the shift of the worker's attendance session at that moment: the report time, or the start of the work session. No attendance = "Bez smjene".
+- **Data:**
+  - `report_production` (migration `20261107100000_report_shifts`) adds `shift_id` to the output and worker-time facts, and lists the shifts.
+  - A lookup index (`20261107110000`): the report over 10 months of demo data takes ~0.06 s.
+- **Screen:** production report "Grupiši po: Smjena" shows good / scrap, worker time, efficiency and good per hour per shift, using the workers' time like the grouping by worker.
+
+**Consequences:** Machine time has no shift (machines run across shifts); a worker who did not clock in counts as "Bez smjene"; a report sent just after clock-out also counts there.

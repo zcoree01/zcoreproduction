@@ -4978,6 +4978,7 @@
     },
     "groups": {
       "day": "Dan",
+      "shift": "Smjena",
       "machine": "Mašina",
       "employee": "Radnik",
       "order": "Nalog",
@@ -5000,7 +5001,7 @@
       "efficiency": "Učinak",
       "goodPerHour": "Dobro / h",
       "efficiencyHint": "Komadi se broje po operaciji (bez kontrola). Učinak = vrijeme po normi (ciklus × prijavljeni komadi, bez pripreme) ÷ stvarno vrijeme mašine. 100 % = kao planirano, manje = sporije.",
-      "workerTimeHint": "Grupisano po radniku: vrijeme je vrijeme radnika na operacijama (ne mašine).",
+      "workerTimeHint": "Po radniku i smjeni: vrijeme je vrijeme radnika na operacijama (ne mašine). Smjena je ona u kojoj je radnik bio prijavljen (dolazak) kad je prijavio komade.",
       "daily": "Dobri komadi po danu",
       "dailyAria": "Dobri komadi po danu u periodu",
       "dailyTip": "{day}: {good} dobro",
@@ -5076,7 +5077,8 @@
       "machine": "Bez mašine",
       "employee": "Bez radnika",
       "order": "Bez naloga",
-      "customer": "Bez kupca"
+      "customer": "Bez kupca",
+      "shift": "Bez smjene (nije prijavljen dolazak)"
     }
   }
 }
