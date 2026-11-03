@@ -601,3 +601,27 @@ The product owner chose the free variant ("logičnija mi je").
 - **Screen:** production report "Grupiši po: Smjena" shows good / scrap, worker time, efficiency and good per hour per shift, using the workers' time like the grouping by worker.
 
 **Consequences:** Machine time has no shift (machines run across shifts); a worker who did not clock in counts as "Bez smjene"; a report sent just after clock-out also counts there.
+
+## D-046 — Role editor (2026-11-08)
+
+**Context:** Only the seven system roles existed; a company could not give someone e.g. a warehouse role without the tools.
+
+**Decision:**
+
+- **Settings → "Uloge i dozvole"** (`/settings/roles`, `roles.manage`): roles on the left with their active members; the chosen role on the right with its permissions by module (Osnovno, Proizvodnja, Prisustvo i smjene, Magacin).
+  - Each permission has a Bosnian name and hint (`rolesEditor.permissions.<key with _>`).
+  - Modules not enabled for the organization are marked.
+- **System roles stay fixed:**
+  - They are read-only (their permissions come from `permissions.default_roles`).
+  - This keeps the admin role from being locked out, as the original RLS already required.
+  - "Kopiraj kao novu ulogu" starts a custom role from any role; "Nova uloga" starts an empty one.
+- **RPCs** (migration `20261108100000_custom_roles`), each one transaction:
+  - `save_custom_role(org, role | null, name, permissions[])`:
+    - the name is unique among active roles, ignoring case;
+    - the key is generated as `custom_…`;
+    - `platform.manage` is never granted;
+    - an audit entry records name and permissions before and after.
+  - `archive_custom_role(org, role)`: only while no active member has the role.
+- Custom roles appear in the user forms. Their dashboard starts empty (D-037), and their home is `/dashboard`.
+
+**Consequences:** System roles cannot be adjusted directly; a company copies them. A custom role named like a system role is refused only against the stored name of the system role.

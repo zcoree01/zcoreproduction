@@ -53,6 +53,7 @@
   "nav": {
     "dashboard": "Početna",
     "users": "Korisnici",
+    "roles": "Uloge i dozvole",
     "floorHome": "Početna",
     "floorNavigation": "Navigacija",
     "sections": {
@@ -5079,6 +5080,209 @@
       "order": "Bez naloga",
       "customer": "Bez kupca",
       "shift": "Bez smjene (nije prijavljen dolazak)"
+    }
+  },
+  "rolesEditor": {
+    "title": "Uloge i dozvole",
+    "description": "Sistemske uloge su fiksne. Napravi svoju ulogu (praznu ili kao kopiju) i izaberi tačno šta smije.",
+    "deniedDescription": "Za uređivanje uloga potrebna je dozvola „Uloge i dozvole“.",
+    "newRole": "Nova uloga",
+    "system": "Sistemska",
+    "custom": "Vlastita",
+    "members": "{count, plural, one {# korisnik} few {# korisnika} other {# korisnika}}",
+    "permissionsCount": "{count} dozvola",
+    "name": "Naziv uloge",
+    "newName": "Nova uloga",
+    "copyName": "{name} (kopija)",
+    "systemHint": "Sistemska uloga se ne mijenja. Napravi kopiju i prilagodi je.",
+    "copy": "Kopiraj kao novu ulogu",
+    "save": "Sačuvaj ulogu",
+    "saved": "Uloga „{name}“ je sačuvana.",
+    "archive": "Arhiviraj ulogu",
+    "archiveTitle": "Arhivirati ulogu „{name}“?",
+    "archiveDescription": "Uloga se više ne nudi pri dodjeli. Moguće samo dok je nijedan aktivni korisnik nema.",
+    "archiveInUse": "Uloga ima aktivne korisnike: prvo im dodijeli drugu ulogu.",
+    "archived": "Uloga „{name}“ je arhivirana.",
+    "selectAll": "Sve",
+    "selectNone": "Ništa",
+    "moduleOff": "Modul nije uključen za firmu",
+    "unsaved": "Ima nesačuvanih izmjena.",
+    "modules": {
+      "core": "Osnovno",
+      "production": "Proizvodnja",
+      "attendance": "Prisustvo i smjene",
+      "inventory": "Magacin"
+    },
+    "permissions": {
+      "org_settings_manage": {
+        "label": "Postavke firme",
+        "hint": "Podaci o firmi i opšte postavke."
+      },
+      "users_read": {
+        "label": "Pregled korisnika",
+        "hint": "Lista korisnika i njihovih uloga."
+      },
+      "users_manage": {
+        "label": "Upravljanje korisnicima",
+        "hint": "Dodavanje, izmjena, deaktivacija i nove lozinke."
+      },
+      "roles_manage": {
+        "label": "Uloge i dozvole",
+        "hint": "Pravljenje uloga i dodjela dozvola."
+      },
+      "audit_read": {
+        "label": "Historija promjena",
+        "hint": "Ko je šta i kada mijenjao."
+      },
+      "dashboard_manage": {
+        "label": "Uređivanje dashboarda",
+        "hint": "Koje kartice vidi koja uloga."
+      },
+      "support_approve": {
+        "label": "Zcore podrška",
+        "hint": "Odobravanje pristupa podrške firmi."
+      },
+      "machines_read": {
+        "label": "Pregled mašina",
+        "hint": "Lista mašina i njihov status."
+      },
+      "machines_manage": {
+        "label": "Upravljanje mašinama",
+        "hint": "Mašine, tipovi mašina i lokacije."
+      },
+      "machines_status_update": {
+        "label": "Status svojih mašina",
+        "hint": "Na pogonu: mijenja status mašina za koje je radnik osposobljen."
+      },
+      "employees_read": {
+        "label": "Pregled radnika",
+        "hint": "Radnici, vještine i mašine."
+      },
+      "employees_manage": {
+        "label": "Upravljanje radnicima",
+        "hint": "Radnici, odjeli, radna mjesta i vještine."
+      },
+      "products_read": {
+        "label": "Pregled proizvoda",
+        "hint": "Proizvodi, revizije, operacije i crteži."
+      },
+      "products_manage": {
+        "label": "Upravljanje proizvodima",
+        "hint": "Proizvodi, operacije, tipovi i materijali."
+      },
+      "customers_read": {
+        "label": "Pregled kupaca",
+        "hint": "Kupci, njihovi proizvodi i nalozi."
+      },
+      "customers_manage": {
+        "label": "Upravljanje kupcima",
+        "hint": "Dodavanje, izmjena i arhiviranje kupaca."
+      },
+      "orders_read": {
+        "label": "Pregled radnih naloga",
+        "hint": "Nalozi, operacije, crteži, historija i plan."
+      },
+      "orders_manage": {
+        "label": "Upravljanje nalozima i planom",
+        "hint": "Pravljenje i izmjena naloga, dodjela mašina i operatera, planiranje."
+      },
+      "orders_material_update": {
+        "label": "Status materijala na nalogu",
+        "hint": "Čeka materijal, odsijecanje, spremno."
+      },
+      "orders_close_approve": {
+        "label": "Zatvaranje naloga s manjkom",
+        "hint": "Odobravanje zatvaranja kad je manje dobrih komada."
+      },
+      "quality_inspect": {
+        "label": "Kontrola kvaliteta",
+        "hint": "Može biti dodijeljen kontrolnim operacijama."
+      },
+      "reports_read": {
+        "label": "Izvještaji",
+        "hint": "Proizvodnja, mašine, nalozi i troškovi."
+      },
+      "attendance_read": {
+        "label": "Pregled prisustva",
+        "hint": "Prisustvo svih radnika."
+      },
+      "attendance_manage": {
+        "label": "Upravljanje prisustvom",
+        "hint": "Upozorenja, raspored, odsustva i korekcije."
+      },
+      "shifts_manage": {
+        "label": "Smjene",
+        "hint": "Smjene, pauze i pravila radnog vremena."
+      },
+      "absences_read": {
+        "label": "Pregled odsustava",
+        "hint": "Odsustva i stanje godišnjeg svih radnika."
+      },
+      "absences_manage": {
+        "label": "Upravljanje odsustvima",
+        "hint": "Unos odsustava i odlučivanje o zahtjevima."
+      },
+      "absences_sensitive_read": {
+        "label": "Osjetljivi podaci o bolovanju",
+        "hint": "Razlozi i dokumenti bolovanja drugih radnika."
+      },
+      "attendance_approve_managers": {
+        "label": "Zahtjevi rukovodilaca",
+        "hint": "Odluke o zahtjevima rukovodilaca."
+      },
+      "payroll_read": {
+        "label": "Pregled plata",
+        "hint": "Satnice i neto plate svih radnika."
+      },
+      "payroll_manage": {
+        "label": "Upravljanje platama",
+        "hint": "Satnice i dodaci."
+      },
+      "kiosk_manage": {
+        "label": "Kiosk za dolazak",
+        "hint": "Tableti, PIN-ovi i kartice."
+      },
+      "inventory_read": {
+        "label": "Pregled magacina",
+        "hint": "Stanje, kretanja, lotovi i certifikati."
+      },
+      "inventory_items_manage": {
+        "label": "Artikli i lokacije magacina",
+        "hint": "Materijali na stanju i skladišne lokacije."
+      },
+      "inventory_move": {
+        "label": "Prijem i premještanje",
+        "hint": "Prijemi, premještanja i prijedlozi korekcija."
+      },
+      "inventory_adjust_approve": {
+        "label": "Odobravanje korekcija i inventure",
+        "hint": "Odobrava korekcije stanja i rezultate inventure."
+      },
+      "finished_goods_read": {
+        "label": "Pregled gotovih proizvoda",
+        "hint": "Stanje gotovih proizvoda i otpremnice."
+      },
+      "finished_goods_manage": {
+        "label": "Gotovi proizvodi i otpremnice",
+        "hint": "Prijem gotovih komada i izdavanje otpremnica."
+      },
+      "tools_read": {
+        "label": "Pregled alata",
+        "hint": "Alati i gdje se nalaze."
+      },
+      "tools_manage": {
+        "label": "Upravljanje alatima",
+        "hint": "Katalog alata i premještanje."
+      }
+    },
+    "errors": {
+      "invalid": "Provjeri naziv i dozvole.",
+      "denied": "Nemaš pravo uređivati uloge.",
+      "not_found": "Uloga više ne postoji.",
+      "name_taken": "Uloga s tim nazivom već postoji.",
+      "system_role": "Sistemska uloga se ne može mijenjati.",
+      "role_in_use": "Uloga ima aktivne korisnike.",
+      "unexpected": "Nije sačuvano. Pokušaj ponovo."
     }
   }
 }

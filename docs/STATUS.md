@@ -217,7 +217,7 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 - Forgotten passwords: only the administrator resets them (no e-mail / SMS). Temporary passwords have little entropy by design (easy to read out); they work until the first sign-in, which must replace them, and sign-in is rate limited by Supabase Auth.
 - Usernames cannot be changed (sign-in name and synthetic e-mail); users are edited, deactivated and reactivated in `/admin/users` (D-044).
-- No custom-role management UI; no org settings screen.
+- System roles are fixed (copy them into custom roles, D-046); no org settings screen (timezone).
 - After login the user always lands on the role home (no "return to requested page").
 - Dev overlay shows an informational `instant` validation message when an operator opens `/dashboard` (intentional redirect to `/floor`).
 - Table sorting is fixed (by username); column sorting UI not yet added to DataTable.
@@ -247,13 +247,18 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
    - d. planning (done, D-041): board by days, drag and drop + arrows, a responsible operator on every planned job (also on unattended machines), planned vs actual cycle, overloaded days with the question whether to move work (priority first, then added last), machine downtime with an optional end, days and price of external operations;
    - e. reports (done, D-043): production / efficiency, machines / downtime, orders / due dates, material / tools / costs, Excel export, machine hourly rate;
 2. **Test isolation:** separate Supabase project for `test:db` / e2e and add them to CI with GitHub secrets.
-3. **User management:** done (D-022, D-044). Open: a role editor for custom roles.
+3. **User management:** done (D-022, D-044, role editor D-046).
 4. **Org settings** (`org.settings.manage`): timezone and other organization-wide settings (company data are done, D-026).
 5. **Shifts in production:** shift filter on the production overview, work hours per day for priorities from the shift plan, shift on reports / downtime.
 6. **Attendance follow-ups with the product owner:** verify Bajram dates, confirm the weekly overtime warning, set the default hourly rate; feedback from real use of the kiosk (NFC).
 7. **Reports follow-ups:** shift performance done (D-045); tool prices for tool cost, labour / overhead rates in the order cost, saved report views.
 
 ## Log
+
+### 2026-11-08 — Role editor (D-046)
+
+- Custom roles: new or copied from any role, permissions by module with Bosnian names, archive when unused; system roles read-only. Migration `20261108100000_custom_roles` applied; types regenerated.
+- Checks: `test:db` `roles` 3/3, e2e `roles` passes.
 
 ### 2026-11-07 — Shift performance in reports (D-045)
 

@@ -49,6 +49,10 @@ export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 
 export const permissionKeySchema = z.enum(PERMISSION_KEYS);
 
+export function isPermissionKey(key: string): key is PermissionKey {
+  return (PERMISSION_KEYS as readonly string[]).includes(key);
+}
+
 export class UnauthenticatedError extends Error {
   constructor() {
     super("Not signed in");

@@ -5755,6 +5755,10 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: number
       }
+      archive_custom_role: {
+        Args: { p_org_id: string; p_role_id: string }
+        Returns: undefined
+      }
       archive_machine_downtime: {
         Args: { p_id: string; p_org_id: string }
         Returns: undefined
@@ -6596,6 +6600,15 @@ export type Database = {
           p_id: string
           p_name: string
           p_org_id: string
+        }
+        Returns: string
+      }
+      save_custom_role: {
+        Args: {
+          p_name: string
+          p_org_id: string
+          p_permissions: string[]
+          p_role_id: string
         }
         Returns: string
       }

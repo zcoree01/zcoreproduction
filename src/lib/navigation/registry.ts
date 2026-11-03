@@ -26,6 +26,7 @@ export type NavLabelKey =
   | "inspections"
   | "planning"
   | "reports"
+  | "roles"
   | "productionDay"
   | "attendance"
   | "shiftSettings"
@@ -355,6 +356,16 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "users",
     module: "core",
     permission: "users.read",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "roles",
+    href: "/settings/roles",
+    label: "roles",
+    icon: "shield",
+    module: "core",
+    permission: "roles.manage",
     surface: "app",
     section: "administration",
   },
