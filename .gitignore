@@ -44,3 +44,6 @@ supabase/.branches
 
 # claude code: personal overrides
 .claude/settings.local.json
+
+# Brainstorming mockups (local only)
+.superpowers/
