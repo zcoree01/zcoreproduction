@@ -8,6 +8,8 @@ test("sign-in without a company asks for the company's address", async ({ page }
   await page.context().clearCookies();
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Prijava u vašu firmu" })).toBeVisible();
+  const register = page.getByRole("link", { name: "Registrujte firmu" });
+  await expect(register).toBeVisible();
 
   await page.getByLabel("Adresa firme").fill("ne-postoji-firma");
   await page.getByRole("button", { name: "Nastavi na prijavu" }).click();
@@ -20,6 +22,8 @@ test("sign-in without a company asks for the company's address", async ({ page }
     (url) => url.pathname === "/login" && url.searchParams.get("org") === DEMO_ORG.slug,
   );
   await expect(page.getByLabel("Korisničko ime")).toBeVisible();
+  // A company's own sign-in page does not offer registering another company.
+  await expect(register).toHaveCount(0);
 });
 
 test("app.zcore.ba sends everything except sign-in to the registration", async ({ browser }) => {

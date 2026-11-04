@@ -256,6 +256,10 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-04 — No registration link on a company's sign-in
+
+- Product owner: "Nova firma? Registrujte firmu" does not belong on a company's own sign-in page (`<slug>.zcore.ba/login`). Now shown only without a company in the address (`app.zcore.ba/login`). Verified: `npm run check` (489), e2e `company-address` + `auth` (25 passed; the link is visible without a company and gone on the company's sign-in).
+
 ### 2026-11-04 — Kiosk on kiosk.zcore.ba (D-048)
 
 - Product owner: kiosk on `kiosk.zcore.ba`, only the activation code is asked, the company does not matter until activation; an installable Android app if needed. Done as in D-048: migration `20261109100000_kiosk_host` (applied), types regenerated; app = installable PWA (no JDK / Android SDK on this computer, and an APK would lose Web NFC in a WebView).

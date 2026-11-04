@@ -29,14 +29,28 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <Suspense fallback={<PageSkeleton label={t("loading")} />}>
           <LoginCard searchParams={searchParams} />
         </Suspense>
-        <p className="text-center text-sm text-muted-foreground">
-          {t("newCompany")}{" "}
-          <Link href="/registracija" className="underline underline-offset-4">
-            {t("register")}
-          </Link>
-        </p>
+        <Suspense fallback={null}>
+          <RegisterLink />
+        </Suspense>
       </div>
     </div>
+  );
+}
+
+/**
+ * "Nova firma? Registrujte firmu" only where no company is chosen yet
+ * (app.zcore.ba/login); a company's own sign-in page does not offer it.
+ */
+async function RegisterLink() {
+  const [slug, t] = await Promise.all([getTenantSlug(), getTranslations("common")]);
+  if (slug) return null;
+  return (
+    <p className="text-center text-sm text-muted-foreground">
+      {t("newCompany")}{" "}
+      <Link href="/registracija" className="underline underline-offset-4">
+        {t("register")}
+      </Link>
+    </p>
   );
 }
 
