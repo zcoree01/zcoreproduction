@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -53,7 +54,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         >
           <NextIntlClientProvider>
             <TooltipProvider>{children}</TooltipProvider>
-            <SplashHost />
+            {/* Reads the pathname: needs its own Suspense boundary (prerendering). */}
+            <Suspense fallback={null}>
+              <SplashHost />
+            </Suspense>
             <Toaster position="top-center" />
           </NextIntlClientProvider>
         </ThemeProvider>
