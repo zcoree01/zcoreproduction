@@ -330,13 +330,22 @@ test("@mobile kiosk: activate a tablet with a code, then clock in and out by nam
     page.getByText(/Tekst za NFC karticu je kopiran/).or(page.getByTestId("nfc-text")),
   ).toBeVisible();
 
-  // The tablet: no user login.
+  // The tablet: no user login and no company in the address (like
+  // kiosk.zcore.ba): the code alone finds the company (D-048).
   const kioskContext = await browser.newContext();
   const kiosk = await kioskContext.newPage();
-  await kiosk.goto(`/kiosk?org=${DEMO_ORG.slug}`);
+  await kiosk.goto("/kiosk");
   await expect(kiosk.getByRole("heading", { name: "Aktivacija kioska" })).toBeVisible();
+  await expect(kiosk.getByText("Kiosk kao aplikacija")).toBeVisible();
+  const manifest = await kiosk.request.get("/kiosk/manifest.webmanifest");
+  expect(manifest.ok()).toBe(true);
+  expect(await manifest.json()).toMatchObject({ start_url: "/kiosk", display: "fullscreen" });
   await kiosk.getByLabel("Aktivacijski kod").fill(code);
   await kiosk.getByRole("button", { name: "Aktiviraj tablet" }).click();
+  await expect(kiosk.getByRole("heading", { name: "Prijava dolaska i odlaska" })).toBeVisible();
+  await expect(kiosk.getByText(DEMO_ORG.name)).toBeVisible();
+  // The device cookie remembers the company.
+  await kiosk.reload();
   await expect(kiosk.getByRole("heading", { name: "Prijava dolaska i odlaska" })).toBeVisible();
 
   const byPin = async () => {

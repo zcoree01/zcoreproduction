@@ -153,6 +153,35 @@ describe("activation", () => {
     expect(direct.error).not.toBeNull();
   });
 
+  it("finds the company by the code alone on kiosk.zcore.ba (D-048)", async () => {
+    const created = await activation(head, fx.a.org.id, "Kiosk host");
+    expect(created.error).toBeNull();
+    const code = created.data!.code;
+
+    const first = await fx.service.rpc("kiosk_activate_code", {
+      p_code: ` ${code.toLowerCase()} `,
+    });
+    expect(first.error).toBeNull();
+    const row = first.data?.[0];
+    expect(row?.org_slug).toBe(fx.a.org.slug);
+    expect(row?.kiosk_id).toBe(created.data!.kiosk_id);
+    expect(row?.secret).toMatch(/^[a-f0-9]{64}$/);
+
+    // Single use, and the device then works for its company only.
+    const again = await fx.service.rpc("kiosk_activate_code", { p_code: code });
+    expect(again.error?.message).toBe("invalid_code");
+    const session = await fx.service.rpc("kiosk_session", {
+      p_org_slug: fx.a.org.slug,
+      p_kiosk_id: row!.kiosk_id,
+      p_secret: row!.secret,
+    });
+    expect(session.error).toBeNull();
+
+    // Service role only.
+    const direct = await fx.a.admin.rpc("kiosk_activate_code", { p_code: code });
+    expect(direct.error).not.toBeNull();
+  });
+
   it("refuses an unknown secret or another tenant's host", async () => {
     const wrong = await fx.service.rpc("kiosk_session", {
       p_org_slug: device.slug,

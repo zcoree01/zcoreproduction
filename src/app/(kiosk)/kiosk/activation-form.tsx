@@ -12,18 +12,18 @@ export function ActivationForm() {
   const t = useTranslations("kiosk");
   const router = useRouter();
   const [code, setCode] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"invalidCode" | "rateLimited" | null>(null);
   const [pending, startTransition] = useTransition();
 
   const submit = () =>
     startTransition(async () => {
-      setError(false);
+      setError(null);
       try {
         const result = await activateKioskAction({ code });
         if (result.ok) router.refresh();
-        else setError(true);
+        else setError(result.error === "rate_limited" ? "rateLimited" : "invalidCode");
       } catch {
-        setError(true);
+        setError("invalidCode");
       }
     });
 
@@ -37,7 +37,7 @@ export function ActivationForm() {
     >
       {error ? (
         <Alert variant="destructive">
-          <AlertDescription>{t("invalidCode")}</AlertDescription>
+          <AlertDescription>{t(error)}</AlertDescription>
         </Alert>
       ) : null}
       <Input

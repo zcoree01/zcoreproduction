@@ -4,6 +4,7 @@ import {
   activationSchema,
   badgePayload,
   decodeDevice,
+  deviceSlug,
   encodeDevice,
   kioskClockSchema,
   parseBadge,
@@ -36,13 +37,44 @@ describe("PIN", () => {
 });
 
 describe("device cookie", () => {
+  const id = "3f2b5c3e-8c7a-4c55-9a41-2f1d5e6b7a80";
+  const secret = "a".repeat(64);
+
   it("round-trips and rejects anything else", () => {
-    const id = "3f2b5c3e-8c7a-4c55-9a41-2f1d5e6b7a80";
-    const secret = "a".repeat(64);
-    expect(decodeDevice(encodeDevice(id, secret))).toEqual({ kioskId: id, secret });
+    expect(decodeDevice(encodeDevice({ slug: "demo", kioskId: id, secret }))).toEqual({
+      slug: "demo",
+      kioskId: id,
+      secret,
+    });
     expect(decodeDevice(undefined)).toBeNull();
     expect(decodeDevice(`${id}.short`)).toBeNull();
     expect(decodeDevice(`not-a-uuid.${secret}`)).toBeNull();
+  });
+
+  it("still reads cookies of tablets activated before kiosk.zcore.ba", () => {
+    expect(decodeDevice(`${id}.${secret}`)).toEqual({ slug: null, kioskId: id, secret });
+  });
+
+  it("refuses malformed slugs and extra parts", () => {
+    expect(decodeDevice(`Demo.${id}.${secret}`)).toBeNull();
+    expect(decodeDevice(`-x.${id}.${secret}`)).toBeNull();
+    expect(decodeDevice(`a.demo.${id}.${secret}`)).toBeNull();
+  });
+});
+
+describe("deviceSlug", () => {
+  it("uses the cookie's company on kiosk.zcore.ba", () => {
+    expect(deviceSlug(null, "demo")).toBe("demo");
+    expect(deviceSlug(null, null)).toBeNull();
+  });
+
+  it("uses the host's company on <slug>.zcore.ba", () => {
+    expect(deviceSlug("demo", null)).toBe("demo");
+    expect(deviceSlug("demo", "demo")).toBe("demo");
+  });
+
+  it("ignores a cookie of another company on a company host", () => {
+    expect(deviceSlug("demo", "other")).toBeNull();
   });
 });
 

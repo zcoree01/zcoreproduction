@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   companyLoginUrl,
+  isKioskHost,
+  isKioskPath,
   isRegistrationHost,
+  kioskAddress,
   requestHost,
   resolveTenant,
   tenantUrl,
@@ -105,6 +108,7 @@ describe("resolveTenant", () => {
     for (const host of [
       "app.zcore.ba",
       "api.zcore.ba",
+      "kiosk.zcore.ba",
       "a.b.zcore.ba",
       "-x.zcore.ba",
       "x_y.zcore.ba",
@@ -160,6 +164,32 @@ describe("registration host", () => {
     );
     expect(companyLoginUrl({ host: "localhost:3000", protocol: "http", slug: "demo" })).toBe(
       "http://localhost:3000/login?org=demo",
+    );
+  });
+});
+
+describe("kiosk host", () => {
+  it("recognises kiosk.zcore.ba only", () => {
+    expect(isKioskHost("kiosk.zcore.ba")).toBe(true);
+    expect(isKioskHost("KIOSK.zcore.ba:443")).toBe(true);
+    expect(isKioskHost("demo.zcore.ba")).toBe(false);
+    expect(isKioskHost(null)).toBe(false);
+  });
+
+  it("serves the kiosk page and its files, nothing else", () => {
+    expect(isKioskPath("/kiosk")).toBe(true);
+    expect(isKioskPath("/kiosk/manifest.webmanifest")).toBe(true);
+    expect(isKioskPath("/kiosks")).toBe(false);
+    expect(isKioskPath("/login")).toBe(false);
+    expect(isKioskPath("/")).toBe(false);
+  });
+
+  it("gives kiosk.zcore.ba in production and the tenant's /kiosk elsewhere", () => {
+    expect(kioskAddress({ host: "demo.zcore.ba", protocol: "https", slug: "demo" })).toBe(
+      "https://kiosk.zcore.ba",
+    );
+    expect(kioskAddress({ host: "localhost:3000", protocol: "http", slug: "demo" })).toBe(
+      "http://localhost:3000/kiosk?org=demo",
     );
   });
 });

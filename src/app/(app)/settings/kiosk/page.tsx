@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { formatLocalDateTime } from "@/lib/format";
-import { requestHost, tenantUrl } from "@/lib/tenant/resolve";
+import { kioskAddress, requestHost } from "@/lib/tenant/resolve";
 import { utcToZonedLocal } from "@/lib/timezone";
 import { listKioskCredentials, listKiosks } from "@/modules/attendance/kiosk-queries";
 import { CredentialList } from "./credential-list";
@@ -42,11 +42,11 @@ async function KioskSettingsContent() {
     listKiosks(member.organization.id),
     listKioskCredentials(member.organization.id),
   ]);
-  const kioskUrl = tenantUrl({
+  // kiosk.zcore.ba for every company; the activation code finds it (D-048).
+  const kioskUrl = kioskAddress({
     host: requestHost(requestHeaders) ?? "",
     protocol: requestHeaders.get("x-forwarded-proto"),
     slug: member.organization.slug,
-    path: "/kiosk",
   });
 
   return (

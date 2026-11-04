@@ -1,13 +1,25 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/shared/page-skeleton";
 import { getKioskSession } from "@/modules/attendance/kiosk-device";
 import { ActivationForm } from "./activation-form";
+import { InstallApp } from "./install-app";
 import { KioskScreen } from "./kiosk-screen";
 
 // The attendance kiosk: a shared tablet at the entrance without a user
 // login. Not activated yet → the one-time activation code; activated → badge
-// scan (camera QR, NFC, keyboard scanner) or name + PIN (D-029).
+// scan (camera QR, NFC, keyboard scanner) or name + PIN (D-029). Served on
+// kiosk.zcore.ba for every company, installable as an app (D-048).
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("kiosk");
+  return {
+    title: t("appName"),
+    manifest: "/kiosk/manifest.webmanifest",
+    appleWebApp: { capable: true, title: t("appName") },
+  };
+}
 
 export default function KioskPage() {
   return (
@@ -35,6 +47,7 @@ async function KioskContent() {
             <p className="text-muted-foreground">{t("activateDescription")}</p>
           </div>
           <ActivationForm />
+          <InstallApp />
         </div>
       )}
     </main>

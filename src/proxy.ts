@@ -6,7 +6,10 @@ import { slugFromAuthEmail } from "@/lib/auth/username";
 import { getPublicEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
 import {
+  isKioskHost,
+  isKioskPath,
   isRegistrationHost,
+  KIOSK_PATH,
   REGISTRATION_HOST_PATHS,
   requestHost,
   resolveTenant,
@@ -34,6 +37,13 @@ export async function proxy(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/registracija";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  // kiosk.zcore.ba only serves the attendance kiosk (D-048).
+  if (isKioskHost(requestHost(request.headers)) && !isKioskPath(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = KIOSK_PATH;
     url.search = "";
     return NextResponse.redirect(url);
   }

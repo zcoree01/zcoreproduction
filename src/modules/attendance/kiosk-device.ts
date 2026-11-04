@@ -3,11 +3,12 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantSlug } from "@/lib/tenant/server";
-import { decodeDevice, KIOSK_COOKIE } from "./kiosk-rules";
+import { decodeDevice, deviceSlug, KIOSK_COOKIE } from "./kiosk-rules";
 
 // The kiosk tablet has no user session. It is identified by the device
-// cookie (kiosk id + secret) issued at activation, checked in the database
-// together with the tenant of the host. Only after that check does the
+// cookie (company slug + kiosk id + secret) issued at activation, checked in
+// the database together with the company: the host's tenant on
+// <slug>.zcore.ba, the cookie's slug on kiosk.zcore.ba (D-048). Only after that check does the
 // server call the kiosk functions with the service role (D-029).
 
 export type KioskEmployee = {
@@ -27,12 +28,14 @@ export type KioskSession = {
 
 export type KioskDevice = { slug: string; kioskId: string; secret: string };
 
-/** The device of this request (cookie + tenant), not yet verified. */
+/** The device of this request (cookie + company), not yet verified. */
 export async function readKioskDevice(): Promise<KioskDevice | null> {
-  const [slug, store] = await Promise.all([getTenantSlug(), cookies()]);
+  const [hostSlug, store] = await Promise.all([getTenantSlug(), cookies()]);
   const device = decodeDevice(store.get(KIOSK_COOKIE)?.value);
-  if (!slug || !device) return null;
-  return { slug, ...device };
+  if (!device) return null;
+  const slug = deviceSlug(hostSlug, device.slug);
+  if (!slug) return null;
+  return { slug, kioskId: device.kioskId, secret: device.secret };
 }
 
 const sessionSchema = z.object({

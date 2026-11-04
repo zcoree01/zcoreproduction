@@ -16,6 +16,13 @@ export const REGISTRATION_HOST_PATHS: ReadonlySet<string> = new Set([
   "/login/firma",
 ]);
 
+/**
+ * Attendance kiosk host (D-048): one address for the tablets of every
+ * company; the activation code finds the company.
+ */
+export const KIOSK_HOST = `kiosk.${ROOT_DOMAIN}`;
+export const KIOSK_PATH = "/kiosk";
+
 // Request header set by proxy.ts for server code. Always overwritten there,
 // so a client cannot inject it.
 export const TENANT_HEADER = "x-zcore-tenant";
@@ -23,7 +30,7 @@ export const TENANT_HEADER = "x-zcore-tenant";
 // Dev/preview only: remembers ?org=<slug> across navigations.
 export const TENANT_COOKIE = "zcore_tenant";
 
-const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "admin", "auth", "static"]);
+const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "admin", "auth", "static", "kiosk"]);
 
 export type TenantResolution = {
   slug: string | null;
@@ -67,6 +74,31 @@ function subdomainSlug(hostname: string, parentDomain: string): string | null {
 
 export function isRegistrationHost(host: string | null): boolean {
   return host !== null && hostnameOf(host) === REGISTRATION_HOST;
+}
+
+export function isKioskHost(host: string | null): boolean {
+  return host !== null && hostnameOf(host) === KIOSK_HOST;
+}
+
+/** Paths served on the kiosk host (the page, its manifest and icons). */
+export function isKioskPath(path: string): boolean {
+  return path === KIOSK_PATH || path.startsWith(`${KIOSK_PATH}/`);
+}
+
+/**
+ * Address an administrator opens on the tablet: kiosk.zcore.ba in production,
+ * the tenant's /kiosk on hosts without the zcore.ba domain.
+ */
+export function kioskAddress(input: {
+  host: string;
+  protocol: string | null;
+  slug: string;
+}): string {
+  const hostname = hostnameOf(input.host);
+  if (hostname === ROOT_DOMAIN || hostname.endsWith(`.${ROOT_DOMAIN}`)) {
+    return `https://${KIOSK_HOST}`;
+  }
+  return tenantUrl({ ...input, path: KIOSK_PATH });
 }
 
 /**

@@ -3715,7 +3715,7 @@
   },
   "kiosk": {
     "activateTitle": "Aktivacija kioska",
-    "activateDescription": "Upišite kod koji je administrator dobio u Postavke → Kiosk.",
+    "activateDescription": "Upišite kod koji je administrator dobio u Postavke → Kiosk. Kod sam pronalazi firmu.",
     "code": "Aktivacijski kod",
     "activate": "Aktiviraj tablet",
     "activating": "Aktiviram…",
@@ -3752,12 +3752,20 @@
       "pin_wrong": "Pogrešan PIN.",
       "pin_locked": "Previše pogrešnih pokušaja. Pokušajte za 5 minuta.",
       "module_disabled": "Evidencija radnog vremena nije uključena.",
-      "not_an_employee": "Radnik nije aktivan."
+      "not_an_employee": "Radnik nije aktivan.",
+      "rate_limited": "Previše pokušaja. Pokušajte ponovo za sat vremena."
     },
     "startNfc": "Uključi NFC čitač",
     "nfcOn": "NFC čitač je uključen – prinesite karticu",
     "nfcFailed": "NFC nije moguće uključiti. Provjerite da je NFC uključen na tabletu i dozvolite pristup.",
-    "alreadyRecorded": "Već zabilježeno maloprije – ništa nije promijenjeno."
+    "alreadyRecorded": "Već zabilježeno maloprije – ništa nije promijenjeno.",
+    "rateLimited": "Previše pokušaja s ovog uređaja. Pokušajte ponovo za sat vremena.",
+    "installApp": "Instaliraj kao aplikaciju",
+    "installTitle": "Kiosk kao aplikacija",
+    "installHint": "Instalirana aplikacija se otvara preko cijelog ekrana, bez adresne trake. Ako dugme nije ponuđeno: Chrome meni ⋮ → Dodaj na početni ekran / Instaliraj aplikaciju.",
+    "lockHint": "Da radnici ne mogu izaći iz kioska: Postavke → Sigurnost → Pričvršćivanje aplikacije (Screen pinning), zatim u pregledu otvorenih aplikacija izaberite Zcore kiosk → Pričvrsti.",
+    "appName": "Zcore kiosk",
+    "appDescription": "Prijava dolaska i odlaska radnika na tabletu."
   },
   "kioskSettings": {
     "title": "Kiosk",

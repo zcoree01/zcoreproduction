@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { orgSlugSchema } from "@/lib/auth/username";
 
 // Kiosk (shared tablet) rules: badge payloads, PINs, the device cookie
 // (pure, unit-tested). A badge carries a random 24-hex token, printed as a QR
@@ -35,18 +36,37 @@ export function weakPin(pin: string): boolean {
   return ascending || descending;
 }
 
-/** Device cookie value "<kiosk id>.<secret>". */
-export function encodeDevice(kioskId: string, secret: string): string {
-  return `${kioskId}.${secret}`;
+export type DeviceCookie = { slug: string | null; kioskId: string; secret: string };
+
+/**
+ * Device cookie value "<org slug>.<kiosk id>.<secret>". The slug lets
+ * kiosk.zcore.ba (no tenant in the host) find the company; the database
+ * still checks it together with the secret (D-048).
+ */
+export function encodeDevice(device: { slug: string; kioskId: string; secret: string }): string {
+  return `${device.slug}.${device.kioskId}.${device.secret}`;
 }
 
-export function decodeDevice(
-  value: string | undefined,
-): { kioskId: string; secret: string } | null {
+/** Reads the cookie; the older "<kiosk id>.<secret>" form has no slug. */
+export function decodeDevice(value: string | undefined): DeviceCookie | null {
   if (!value) return null;
-  const [kioskId = "", secret = ""] = value.split(".");
+  const parts = value.split(".");
+  if (parts.length !== 2 && parts.length !== 3) return null;
+  const [kioskId = "", secret = ""] = parts.slice(-2);
   if (!z.uuid().safeParse(kioskId).success || !/^[a-f0-9]{64}$/.test(secret)) return null;
-  return { kioskId, secret };
+  if (parts.length === 2) return { slug: null, kioskId, secret };
+  const slug = orgSlugSchema.safeParse(parts[0]);
+  return slug.success && slug.data === parts[0] ? { slug: slug.data, kioskId, secret } : null;
+}
+
+/**
+ * Company of a kiosk request: the host's tenant on <slug>.zcore.ba (a cookie
+ * of another company does not count there), the cookie's slug on hosts
+ * without a tenant (kiosk.zcore.ba).
+ */
+export function deviceSlug(hostSlug: string | null, cookieSlug: string | null): string | null {
+  if (hostSlug) return cookieSlug === null || cookieSlug === hostSlug ? hostSlug : null;
+  return cookieSlug;
 }
 
 export const activationSchema = z.object({
@@ -77,7 +97,7 @@ export const KIOSK_ERRORS = [
   "module_disabled",
   "not_an_employee",
 ] as const;
-export type KioskError = (typeof KIOSK_ERRORS)[number] | "invalid" | "unexpected";
+export type KioskError = (typeof KIOSK_ERRORS)[number] | "invalid" | "unexpected" | "rate_limited";
 
 /** Pause after a badge scan: further scans are ignored for this long. */
 export const SCAN_COOLDOWN_MS = 3000;

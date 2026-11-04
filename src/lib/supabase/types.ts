@@ -6082,6 +6082,15 @@ export type Database = {
           secret: string
         }[]
       }
+      kiosk_activate_code: {
+        Args: { p_code: string }
+        Returns: {
+          kiosk_id: string
+          kiosk_name: string
+          org_slug: string
+          secret: string
+        }[]
+      }
       kiosk_clock: {
         Args: {
           p_badge: string

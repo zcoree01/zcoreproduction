@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { withinClientLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantSlug } from "@/lib/tenant/server";
 import { readKioskDevice } from "./kiosk-device";
@@ -16,7 +17,7 @@ import {
 } from "./kiosk-rules";
 
 // Actions of the kiosk tablet (no user session). Every call is bound to the
-// tenant of the host and, except activation, to the verified device cookie;
+// company of the request and, except activation, to the verified device cookie;
 // the database functions are executable by the service role only.
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -25,21 +26,41 @@ function kioskError(message: string | undefined): KioskError {
   return KIOSK_ERRORS.find((key) => key === message) ?? "unexpected";
 }
 
-/** Redeems a one-time activation code and stores the device cookie. */
+// Generous for a real tablet (a few typos), far too few to guess codes.
+const MAX_ACTIVATIONS_PER_HOUR = 20;
+
+type Activation = { kiosk_id: string; secret: string; org_slug: string };
+
+/**
+ * Redeems a one-time activation code and stores the device cookie. On
+ * <slug>.zcore.ba the code must belong to that company; on kiosk.zcore.ba
+ * (no tenant in the host) the code alone finds the company (D-048).
+ */
 export async function activateKioskAction(
   input: unknown,
 ): Promise<{ ok: true } | { ok: false; error: KioskError }> {
   const parsed = activationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid_code" };
+  if (!(await withinClientLimit("kiosk", "kiosk_activate", MAX_ACTIVATIONS_PER_HOUR))) {
+    return { ok: false, error: "rate_limited" };
+  }
   const slug = await getTenantSlug();
-  if (!parsed.success || !slug) return { ok: false, error: "invalid_code" };
-  const { data, error } = await createAdminClient()
-    .rpc("kiosk_activate", { p_org_slug: slug, p_code: parsed.data.code })
-    .maybeSingle();
+  const admin = createAdminClient();
+  const { data, error } = slug
+    ? await admin
+        .rpc("kiosk_activate", { p_org_slug: slug, p_code: parsed.data.code })
+        .maybeSingle()
+        .then((result) => ({
+          ...result,
+          data: result.data ? ({ ...result.data, org_slug: slug } satisfies Activation) : null,
+        }))
+    : await admin.rpc("kiosk_activate_code", { p_code: parsed.data.code }).maybeSingle();
   if (error || !data) {
     if (error?.code !== "P0002") console.error("kiosk activation failed", error);
     return { ok: false, error: "invalid_code" };
   }
-  (await cookies()).set(KIOSK_COOKIE, encodeDevice(data.kiosk_id, data.secret), {
+  const device = { slug: data.org_slug, kioskId: data.kiosk_id, secret: data.secret };
+  (await cookies()).set(KIOSK_COOKIE, encodeDevice(device), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

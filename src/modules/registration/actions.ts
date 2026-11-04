@@ -1,9 +1,8 @@
 "use server";
 
-import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { toAuthEmail } from "@/lib/auth/username";
-import { getServerEnv } from "@/lib/env.server";
+import { withinClientLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requestHost, ROOT_DOMAIN } from "@/lib/tenant/resolve";
 import { toBankAccountsJson, toCompanyFieldsJson } from "@/modules/companies/schemas";
@@ -15,29 +14,8 @@ import { registrationSchema, registrationSlugSchema } from "./schemas";
 const MAX_REGISTRATIONS_PER_HOUR = 5;
 const MAX_SLUG_CHECKS_PER_HOUR = 120;
 
-/** Client address, keyed-hashed (never stored in clear). */
-async function clientHash(): Promise<string> {
-  const requestHeaders = await headers();
-  const address =
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    requestHeaders.get("x-real-ip") ||
-    "unknown";
-  return createHmac("sha256", getServerEnv().SUPABASE_SERVICE_ROLE_KEY)
-    .update(`registration:${address}`)
-    .digest("hex");
-}
-
-async function withinLimit(kind: "slug_check" | "register", max: number): Promise<boolean> {
-  const { data, error } = await createAdminClient().rpc("registration_attempt", {
-    p_client_hash: await clientHash(),
-    p_kind: kind,
-    p_max: max,
-  });
-  if (error) {
-    console.error("registration rate limit failed", error);
-    return false;
-  }
-  return data === true;
+function withinLimit(kind: "slug_check" | "register", max: number): Promise<boolean> {
+  return withinClientLimit("registration", kind, max);
 }
 
 export type SlugCheckResult = "available" | "taken" | "invalid" | "rate_limited";

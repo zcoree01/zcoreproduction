@@ -646,3 +646,17 @@ The product owner chose the free variant ("logičnija mi je").
   - `app.zcore.ba` and `*.zcore.ba` are domains of the Vercel project.
 
 **Consequences:** The website and the app share one DNS zone at Vercel. A company address is only shown as existing or not (like the login screen).
+
+## D-048 — Kiosk on kiosk.zcore.ba, installable as an app (2026-11-04)
+
+**Context:** The product owner wants one kiosk address for every company: the tablet asks only for the activation code, and after activation it shows the company's kiosk as before. If needed, an app that can be downloaded and installed on an Android phone or tablet and runs like a kiosk.
+
+**Decision:**
+
+- **`kiosk.zcore.ba`** (`KIOSK_HOST`) serves only `/kiosk` and its files (manifest, icons); every other path redirects to `/kiosk` (proxy). `kiosk` is a reserved subdomain and slug, so it is never a tenant.
+- **The code finds the company:** activation codes are unique across all organizations (partial unique index; `create_kiosk_activation` draws again on a clash). `kiosk_activate_code(code)` (service role only) activates the tablet of any company that is not archived and returns its slug. On `<slug>.zcore.ba/kiosk` the old `kiosk_activate(slug, code)` still binds the code to the host's company.
+- **Device cookie = `<slug>.<kiosk id>.<secret>`.** On kiosk.zcore.ba the company comes from the cookie, on `<slug>.zcore.ba` from the host (a cookie of another company does not count there). The database still checks slug + kiosk + secret on every call, so the slug in the cookie grants nothing by itself. Cookies of tablets activated before (`<kiosk id>.<secret>`) keep working on their company's host.
+- **Rate limit:** activation is limited to 20 attempts per hour per client address (`registration_attempts`, kind `kiosk_activate`; shared helper `src/lib/rate-limit.ts`, also used by registration). A wrong code cannot be told apart from an unknown company.
+- **App = installable web app (PWA), not an APK.** `/kiosk/manifest.webmanifest` (display `fullscreen`, scope `/kiosk`) and generated icons make Chrome offer "Install app"; the activation screen shows an install button when Chrome offers it, and explains the menu fallback and Android screen pinning (which keeps workers inside the kiosk). Reasons: camera and Web NFC keep working (they need Chrome; an Android WebView has no Web NFC); updates arrive with every deploy; no app store and no signing. A native app could only lock the screen without device owner provisioning by using the same screen pinning.
+
+**Consequences:** Admins see `https://kiosk.zcore.ba` in `/settings/kiosk`. Real kiosk lock (no way out without a PIN) needs a dedicated device or an MDM (device owner); the PWA uses screen pinning. Building an APK (Trusted Web Activity) remains possible later and needs a JDK, the Android SDK and a signing key.
