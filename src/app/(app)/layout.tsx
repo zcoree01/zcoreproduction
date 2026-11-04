@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense, type CSSProperties, type ReactNode } from "react";
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { AppSplash } from "@/components/shared/app-splash";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getMemberAccess } from "@/lib/auth/access";
@@ -34,9 +34,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 async function ShellFallback() {
   const t = await getTranslations("common");
   return (
-    <div className="flex flex-1 p-6">
-      <PageSkeleton label={t("loading")} />
-    </div>
+    // Zcore loading screen until the shell (member, navigation) is ready.
+    <AppSplash label={t("loading")} />
   );
 }
 

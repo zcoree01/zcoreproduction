@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Suspense, type ReactNode } from "react";
 import { ModeToggle } from "@/components/shared/mode-toggle";
-import { PageSkeleton } from "@/components/shared/page-skeleton";
+import { AppSplash } from "@/components/shared/app-splash";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { buttonVariants } from "@/components/ui/button";
 import { CHANGE_PASSWORD_PATH } from "@/lib/auth/route-guard";
@@ -24,9 +24,8 @@ export default function FloorLayout({ children }: { children: ReactNode }) {
 async function FloorFallback() {
   const t = await getTranslations("common");
   return (
-    <div className="px-4 py-6">
-      <PageSkeleton label={t("loading")} />
-    </div>
+    // Zcore loading screen until the shell (member, navigation) is ready.
+    <AppSplash label={t("loading")} />
   );
 }
 

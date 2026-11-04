@@ -51,7 +51,8 @@
       "companyAddress": "Adresa firme",
       "companyPlaceholder": "mojafirma",
       "companyContinue": "Nastavi na prijavu",
-      "companyUnknown": "Firma s tom adresom ne postoji. Provjerite adresu ili se obratite administratoru."
+      "companyUnknown": "Firma s tom adresom ne postoji. Provjerite adresu ili se obratite administratoru.",
+      "entering": "Ulazak u aplikaciju…"
     }
   },
   "nav": {

@@ -256,6 +256,13 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-04 — Zcore loading screen, tab icon, Zcore sign-in
+
+- After a successful sign-in a full-screen Zcore loading screen (logo, wordmark and bar in the website's colours, `AppSplash`) stays until the app has rendered; the app / floor shells use the same screen while they load. `signInAction` now returns the target and the client navigates (the proxy sees the request), instead of a server-action redirect.
+- Tab icon: Zcore "Z" mark (`src/app/icon.svg`, website gradient), the default Next.js `favicon.ico` removed.
+- The Zcore organization's sign-in page has no "Zaboravili ste lozinku?" hint.
+- The smoke test still expected the old no-company title; updated to "Prijava u vašu firmu".
+
 ### 2026-11-04 — No registration link on a company's sign-in
 
 - Product owner: "Nova firma? Registrujte firmu" does not belong on a company's own sign-in page (`<slug>.zcore.ba/login`). Now shown only without a company in the address (`app.zcore.ba/login`). Verified: `npm run check` (489), e2e `company-address` + `auth` (25 passed; the link is visible without a company and gone on the company's sign-in).
