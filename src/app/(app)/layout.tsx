@@ -31,12 +31,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   );
 }
 
-async function ShellFallback() {
-  const t = await getTranslations("common");
-  return (
-    // Zcore loading screen until the shell (member, navigation) is ready.
-    <AppSplash label={t("loading")} />
-  );
+// Zcore loader (as on www.zcore.ba) until the shell (member, navigation) is ready.
+function ShellFallback() {
+  return <AppSplash />;
 }
 
 async function AppShell({ children }: { children: ReactNode }) {

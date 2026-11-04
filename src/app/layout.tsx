@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { SplashHost } from "@/components/shared/splash-host";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,13 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-sans",
   subsets: ["latin", "latin-ext"],
+});
+
+// The loader's lettering, as on www.zcore.ba.
+const zcoreMono = JetBrains_Mono({
+  variable: "--font-zcore-mono",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500"],
 });
 
 const geistMono = Geist_Mono({
@@ -34,7 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${zcoreMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <ThemeProvider
@@ -45,6 +53,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         >
           <NextIntlClientProvider>
             <TooltipProvider>{children}</TooltipProvider>
+            <SplashHost />
             <Toaster position="top-center" />
           </NextIntlClientProvider>
         </ThemeProvider>

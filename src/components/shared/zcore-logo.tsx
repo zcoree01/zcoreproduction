@@ -1,38 +1,28 @@
-import { useId } from "react";
 import { cn } from "@/lib/utils";
 
-// Zcore brand from the website: "Z" mark and "Zcore" wordmark with the
-// cyan → blue gradient (#35e0ff → #4f7bff). Same mark as src/app/icon.svg.
-
+// Zcore mark from www.zcore.ba (same paths as src/app/icon.svg): two corner
+// pieces and the diagonal. Uses currentColor; the classes m1/m2/m3 let the
+// loader assemble it.
 export function ZcoreMark({ className }: { className?: string }) {
-  const id = useId();
   return (
-    <svg viewBox="0 0 64 64" className={cn("size-10", className)} aria-hidden>
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#35e0ff" />
-          <stop offset="1" stopColor="#4f7bff" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="14" fill="#05070c" />
+    <svg
+      viewBox="124 100 521 568"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn("h-auto w-10 overflow-visible fill-current", className)}
+      aria-hidden
+    >
       <path
-        d="M18 18h28L18 46h28"
-        fill="none"
-        stroke={`url(#${id})`}
-        strokeWidth="8"
-        strokeLinecap="square"
+        className="m1"
+        d="M132,100 L402,100 C290,106 186,186 137,322 Q135,329 130,327 Q128,326 128,320 L128,104 Q128,100 132,100 Z"
+      />
+      <path
+        className="m2"
+        d="M636,668 L366,668 C478,662 582,582 631,446 Q633,439 638,441 Q640,442 640,448 L640,664 Q640,668 636,668 Z"
+      />
+      <path
+        className="m3"
+        d="M601,100 L638,100 Q645,100 640,106 L170,668 L131,668 Q124,668 129,662 Z"
       />
     </svg>
-  );
-}
-
-export function ZcoreWordmark({ className }: { className?: string }) {
-  return (
-    <span className={cn("text-3xl font-extrabold tracking-tight", className)}>
-      Z
-      <span className="bg-linear-to-r from-[#35e0ff] to-[#4f7bff] bg-clip-text text-transparent">
-        core
-      </span>
-    </span>
   );
 }

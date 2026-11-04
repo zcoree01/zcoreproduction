@@ -256,6 +256,11 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-05 — Loader as on www.zcore.ba
+
+- The loading screen is now the website's loader: black with a grid, the real Zcore mark assembling (two corners, then the diagonal), "ZCORE PRODUCTION" in JetBrains Mono, a thin bar with a 000–100 counter, then the wipe upwards (`AppSplash`, `.zsplash*` in globals.css, reduced motion respected). After sign-in one loader (`SplashHost` in the root layout) stays until the app has rendered and then wipes away; the app / floor shells show it while loading.
+- Tab icon and Apple touch icon taken from the website (`app/icon.svg`, `app/apple-icon.png`).
+
 ### 2026-11-04 — Zcore loading screen, tab icon, Zcore sign-in
 
 - After a successful sign-in a full-screen Zcore loading screen (logo, wordmark and bar in the website's colours, `AppSplash`) stays until the app has rendered; the app / floor shells use the same screen while they load. `signInAction` now returns the target and the client navigates (the proxy sees the request), instead of a server-action redirect.

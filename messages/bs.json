@@ -12,7 +12,8 @@
     "actions": "Akcije",
     "myProfile": "Moj profil",
     "newCompany": "Nova firma?",
-    "register": "Registrujte firmu"
+    "register": "Registrujte firmu",
+    "loadingCaps": "UČITAVANJE"
   },
   "metadata": {
     "title": "Zcore Production",
@@ -51,8 +52,7 @@
       "companyAddress": "Adresa firme",
       "companyPlaceholder": "mojafirma",
       "companyContinue": "Nastavi na prijavu",
-      "companyUnknown": "Firma s tom adresom ne postoji. Provjerite adresu ili se obratite administratoru.",
-      "entering": "Ulazak u aplikaciju…"
+      "companyUnknown": "Firma s tom adresom ne postoji. Provjerite adresu ili se obratite administratoru."
     }
   },
   "nav": {

@@ -21,12 +21,9 @@ export default function FloorLayout({ children }: { children: ReactNode }) {
   );
 }
 
-async function FloorFallback() {
-  const t = await getTranslations("common");
-  return (
-    // Zcore loading screen until the shell (member, navigation) is ready.
-    <AppSplash label={t("loading")} />
-  );
+// Zcore loader (as on www.zcore.ba) until the shell (member, navigation) is ready.
+function FloorFallback() {
+  return <AppSplash />;
 }
 
 async function FloorShell({ children }: { children: ReactNode }) {

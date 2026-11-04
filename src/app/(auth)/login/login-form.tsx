@@ -2,10 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { AppSplash } from "@/components/shared/app-splash";
+import { showSplash } from "@/components/shared/splash-host";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -17,8 +17,8 @@ export function LoginForm() {
   const t = useTranslations("auth.login");
   const [serverError, setServerError] = useState<SignInError | null>(null);
   const [pending, startTransition] = useTransition();
-  const [entering, setEntering] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInFormSchema),
     defaultValues: { username: "", password: "" },
@@ -29,8 +29,8 @@ export function LoginForm() {
     startTransition(async () => {
       const result = await signInAction(values);
       if (result.error === null) {
-        // Signed in: the loading screen stays until the app has rendered.
-        setEntering(true);
+        // Signed in: the Zcore loader stays until the app has rendered.
+        showSplash(pathname);
         router.replace(result.to);
         return;
       }
@@ -41,7 +41,6 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate>
-      {entering ? <AppSplash label={t("entering")} /> : null}
       <FieldGroup>
         {serverError ? (
           <Alert variant="destructive">
