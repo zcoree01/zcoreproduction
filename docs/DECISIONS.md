@@ -523,7 +523,7 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** A status change costs one round trip and shows at once. The security review of the same day found no tenant leak (all tables RLS, no anon table grants, definer functions check membership/permission, views `security_invoker`, private buckets, column-level update grants). Open: leaked-password protection in Supabase Auth (dashboard setting), `/support/exit` is a GET (sign-out CSRF, low impact).
 
-## D-043 — Reports (2026-11-05)
+## D-043 — Reports (2026-11-03)
 
 **Context:** Phase 5 e. The product owner wanted all four report groups in the first round: production and efficiency, machines and downtime, orders and due dates, material / tools and costs. All have filters and an Excel export. The order cost includes machine time, priced with an hourly rate per machine.
 
@@ -565,7 +565,7 @@ The product owner chose the free variant ("logičnija mi je").
 - Pieces per operation are not "finished pieces"; those are in the finished goods store.
 - Machine time comes from the operation status. An operation left in progress keeps counting, so utilization can exceed 100 %.
 
-## D-044 — Editing, deactivating and reactivating users (2026-11-06)
+## D-044 — Editing, deactivating and reactivating users (2026-11-03)
 
 **Context:** `/admin/users` could create users and reset passwords, but not change a name or role, nor take an account away from someone who left.
 
@@ -588,7 +588,7 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** No username change (it is the sign-in and the synthetic e-mail). Custom roles are still created only by scripts (no role editor).
 
-## D-045 — Shift performance in reports (2026-11-07)
+## D-045 — Shift performance in reports (2026-11-03)
 
 **Context:** The reports (D-043) had no shift. Production reports carry no shift of their own, but workers clock in to a recognised shift (attendance, D-021).
 
@@ -602,7 +602,7 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** Machine time has no shift (machines run across shifts); a worker who did not clock in counts as "Bez smjene"; a report sent just after clock-out also counts there.
 
-## D-046 — Role editor (2026-11-08)
+## D-046 — Role editor (2026-11-03)
 
 **Context:** Only the seven system roles existed; a company could not give someone e.g. a warehouse role without the tools.
 
@@ -626,7 +626,7 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** System roles cannot be adjusted directly; a company copies them. A custom role named like a system role is refused only against the stored name of the system role.
 
-## D-047 — Domain: website on zcore.ba, registration on app.zcore.ba (2026-11-08)
+## D-047 — Domain: website on zcore.ba, registration on app.zcore.ba (2026-11-03)
 
 **Context:** The product owner bought `zcore.ba`. The root domain is the company website (hosted elsewhere). The app should take new registrations on `app.zcore.ba`, and every company keeps signing in on its own `<slug>.zcore.ba` (D-009).
 

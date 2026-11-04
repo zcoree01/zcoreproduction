@@ -4,7 +4,7 @@ Progress log. Read at session start, update at session end. Newest entry on top.
 
 ## Current phase
 
-**Phase 1 — Foundation** mostly done (open: edit / deactivate users, organization settings screen, own domain with subdomains, separate test database). **Phase 2 — Manufacturing foundation** done: machines, employees, catalogs, customers, materials, products / parts, production orders with operations, assignments and status tracking. **Phase 3 — Shop-floor reporting** done: start / pause / finish, good and scrap in parts, inspections, closing with a shortage, downtime, tool changes, the foreman's day overview, and the **shifts and working time module** (shifts and breaks, clock-in / clock-out on the phone and on a kiosk tablet, schedule with crews and rotations, absences, leave balance, corrections, calculation of regular / overtime / night / weekend / holiday hours, net pay, monthly overview with Excel / CSV export and the payroll specification). Company registration, the shared company directory, the platform admin and support access are done as well (D-026, D-028). **Phase 4 — Inventory** started: part A of the material warehouse is done (stock items, locations, movement ledger, receipts with certificates, transfers, corrections with approval, value by moving average, pairing products with stock items, D-031) part B (material of production orders: requirement, reservation, issue with offcuts, returns, consumption, "Treba rezanje", D-032) and part C (stock counts, warnings, QR labels, mobile warehouse, D-033): the material warehouse is complete; finished goods and delivery notes (D-034) and the tool warehouse with inserts on tool changes (D-035) are done: **Phase 4 is complete**. **Deployed** on Vercel (production from `main`, https://zcoreproduction.vercel.app, region `dub1`, D-036); the own domain `*.zcore.ba` comes when the product owner buys it. **Phase 5 — Operational intelligence** started: configurable dashboard per role (D-037), notifications with read state (D-038), delivery note editor with a live preview and original + copy printing (D-039), sending delivery notes by e-mail as PDF without connecting an account (D-040), production planning by days on machines with operators, downtimes and moving work out of overloaded days (D-041), reports: production and efficiency, machines and downtime, orders and due dates, material / tools and order costs with an Excel export (D-043). **Phase 5 is complete.** **Next:** see "Next step".
+**Phase 1 — Foundation** mostly done (open: edit / deactivate users, organization settings screen, own domain with subdomains, separate test database). **Phase 2 — Manufacturing foundation** done: machines, employees, catalogs, customers, materials, products / parts, production orders with operations, assignments and status tracking. **Phase 3 — Shop-floor reporting** done: start / pause / finish, good and scrap in parts, inspections, closing with a shortage, downtime, tool changes, the foreman's day overview, and the **shifts and working time module** (shifts and breaks, clock-in / clock-out on the phone and on a kiosk tablet, schedule with crews and rotations, absences, leave balance, corrections, calculation of regular / overtime / night / weekend / holiday hours, net pay, monthly overview with Excel / CSV export and the payroll specification). Company registration, the shared company directory, the platform admin and support access are done as well (D-026, D-028). **Phase 4 — Inventory** started: part A of the material warehouse is done (stock items, locations, movement ledger, receipts with certificates, transfers, corrections with approval, value by moving average, pairing products with stock items, D-031) part B (material of production orders: requirement, reservation, issue with offcuts, returns, consumption, "Treba rezanje", D-032) and part C (stock counts, warnings, QR labels, mobile warehouse, D-033): the material warehouse is complete; finished goods and delivery notes (D-034) and the tool warehouse with inserts on tool changes (D-035) are done: **Phase 4 is complete**. **Deployed** on Vercel (production from `main`, https://zcoreproduction.vercel.app, region `dub1`, D-036); own domain live since 2026-11-04 (D-047): website on `zcore.ba`, registration on `app.zcore.ba`, every company on `<slug>.zcore.ba`, DNS at Vercel. **Phase 5 — Operational intelligence** started: configurable dashboard per role (D-037), notifications with read state (D-038), delivery note editor with a live preview and original + copy printing (D-039), sending delivery notes by e-mail as PDF without connecting an account (D-040), production planning by days on machines with operators, downtimes and moving work out of overloaded days (D-041), reports: production and efficiency, machines and downtime, orders and due dates, material / tools and order costs with an Excel export (D-043). **Phase 5 is complete.** **Next:** see "Next step".
 
 ## Implemented
 
@@ -223,7 +223,7 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 - Table sorting is fixed (by username); column sorting UI not yet added to DataTable.
 - Demo org contains an extra user `testniradnik` (Direktor) created by hand via the UI on 2026-10-23 (audit log: `users.create` by `admin`). Tests do not depend on the exact user count.
 - DB/e2e tests run against the real linked project (no Docker, no separate test project); test tenants also appear in its tables.
-- Deploy: Vercel project `zcoreproduction` deploys production from `main` (https://zcoreproduction.vercel.app). No own domain yet, so there are no per-company subdomains in production (`?org=` is development only); the product owner buys `zcore.ba` soon. The Vercel connector of this workspace cannot read deployments (403), so deploy status is checked in the Vercel dashboard.
+- Deploy: Vercel project `zcoreproduction` deploys production from `main`: `app.zcore.ba` (registration, "Adresa firme") and `*.zcore.ba` (company sign-in), plus https://zcoreproduction.vercel.app (`?org=` allowed there for previews). DNS of `zcore.ba` is at Vercel (ns1/ns2.vercel-dns.com); the website `zcore.ba` → `www.zcore.ba` is another Vercel project. No e-mail on `@zcore.ba` yet (no MX). The Vercel connector of this workspace cannot read deployments (403), so deploy status is checked in the Vercel dashboard.
 - E2E tests run serially (`workers: 1`, ~2.5 min), because a sign-in revokes the same user's sessions in parallel tests.
 - Machines/employees: no detail page, history view, attachments, serial number or shift data yet; machine status is manual (production reports in Phase 3 will drive running/stopped). Module activation (`org_modules`) is checked in pages for UX only; data access is governed by permissions/RLS.
 - Self-registered organizations get every module as a trial (14 days by default); after it ends the platform admin switches modules on (no billing). Organizations created by scripts still use `ensureModuleEnabled()`.
@@ -239,7 +239,7 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Next step
 
-0. **Domain (bought 2026-11-08, D-047):** `zcore.ba` = website, `app.zcore.ba` = registration, `<slug>.zcore.ba` = company sign-in. Product owner: move the nameservers of `zcore.ba` to Vercel (ns1/ns2.vercel-dns.com), recreate the website and e-mail records in Vercel DNS, add `app.zcore.ba` and `*.zcore.ba` to the Vercel project. Then: check DNS / SSL, sign-in on `demo.zcore.ba`, registration and support on the real domain, kiosk camera / NFC, scanning and the mobile warehouse over HTTPS.
+0. **Domain (D-047, live 2026-11-04):** verified: `zcore.ba` → `www.zcore.ba` (website), `app.zcore.ba/` → `/registracija` (200), `app.zcore.ba/login` (address form), `demo.zcore.ba/login` shows "Demo Metal d.o.o." over HTTPS. Still to do with the product owner: sign in on a company subdomain on a real device, register a test company on `app.zcore.ba`, Zcore support enter / exit on `zcore.zcore.ba`, kiosk camera / NFC, scanning and the mobile warehouse over HTTPS. E-mail on `@zcore.ba`: product owner chooses Zoho Mail Forever Free (Google Workspace / Microsoft 365 cost per user); its verification TXT, MX (mx/mx2/mx3.zoho.eu), SPF and DKIM records go into Vercel DNS.
 1. **Phase 5, agreed order with the product owner (2026-11-03):**
    - a. dashboard (done, D-037);
    - b. notifications (done, D-038): toasts with "Otvori" and ✕, bell with "Označi sve kao pročitano" and ✕ per item, a click opens the item;
@@ -255,27 +255,34 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
-### 2026-11-08 — Domain plan (D-047)
+### 2026-11-04 — Domain live, e-mail plan
+
+- Product owner moved the nameservers of `zcore.ba` to Vercel and added `app.zcore.ba` / `*.zcore.ba` to the project; the old DNS records at the registrar (A, `www`, `mail`, `ftp`, MX to the website host) no longer apply.
+- Checked from outside: NS = ns1/ns2.vercel-dns.com; `zcore.ba` 308 → `www.zcore.ba`; `app.zcore.ba/` 307 → `/registracija` (200); `app.zcore.ba/login` 200; `demo.zcore.ba/login` 200 with the company name; `zcore.zcore.ba/login` 200.
+- E-mail: free options compared (Zoho Mail Forever Free up to 5 addresses; ImprovMX forwarding to Gmail); Google Workspace and Microsoft 365 charge per user, Outlook.com no longer takes own domains; Cloudflare Email Routing needs Cloudflare nameservers (not possible next to the Vercel wildcard). Plan: Zoho Mail Forever Free.
+- Dates of D-043 … D-047 and their log entries corrected to 2026-11-03 (they had been written ahead).
+
+### 2026-11-03 — Domain plan (D-047)
 
 - `app.zcore.ba` only registers and finds a company's address; sign-in stays on `<slug>.zcore.ba`; website on `zcore.ba`. DNS still pending (domain not yet resolvable on 2026-11-08).
 - Checks: unit `resolve` tests, e2e `company-address` 2/2.
 
-### 2026-11-08 — Role editor (D-046)
+### 2026-11-03 — Role editor (D-046)
 
 - Custom roles: new or copied from any role, permissions by module with Bosnian names, archive when unused; system roles read-only. Migration `20261108100000_custom_roles` applied; types regenerated.
 - Checks: `test:db` `roles` 3/3, e2e `roles` passes.
 
-### 2026-11-07 — Shift performance in reports (D-045)
+### 2026-11-03 — Shift performance in reports (D-045)
 
 - Production report grouped by shift (the worker's attendance shift at the report). Migrations `20261107100000_report_shifts`, `20261107110000_attendance_sessions_employee_index` applied.
 - Checks: unit 11/11 reports, `test:db` `reports` 3/3.
 
-### 2026-11-06 — User management (D-044)
+### 2026-11-03 — User management (D-044)
 
 - Edit full name and role, deactivate (signed out everywhere, sign-in refused) and reactivate; never oneself or the support account; the last user manager stays. Migration `20261106100000_member_management` applied; types regenerated.
 - Checks: `test:db` `members` 3/3, e2e `members` passes.
 
-### 2026-11-05 — Reports (D-043)
+### 2026-11-03 — Reports (D-043)
 
 - Product owner: all four report groups in the first round, order cost with an hourly rate per machine. D-043.
 - Migrations `20261105100000_reports`, `20261105110000_reports_without_inspections` applied; types regenerated. `/reports` in the navigation (reports.read), machine form: hourly rate.
