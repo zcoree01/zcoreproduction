@@ -108,7 +108,8 @@ async function OrderContent({
     canManage &&
     inventory &&
     (access.permissions.has("inventory.read") || access.permissions.has("products.manage"));
-  const canReadFinished = inventory && access.permissions.has("finished_goods.read");
+  const canReadFinished =
+    access.modules.has("finished_goods") && access.permissions.has("finished_goods.read");
   // One round trip for everything that depends only on the order.
   const [
     [finished, material, stockItems, stockLocations, inventorySettings],

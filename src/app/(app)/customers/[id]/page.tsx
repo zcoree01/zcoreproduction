@@ -80,7 +80,7 @@ async function CustomerContent({
     getMemberAccess(member),
   ]);
 
-  if (!access.modules.has("production")) return <ModuleDisabled />;
+  if (!access.modules.has("core")) return <ModuleDisabled />;
   if (!access.permissions.has("customers.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

@@ -11,6 +11,7 @@ import {
   ensureOrganization,
   ensureUser,
 } from "@/modules/organizations/provision";
+import { SELLABLE_MODULES } from "@/modules/platform/modules";
 import { createAdminClient } from "./lib/admin-client";
 import { seedDemoAttendance, seedDemoSchedule } from "./lib/demo-attendance";
 import { seedDemoOrders } from "./lib/demo-orders";
@@ -29,8 +30,7 @@ async function main() {
     console.log(`  ${user.role.padEnd(18)} ${user.username.padEnd(16)} ${id}`);
   }
 
-  await ensureModuleEnabled(admin, org, "production");
-  await ensureModuleEnabled(admin, org, "attendance");
+  for (const key of SELLABLE_MODULES) await ensureModuleEnabled(admin, org, key);
   await seedDemoProduction(admin, org);
   await seedDemoProducts(admin, org);
   await seedDemoOrders(admin, org, password);

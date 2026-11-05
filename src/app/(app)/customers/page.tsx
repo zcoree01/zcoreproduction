@@ -23,7 +23,7 @@ async function CustomersContent({ searchParams }: { searchParams: Promise<Search
   const member = await requireMember();
   const [t, access] = await Promise.all([getTranslations("customers"), getMemberAccess(member)]);
 
-  if (!access.modules.has("production")) return <ModuleDisabled />;
+  if (!access.modules.has("core")) return <ModuleDisabled />;
   if (!access.permissions.has("customers.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

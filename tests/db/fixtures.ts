@@ -7,6 +7,7 @@ import {
   ensureUser,
   type ProvisionedOrganization,
 } from "@/modules/organizations/provision";
+import { SELLABLE_MODULES } from "@/modules/platform/modules";
 import { createAdminClient, readAdminEnv } from "../../scripts/lib/admin-client";
 import { TEST_TENANTS, testTenantPassword } from "../shared/test-tenants";
 
@@ -48,9 +49,7 @@ async function setupTenant(
   name: string,
 ): Promise<Tenant> {
   const org = await ensureOrganization(service, { slug, name });
-  await ensureModuleEnabled(service, org, "production");
-  await ensureModuleEnabled(service, org, "attendance");
-  await ensureModuleEnabled(service, org, "inventory");
+  for (const key of SELLABLE_MODULES) await ensureModuleEnabled(service, org, key);
   const adminId = await ensureUser(service, org, {
     username: "admin",
     password: testTenantPassword(),

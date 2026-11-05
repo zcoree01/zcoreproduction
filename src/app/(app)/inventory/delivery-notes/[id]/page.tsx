@@ -34,7 +34,7 @@ async function DeliveryNoteContent({ params }: { params: Promise<{ id: string }>
     getFormatter(),
     getMemberAccess(member),
   ]);
-  if (!access.modules.has("inventory")) return <ModuleDisabled />;
+  if (!access.modules.has("finished_goods")) return <ModuleDisabled />;
   if (!access.permissions.has("finished_goods.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

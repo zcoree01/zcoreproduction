@@ -38,7 +38,7 @@ async function NewDeliveryNoteContent({
     getMemberAccess(member),
     searchParams,
   ]);
-  if (!access.modules.has("inventory")) return <ModuleDisabled />;
+  if (!access.modules.has("finished_goods")) return <ModuleDisabled />;
   if (!access.permissions.has("finished_goods.manage")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

@@ -21,6 +21,18 @@ describe("dashboard widgets", () => {
     expect(defaultLayout("custom_role")).toEqual([]);
   });
 
+  it("ties tool and finished goods widgets to their own modules (D-049)", () => {
+    const layout = defaultLayout("admin");
+    const keys = (modules: string[]) =>
+      visibleWidgets(layout, access(modules, ["tools.read", "finished_goods.read"])).map(
+        (widget) => widget.key,
+      );
+    expect(keys(["inventory"])).not.toContain("tools_status");
+    expect(keys(["inventory"])).not.toContain("finished_goods");
+    expect(keys(["tools"])).toContain("tools_status");
+    expect(keys(["finished_goods"])).toEqual(["finished_goods", "recent_delivery_notes"]);
+  });
+
   it("shows only widgets of enabled modules the member has a permission for", () => {
     const layout = defaultLayout("admin");
     const shown = visibleWidgets(layout, access(["production"], ["orders.read"]));

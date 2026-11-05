@@ -171,7 +171,7 @@ export async function GET(request: Request) {
   const member = await getCurrentMember();
   if (!member) return new Response(null, { status: 401 });
   const access = await getMemberAccess(member);
-  if (!access.modules.has("production") || !access.permissions.has("reports.read")) {
+  if (!access.modules.has("reports") || !access.permissions.has("reports.read")) {
     return new Response(null, { status: 403 });
   }
   const today = zonedDate(new Date(), member.organization.timezone);

@@ -42,7 +42,7 @@ async function DeliveryNotePrint({
     getTranslations("finishedGoods"),
     getMemberAccess(member),
   ]);
-  if (!access.modules.has("inventory") || !access.permissions.has("finished_goods.read")) {
+  if (!access.modules.has("finished_goods") || !access.permissions.has("finished_goods.read")) {
     return <p className="p-8">{t("deniedDescription")}</p>;
   }
   const [{ id }, query] = await Promise.all([params, searchParams]);

@@ -27,7 +27,7 @@ async function BadgesContent() {
     getTranslations("kioskSettings"),
     getMemberAccess(member),
   ]);
-  if (!access.modules.has("attendance") || !access.permissions.has("kiosk.manage")) {
+  if (!access.modules.has("kiosk") || !access.permissions.has("kiosk.manage")) {
     return <p className="p-8">{t("deniedDescription")}</p>;
   }
   const credentials = (await listKioskCredentials(member.organization.id)).filter(

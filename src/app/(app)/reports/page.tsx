@@ -57,7 +57,7 @@ const qty = (value: string) => formatDecimal(divideDecimal(value, "1", 3));
 async function ReportsContent({ searchParams }: { searchParams: Promise<SearchParamsRecord> }) {
   const member = await requireMember();
   const [t, access] = await Promise.all([getTranslations("reports"), getMemberAccess(member)]);
-  if (!access.modules.has("production")) return <ModuleDisabled />;
+  if (!access.modules.has("reports")) return <ModuleDisabled />;
   if (!access.permissions.has("reports.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

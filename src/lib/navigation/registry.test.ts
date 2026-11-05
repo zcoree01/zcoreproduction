@@ -9,6 +9,26 @@ const access = (modules: string[], permissions: string[] = []) => ({
 const ids = (sections: ReturnType<typeof buildNavigation>) =>
   sections.map((s) => [s.section, s.items.map((i) => i.id)]);
 
+describe("module keys (D-049)", () => {
+  const moduleOf = (href: string) => NAV_ITEMS.find((item) => item.href === href)?.module;
+
+  it("uses the split modules", () => {
+    expect(moduleOf("/planning")).toBe("planning");
+    expect(moduleOf("/reports")).toBe("reports");
+    expect(moduleOf("/inventory/finished")).toBe("finished_goods");
+    expect(moduleOf("/inventory/delivery-notes")).toBe("finished_goods");
+    expect(moduleOf("/settings/delivery-notes")).toBe("finished_goods");
+    expect(moduleOf("/inventory/tools")).toBe("tools");
+    expect(moduleOf("/settings/kiosk")).toBe("kiosk");
+  });
+
+  it("puts customers, machines and employees in the core module", () => {
+    expect(moduleOf("/customers")).toBe("core");
+    expect(moduleOf("/machines")).toBe("core");
+    expect(moduleOf("/employees")).toBe("core");
+  });
+});
+
 describe("buildNavigation", () => {
   it("shows users only with users.read", () => {
     expect(ids(buildNavigation("app", access(["core"])))).toEqual([["overview", ["dashboard"]]]);
@@ -53,10 +73,11 @@ describe("buildNavigation", () => {
     expect(withModule.flatMap((s) => s.items.map((i) => i.id))).toContain("orders");
   });
 
-  it("shows the production section only with the production module and read permissions", () => {
+  it("shows machines and employees in core, catalogs only with the production module", () => {
     const managers = ["users.read", "machines.read", "employees.read", "machines.manage"];
     expect(ids(buildNavigation("app", access(["core"], managers)))).toEqual([
       ["overview", ["dashboard"]],
+      ["production", ["machines", "employees"]],
       ["administration", ["users"]],
     ]);
     expect(ids(buildNavigation("app", access(["core", "production"], managers)))).toEqual([
@@ -164,6 +185,12 @@ describe("buildNavigation", () => {
 
   it("shows production orders and the production overview to readers", () => {
     expect(ids(buildNavigation("app", access(["core", "production"], ["orders.read"])))).toEqual([
+      ["overview", ["dashboard"]],
+      ["production", ["orders", "production-day"]],
+    ]);
+    expect(
+      ids(buildNavigation("app", access(["core", "production", "planning"], ["orders.read"]))),
+    ).toEqual([
       ["overview", ["dashboard"]],
       ["production", ["orders", "planning", "production-day"]],
     ]);

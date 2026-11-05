@@ -34,7 +34,7 @@ async function KioskSettingsContent() {
     getMemberAccess(member),
     headers(),
   ]);
-  if (!access.modules.has("attendance")) return <ModuleDisabled />;
+  if (!access.modules.has("kiosk")) return <ModuleDisabled />;
   if (!access.permissions.has("kiosk.manage")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

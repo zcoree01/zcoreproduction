@@ -1966,6 +1966,36 @@ export type Database = {
           },
         ]
       }
+      module_dependencies: {
+        Row: {
+          module_key: string
+          requires: string
+        }
+        Insert: {
+          module_key: string
+          requires: string
+        }
+        Update: {
+          module_key?: string
+          requires?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_dependencies_module_key_fkey"
+            columns: ["module_key"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "module_dependencies_requires_fkey"
+            columns: ["requires"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       modules: {
         Row: {
           created_at: string

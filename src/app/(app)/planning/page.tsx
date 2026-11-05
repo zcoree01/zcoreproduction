@@ -39,7 +39,7 @@ async function PlanningContent({ searchParams }: { searchParams: Promise<SearchP
   const member = await requireMember();
   const organizationId = member.organization.id;
   const [t, access] = await Promise.all([getTranslations("planning"), getMemberAccess(member)]);
-  if (!access.modules.has("production")) return <ModuleDisabled />;
+  if (!access.modules.has("planning")) return <ModuleDisabled />;
   if (!access.permissions.has("orders.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

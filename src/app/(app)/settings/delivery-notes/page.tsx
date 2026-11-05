@@ -29,7 +29,7 @@ async function DeliverySettingsContent() {
     getTranslations("finishedGoods.settings"),
     getMemberAccess(member),
   ]);
-  if (!access.modules.has("inventory")) return <ModuleDisabled />;
+  if (!access.modules.has("finished_goods")) return <ModuleDisabled />;
   if (!access.permissions.has("org.settings.manage")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

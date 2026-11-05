@@ -22,7 +22,7 @@ async function ToolsContent() {
   const member = await requireMember();
   const organizationId = member.organization.id;
   const [t, access] = await Promise.all([getTranslations("tools"), getMemberAccess(member)]);
-  if (!access.modules.has("inventory")) return <ModuleDisabled />;
+  if (!access.modules.has("tools")) return <ModuleDisabled />;
   if (!access.permissions.has("tools.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

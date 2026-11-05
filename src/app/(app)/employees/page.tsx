@@ -32,7 +32,7 @@ async function EmployeesContent({ searchParams }: { searchParams: Promise<Search
     getMemberAccess(member),
   ]);
 
-  if (!access.modules.has("production")) return <ModuleDisabled />;
+  if (!access.modules.has("core")) return <ModuleDisabled />;
   if (!access.permissions.has("employees.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

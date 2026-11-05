@@ -25,7 +25,7 @@ async function MachinesContent({ searchParams }: { searchParams: Promise<SearchP
   const organizationId = member.organization.id;
   const [t, access] = await Promise.all([getTranslations("machines"), getMemberAccess(member)]);
 
-  if (!access.modules.has("production")) return <ModuleDisabled />;
+  if (!access.modules.has("core")) return <ModuleDisabled />;
   if (!access.permissions.has("machines.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }

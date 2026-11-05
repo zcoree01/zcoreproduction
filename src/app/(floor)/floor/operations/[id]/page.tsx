@@ -132,7 +132,7 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
         listReasons(member.organization.id, "downtime_reason"),
         listReasons(member.organization.id, "scrap_reason"),
         listReasons(member.organization.id, "tool_change_reason"),
-        access.modules.has("inventory") ? listFloorTools(operation.id) : Promise.resolve([]),
+        access.modules.has("tools") ? listFloorTools(operation.id) : Promise.resolve([]),
       ])
     : [null, [], [], [], []];
   // Material issued to this order (inventory, D-032): the worker sees lot and heat.

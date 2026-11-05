@@ -3,6 +3,7 @@ import {
   ensureOrganization,
   ensureUser,
 } from "@/modules/organizations/provision";
+import { SELLABLE_MODULES } from "@/modules/platform/modules";
 import { createAdminClient } from "../scripts/lib/admin-client";
 import { TEST_TENANTS, testTenantPassword } from "../tests/shared/test-tenants";
 
@@ -16,8 +17,7 @@ const FLOOR_EMPLOYEE_NUMBER = 800001;
 export async function ensureFloorFixture() {
   const admin = createAdminClient();
   const org = await ensureOrganization(admin, TEST_TENANTS.b);
-  await ensureModuleEnabled(admin, org, "production");
-  await ensureModuleEnabled(admin, org, "attendance");
+  for (const key of SELLABLE_MODULES) await ensureModuleEnabled(admin, org, key);
   const userId = await ensureUser(admin, org, {
     ...FLOOR_OPERATOR,
     password: testTenantPassword(),

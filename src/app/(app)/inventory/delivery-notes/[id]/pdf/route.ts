@@ -18,7 +18,7 @@ export async function GET(
   const member = await getCurrentMember();
   if (!member) return new Response(null, { status: 401 });
   const access = await getMemberAccess(member);
-  if (!access.modules.has("inventory") || !access.permissions.has("finished_goods.read")) {
+  if (!access.modules.has("finished_goods") || !access.permissions.has("finished_goods.read")) {
     return new Response(null, { status: 403 });
   }
   const { id } = await context.params;

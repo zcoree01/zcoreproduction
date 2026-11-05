@@ -13,7 +13,7 @@ export type WidgetGroup = "production" | "attendance" | "inventory";
 
 type WidgetDefinition = {
   group: WidgetGroup;
-  module: "production" | "attendance" | "inventory";
+  module: "production" | "attendance" | "inventory" | "tools" | "finished_goods";
   /** Any one of these is enough. */
   permissions: readonly PermissionKey[];
   size: WidgetSize;
@@ -106,19 +106,19 @@ export const WIDGETS = {
   },
   tools_status: {
     group: "inventory",
-    module: "inventory",
+    module: "tools",
     permissions: ["tools.read"],
     size: "normal",
   },
   finished_goods: {
     group: "inventory",
-    module: "inventory",
+    module: "finished_goods",
     permissions: ["finished_goods.read"],
     size: "normal",
   },
   recent_delivery_notes: {
     group: "inventory",
-    module: "inventory",
+    module: "finished_goods",
     permissions: ["finished_goods.read"],
     size: "normal",
   },
