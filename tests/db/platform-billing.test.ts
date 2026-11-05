@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { nullableParam, numericParam } from "@/lib/supabase/numeric";
 import type { Database } from "@/lib/supabase/types";
 import {
   ensureModuleEnabled,
@@ -54,9 +55,9 @@ async function resetBilling() {
 /** A package priced from the given months, assigned to tenant B from `from`. */
 async function billB(prices: { from: string; price: string }[], from: string) {
   const created = await platform.rpc("platform_save_package", {
-    p_id: null,
+    p_id: nullableParam<string>(null),
     p_name: `DBB ${crypto.randomUUID().slice(0, 8)}`,
-    p_monthly_price: prices[0]!.price as unknown as number,
+    p_monthly_price: numericParam(prices[0]!.price),
     p_modules: ["production"],
   });
   expect(created.error).toBeNull();
@@ -66,7 +67,11 @@ async function billB(prices: { from: string; price: string }[], from: string) {
   const priced = await fx.service
     .from("billing_package_prices")
     .insert(
-      prices.map((p) => ({ package_id: packageId, valid_from: p.from, monthly_price: p.price })),
+      prices.map((p) => ({
+        package_id: packageId,
+        valid_from: p.from,
+        monthly_price: numericParam(p.price),
+      })),
     );
   expect(priced.error).toBeNull();
   const assigned = await fx.service
@@ -242,7 +247,7 @@ describe("package modules", () => {
       .eq("organization_id", fx.b.org.id)
       .eq("module_key", "kiosk");
     const created = await platform.rpc("platform_save_package", {
-      p_id: null,
+      p_id: nullableParam<string>(null),
       p_name: "DBB Proizvodnja",
       p_monthly_price: 200,
       p_modules: ["production", "planning"],
@@ -268,7 +273,7 @@ describe("package modules", () => {
 
   it("refuses a package with planning but without production", async () => {
     const created = await platform.rpc("platform_save_package", {
-      p_id: null,
+      p_id: nullableParam<string>(null),
       p_name: "DBB nevaljao",
       p_monthly_price: 10,
       p_modules: ["planning"],
