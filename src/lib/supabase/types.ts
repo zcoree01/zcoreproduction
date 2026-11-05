@@ -573,6 +573,118 @@ export type Database = {
           },
         ]
       }
+      billing_package_modules: {
+        Row: {
+          module_key: string
+          package_id: string
+        }
+        Insert: {
+          module_key: string
+          package_id: string
+        }
+        Update: {
+          module_key?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_package_modules_module_key_fkey"
+            columns: ["module_key"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "billing_package_modules_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "billing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_package_prices: {
+        Row: {
+          monthly_price: number
+          package_id: string
+          valid_from: string
+        }
+        Insert: {
+          monthly_price: number
+          package_id: string
+          valid_from: string
+        }
+        Update: {
+          monthly_price?: number
+          package_id?: string
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_package_prices_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "billing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_packages: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      billing_payments: {
+        Row: {
+          note: string | null
+          organization_id: string
+          paid_on: string
+          period: string
+          recorded_at: string
+          recorded_by: string | null
+        }
+        Insert: {
+          note?: string | null
+          organization_id: string
+          paid_on: string
+          period: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Update: {
+          note?: string | null
+          organization_id?: string
+          paid_on?: string
+          period?: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           archived_at: string | null
@@ -2215,6 +2327,77 @@ export type Database = {
           },
         ]
       }
+      organization_billing: {
+        Row: {
+          auto_lock: boolean
+          grace_days: number | null
+          locked_at: string | null
+          locked_reason: string | null
+          organization_id: string
+          unlocked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_lock?: boolean
+          grace_days?: number | null
+          locked_at?: string | null
+          locked_reason?: string | null
+          organization_id: string
+          unlocked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_lock?: boolean
+          grace_days?: number | null
+          locked_at?: string | null
+          locked_reason?: string | null
+          organization_id?: string
+          unlocked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_billing_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_packages: {
+        Row: {
+          organization_id: string
+          package_id: string | null
+          valid_from: string
+        }
+        Insert: {
+          organization_id: string
+          package_id?: string | null
+          valid_from: string
+        }
+        Update: {
+          organization_id?: string
+          package_id?: string | null
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_packages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "billing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           archived_at: string | null
@@ -2324,16 +2507,25 @@ export type Database = {
         Row: {
           default_trial_days: number
           id: boolean
+          lock_contact: string
+          lock_warning_days: number
+          payment_grace_days: number
           updated_at: string
         }
         Insert: {
           default_trial_days?: number
           id?: boolean
+          lock_contact?: string
+          lock_warning_days?: number
+          payment_grace_days?: number
           updated_at?: string
         }
         Update: {
           default_trial_days?: number
           id?: boolean
+          lock_contact?: string
+          lock_warning_days?: number
+          payment_grace_days?: number
           updated_at?: string
         }
         Relationships: []
@@ -6277,6 +6469,10 @@ export type Database = {
         Args: { p_moves: Json; p_org_id: string }
         Returns: undefined
       }
+      platform_assign_package: {
+        Args: { p_org_id: string; p_package_id: string }
+        Returns: undefined
+      }
       platform_begin_support: {
         Args: { p_request_id: string }
         Returns: {
@@ -6285,7 +6481,26 @@ export type Database = {
           slug: string
         }[]
       }
+      platform_billing_overview: {
+        Args: never
+        Returns: {
+          archived: boolean
+          is_platform: boolean
+          last_paid_period: string
+          member_count: number
+          monthly_price: number
+          name: string
+          organization_id: string
+          package_name: string
+          slug: string
+          state: string
+        }[]
+      }
       platform_get_settings: { Args: never; Returns: Json }
+      platform_organization_billing: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       platform_organizations: {
         Args: never
         Returns: {
@@ -6304,12 +6519,51 @@ export type Database = {
         Args: { p_org_id: string; p_reason: string }
         Returns: string
       }
+      platform_save_billing_settings: {
+        Args: {
+          p_contact: string
+          p_grace_days: number
+          p_warning_days: number
+        }
+        Returns: undefined
+      }
+      platform_save_package: {
+        Args: {
+          p_id: string
+          p_modules: string[]
+          p_monthly_price: number
+          p_name: string
+        }
+        Returns: string
+      }
+      platform_set_lock: {
+        Args: { p_locked: boolean; p_org_id: string; p_reason: string }
+        Returns: undefined
+      }
       platform_set_module: {
         Args: {
           p_active_until?: string
           p_enabled: boolean
           p_module: string
           p_org_id: string
+        }
+        Returns: undefined
+      }
+      platform_set_org_billing: {
+        Args: { p_auto_lock: boolean; p_grace_days: number; p_org_id: string }
+        Returns: undefined
+      }
+      platform_set_package_archived: {
+        Args: { p_archived: boolean; p_id: string }
+        Returns: undefined
+      }
+      platform_set_payment: {
+        Args: {
+          p_note: string
+          p_org_id: string
+          p_paid: boolean
+          p_paid_on: string
+          p_period: string
         }
         Returns: undefined
       }
@@ -6327,6 +6581,10 @@ export type Database = {
           requester_name: string
           status: string
         }[]
+      }
+      platform_unlock_until: {
+        Args: { p_org_id: string; p_until: string }
+        Returns: undefined
       }
       post_stock_issue: {
         Args: {
