@@ -28,11 +28,13 @@ export function PaymentsTable({
   organizationId,
   months,
   today,
+  timezone,
 }: {
   organizationId: string;
   months: BillingMonth[];
   /** Today in the organization's timezone (default payment day). */
   today: string;
+  timezone: string;
 }) {
   const t = useTranslations("platform.billing.payments");
   const tb = useTranslations("platform.billing");
@@ -46,8 +48,9 @@ export function PaymentsTable({
 
   const day = (value: string) => new Date(`${value}T12:00:00Z`);
   const monthLabel = (period: string) =>
-    format.dateTime(day(period), { month: "long", year: "numeric" });
-  const dateLabel = (value: string) => format.dateTime(day(value), { dateStyle: "medium" });
+    format.dateTime(day(period), { month: "long", year: "numeric", timeZone: timezone });
+  const dateLabel = (value: string) =>
+    format.dateTime(day(value), { dateStyle: "medium", timeZone: timezone });
 
   const save = (month: BillingMonth, paid: boolean) =>
     startTransition(async () => {

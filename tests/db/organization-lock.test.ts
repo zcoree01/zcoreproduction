@@ -258,11 +258,12 @@ describe("a locked organization", () => {
   });
 
   it("refuses changing a member's role", async () => {
+    // Writes the role the operator already has: refused while locked, harmless otherwise.
     const roles = await fx.service
       .from("roles")
       .select("id")
       .eq("organization_id", fx.b.org.id)
-      .eq("key", "warehouse")
+      .eq("key", "operator")
       .single()
       .throwOnError();
     const changed = await fx.b.admin

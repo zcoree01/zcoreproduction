@@ -3503,13 +3503,13 @@
         "empty": "Još nema promjena.",
         "by": "{who}",
         "actions": {
-          "billing.package_assigned": "Promijenjen paket",
-          "billing.settings": "Promijenjen rok / automatsko zaključavanje",
-          "billing.payment_recorded": "Evidentirana uplata",
-          "billing.payment_cancelled": "Poništena uplata",
-          "billing.locked": "Zaključano",
-          "billing.unlocked": "Otključano",
-          "billing.unlocked_until": "Otvoreno do datuma"
+          "package_assigned": "Promijenjen paket",
+          "settings": "Promijenjen rok / automatsko zaključavanje",
+          "payment_recorded": "Evidentirana uplata",
+          "payment_cancelled": "Poništena uplata",
+          "locked": "Zaključano",
+          "unlocked": "Otključano",
+          "unlocked_until": "Otvoreno do datuma"
         }
       },
       "errors": {

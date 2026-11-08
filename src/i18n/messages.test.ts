@@ -17,4 +17,13 @@ describe("messages/bs.json", () => {
     const empty = collectLeaves(bs).filter(([, value]) => value.trim() === "");
     expect(empty).toEqual([]);
   });
+
+  it("has no key with a dot (next-intl uses dots for nesting)", () => {
+    const keys = (messages: Messages, prefix = ""): string[] =>
+      Object.entries(messages).flatMap(([key, value]) => [
+        ...(key.includes(".") ? [`${prefix}${key}`] : []),
+        ...(typeof value === "string" ? [] : keys(value, `${prefix}${key} › `)),
+      ]);
+    expect(keys(bs)).toEqual([]);
+  });
 });

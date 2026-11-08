@@ -207,6 +207,7 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
             organizationId={organization.id}
             months={billing.months}
             today={zonedDate(new Date(), timezone)}
+            timezone={timezone}
           />
         </CardContent>
       </Card>
@@ -230,8 +231,12 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
                     })}
                   </span>
                   <span>
-                    {tb.has(`history.actions.${entry.action}` as "history.title")
-                      ? tb(`history.actions.${entry.action}` as "history.title")
+                    {tb.has(
+                      `history.actions.${entry.action.replace(/^billing\./, "")}` as "history.title",
+                    )
+                      ? tb(
+                          `history.actions.${entry.action.replace(/^billing\./, "")}` as "history.title",
+                        )
                       : entry.action}
                   </span>
                   {entry.actor ? (

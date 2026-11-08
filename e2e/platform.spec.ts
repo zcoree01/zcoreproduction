@@ -58,8 +58,11 @@ test("support access: dialog for the organization, countdown, ended by the organ
   await page.getByRole("link", { name: "Firme" }).click();
   await expectPath(page, "/platform");
   await page.waitForLoadState("networkidle");
-  const card = page.locator("[data-slot=card]").filter({ hasText: TEST_TENANTS.a.name });
-  await expect(card.getByText("Proizvodnja")).toBeVisible();
+  // Firm detail (D-049): modules and support access are on the firm's page.
+  await page.getByRole("link", { name: TEST_TENANTS.a.name, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: TEST_TENANTS.a.name })).toBeVisible();
+  const card = page.locator("[data-slot=card]").filter({ hasText: "Moduli" });
+  await expect(card.getByText("Proizvodnja").first()).toBeVisible();
   await card.getByRole("button", { name: "Zatraži pristup" }).click();
   await card.getByLabel("Razlog (vidi ga firma)").fill("E2E provjera podrške");
   await card.getByRole("button", { name: "Pošalji zahtjev" }).click();
