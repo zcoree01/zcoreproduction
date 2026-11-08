@@ -259,6 +259,11 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-08 — Sign-in without a company on prijava.zcore.ba (D-047 amendment)
+
+- Product owner: the "Adresa firme" page belongs on `prijava.zcore.ba`, not on `app.zcore.ba/login`. `app.zcore.ba` now serves only the registration (its `/login` → `https://prijava.zcore.ba/login`); `prijava.zcore.ba` serves only `/login` and `/login/firma` (`/` → `/login`, `/registracija` → `app.zcore.ba`). `prijava` reserved.
+- Verified: `npm run check` (516 passed; new: `hostRedirect` for both hosts, `prijava` not a tenant), e2e `company-address` (3 passed; redirects on both hosts, address form on `prijava.zcore.ba`). Production check of `https://prijava.zcore.ba` after the deploy is still to do (wildcard certificate should cover it).
+
 ### 2026-11-08 — Test organizations removed, tests clean up
 
 - 45 archived test organizations (DBT… / E2E… registrations) deleted with their data and users (product owner ran the SQL; 48 Storage files of tenant B removed through the Storage API). Left: zcore, demo, jabl, test-tenant-a, test-tenant-b.

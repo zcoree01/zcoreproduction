@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { DEMO_ORG } from "../scripts/lib/demo-users";
 
-// app.zcore.ba (D-047): only registration and "find your company"; a
-// sign-in page without a company asks for the company's address.
+// app.zcore.ba (D-047) serves only the registration; prijava.zcore.ba is the
+// sign-in page without a company, which asks for the company's address.
 
 test("sign-in without a company asks for the company's address", async ({ page }) => {
   await page.context().clearCookies();
@@ -26,7 +26,9 @@ test("sign-in without a company asks for the company's address", async ({ page }
   await expect(register).toHaveCount(0);
 });
 
-test("app.zcore.ba sends everything except sign-in to the registration", async ({ browser }) => {
+test("app.zcore.ba sends sign-in to prijava.zcore.ba, everything else to the registration", async ({
+  browser,
+}) => {
   const context = await browser.newContext({
     extraHTTPHeaders: { "x-forwarded-host": "app.zcore.ba" },
   });
@@ -37,6 +39,25 @@ test("app.zcore.ba sends everything except sign-in to the registration", async (
   const root = await page.request.get("/", { maxRedirects: 0 });
   expect(root.headers().location).toMatch(/\/registracija$/);
   const login = await page.request.get("/login", { maxRedirects: 0 });
+  expect(login.status()).toBe(307);
+  expect(login.headers().location).toBe("https://prijava.zcore.ba/login");
+  const registration = await page.request.get("/registracija", { maxRedirects: 0 });
+  expect(registration.status()).toBe(200);
+  await context.close();
+});
+
+test("prijava.zcore.ba serves only the sign-in without a company", async ({ browser }) => {
+  const context = await browser.newContext({
+    extraHTTPHeaders: { "x-forwarded-host": "prijava.zcore.ba" },
+  });
+  const page = await context.newPage();
+  const root = await page.request.get("/", { maxRedirects: 0 });
+  expect(root.status()).toBe(307);
+  expect(root.headers().location).toMatch(/\/login$/);
+  const registration = await page.request.get("/registracija", { maxRedirects: 0 });
+  expect(registration.headers().location).toBe("https://app.zcore.ba/registracija");
+  const login = await page.request.get("/login", { maxRedirects: 0 });
   expect(login.status()).toBe(200);
+  expect(await login.text()).toContain("Adresa firme");
   await context.close();
 });

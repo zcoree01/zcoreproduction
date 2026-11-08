@@ -9,12 +9,40 @@ export const ROOT_DOMAIN = "zcore.ba";
  */
 export const REGISTRATION_HOST = `app.${ROOT_DOMAIN}`;
 
-/** Paths served on the registration host; everything else goes to /registracija. */
-export const REGISTRATION_HOST_PATHS: ReadonlySet<string> = new Set([
-  "/registracija",
-  "/login",
-  "/login/firma",
-]);
+/**
+ * Sign-in host without a company: asks for the company's address and sends
+ * the user on to <slug>.zcore.ba/login.
+ */
+export const LOGIN_HOST = `prijava.${ROOT_DOMAIN}`;
+
+const REGISTRATION_PATH = "/registracija";
+const LOGIN_PATHS: ReadonlySet<string> = new Set(["/login", "/login/firma"]);
+
+/**
+ * Where a request on the registration or sign-in host must go instead, or
+ * null when it is served as is. app.zcore.ba serves only the registration,
+ * prijava.zcore.ba only "Adresa firme"; each hands the other's pages over.
+ */
+export function hostRedirect(
+  host: string | null,
+  pathname: string,
+): { host: string | null; pathname: string; keepQuery: boolean } | null {
+  if (host === null) return null;
+  const hostname = hostnameOf(host);
+  if (hostname === REGISTRATION_HOST) {
+    if (pathname === REGISTRATION_PATH) return null;
+    if (LOGIN_PATHS.has(pathname)) return { host: LOGIN_HOST, pathname, keepQuery: true };
+    return { host: null, pathname: REGISTRATION_PATH, keepQuery: false };
+  }
+  if (hostname === LOGIN_HOST) {
+    if (LOGIN_PATHS.has(pathname)) return null;
+    if (pathname === REGISTRATION_PATH) {
+      return { host: REGISTRATION_HOST, pathname, keepQuery: false };
+    }
+    return { host: null, pathname: "/login", keepQuery: false };
+  }
+  return null;
+}
 
 /**
  * Attendance kiosk host (D-048): one address for the tablets of every
@@ -30,7 +58,16 @@ export const TENANT_HEADER = "x-zcore-tenant";
 // Dev/preview only: remembers ?org=<slug> across navigations.
 export const TENANT_COOKIE = "zcore_tenant";
 
-const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "admin", "auth", "static", "kiosk"]);
+const RESERVED_SUBDOMAINS = new Set([
+  "www",
+  "app",
+  "prijava",
+  "api",
+  "admin",
+  "auth",
+  "static",
+  "kiosk",
+]);
 
 export type TenantResolution = {
   slug: string | null;

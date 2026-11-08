@@ -647,6 +647,8 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** The website and the app share one DNS zone at Vercel. A company address is only shown as existing or not (like the login screen).
 
+**Amendment (2026-11-08, product owner):** the "Adresa firme" sign-in page moves to **`prijava.zcore.ba`** (`LOGIN_HOST`), which serves only `/login` and `/login/firma`; its other paths go to `/login`, and `/registracija` goes to `app.zcore.ba/registracija`. `app.zcore.ba` now serves only `/registracija`; its `/login` and `/login/firma` redirect to `prijava.zcore.ba` with the query kept, so old links still work. One pure function (`hostRedirect` in `src/lib/tenant/resolve.ts`) decides both hosts. `prijava` is a reserved subdomain and registration slug (no organization had it). The `*.zcore.ba` wildcard already covers the host; in Vercel, `prijava.zcore.ba` can be added as its own domain for clarity.
+
 ## D-048 — Kiosk on kiosk.zcore.ba, installable as an app (2026-11-04)
 
 **Context:** The product owner wants one kiosk address for every company: the tablet asks only for the activation code, and after activation it shows the company's kiosk as before. If needed, an app that can be downloaded and installed on an Android phone or tablet and runs like a kiosk.

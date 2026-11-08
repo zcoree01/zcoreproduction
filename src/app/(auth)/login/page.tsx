@@ -40,7 +40,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
 /**
  * "Nova firma? Registrujte firmu" only where no company is chosen yet
- * (app.zcore.ba/login); a company's own sign-in page does not offer it.
+ * (prijava.zcore.ba/login); a company's own sign-in page does not offer it.
  */
 async function RegisterLink() {
   const [slug, t] = await Promise.all([getTenantSlug(), getTranslations("common")]);
@@ -74,7 +74,7 @@ async function LoginCard({ searchParams }: { searchParams: Promise<SearchParamsR
     );
   }
   if (!slug || !organizationName) {
-    // No company in the address (app.zcore.ba): ask for it (D-047).
+    // No company in the address (prijava.zcore.ba): ask for it (D-047).
     const params = await searchParams;
     const unknown = firstParam(params.firma) === "nepoznata";
     return (

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   companyLoginUrl,
+  hostRedirect,
   isKioskHost,
   isKioskPath,
   isRegistrationHost,
@@ -107,6 +108,7 @@ describe("resolveTenant", () => {
   it("rejects reserved, nested and malformed subdomains", () => {
     for (const host of [
       "app.zcore.ba",
+      "prijava.zcore.ba",
       "api.zcore.ba",
       "kiosk.zcore.ba",
       "a.b.zcore.ba",
@@ -165,6 +167,54 @@ describe("registration host", () => {
     expect(companyLoginUrl({ host: "localhost:3000", protocol: "http", slug: "demo" })).toBe(
       "http://localhost:3000/login?org=demo",
     );
+  });
+});
+
+describe("hostRedirect", () => {
+  it("keeps only the registration on app.zcore.ba", () => {
+    expect(hostRedirect("app.zcore.ba", "/registracija")).toBeNull();
+    expect(hostRedirect("app.zcore.ba", "/")).toEqual({
+      host: null,
+      pathname: "/registracija",
+      keepQuery: false,
+    });
+    expect(hostRedirect("app.zcore.ba", "/dashboard")?.pathname).toBe("/registracija");
+  });
+
+  it("hands sign-in on app.zcore.ba over to prijava.zcore.ba", () => {
+    expect(hostRedirect("app.zcore.ba", "/login")).toEqual({
+      host: "prijava.zcore.ba",
+      pathname: "/login",
+      keepQuery: true,
+    });
+    expect(hostRedirect("APP.zcore.ba:443", "/login/firma")).toEqual({
+      host: "prijava.zcore.ba",
+      pathname: "/login/firma",
+      keepQuery: true,
+    });
+  });
+
+  it("keeps only the company address on prijava.zcore.ba", () => {
+    expect(hostRedirect("prijava.zcore.ba", "/login")).toBeNull();
+    expect(hostRedirect("prijava.zcore.ba", "/login/firma")).toBeNull();
+    expect(hostRedirect("prijava.zcore.ba", "/")).toEqual({
+      host: null,
+      pathname: "/login",
+      keepQuery: false,
+    });
+    expect(hostRedirect("prijava.zcore.ba", "/dashboard")?.pathname).toBe("/login");
+    expect(hostRedirect("prijava.zcore.ba", "/registracija")).toEqual({
+      host: "app.zcore.ba",
+      pathname: "/registracija",
+      keepQuery: false,
+    });
+  });
+
+  it("leaves company, kiosk and dev hosts alone", () => {
+    for (const host of ["demo.zcore.ba", "kiosk.zcore.ba", "localhost:3000", null]) {
+      expect(hostRedirect(host, "/login"), String(host)).toBeNull();
+      expect(hostRedirect(host, "/"), String(host)).toBeNull();
+    }
   });
 });
 

@@ -2,7 +2,7 @@ import { orgSlugSchema } from "@/lib/auth/username";
 import { companyLoginUrl, requestHost } from "@/lib/tenant/resolve";
 import { getLoginOrganizationName } from "@/modules/auth/queries";
 
-// "Adresa firme" on a sign-in page without a company (app.zcore.ba, D-047):
+// "Adresa firme" on a sign-in page without a company (prijava.zcore.ba, D-047):
 // a known address goes to that company's sign-in page, otherwise back with
 // a notice. Only says whether the address exists (like the login screen).
 

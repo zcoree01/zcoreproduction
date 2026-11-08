@@ -32,6 +32,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "docs",
   "blog",
   "registracija",
+  "prijava",
   "kiosk",
 ]);
 

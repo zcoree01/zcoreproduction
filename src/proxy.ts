@@ -7,10 +7,9 @@ import { getPublicEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
 import {
   isKioskHost,
+  hostRedirect,
   isKioskPath,
-  isRegistrationHost,
   KIOSK_PATH,
-  REGISTRATION_HOST_PATHS,
   requestHost,
   resolveTenant,
   TENANT_COOKIE,
@@ -30,14 +29,18 @@ import {
  * membership and permissions on every request.
  */
 export async function proxy(request: NextRequest) {
-  // app.zcore.ba only registers companies and finds a company's address (D-047).
-  if (
-    isRegistrationHost(requestHost(request.headers)) &&
-    !REGISTRATION_HOST_PATHS.has(request.nextUrl.pathname)
-  ) {
+  // app.zcore.ba only registers companies; prijava.zcore.ba only finds a
+  // company's address for signing in (D-047).
+  const moved = hostRedirect(requestHost(request.headers), request.nextUrl.pathname);
+  if (moved) {
     const url = request.nextUrl.clone();
-    url.pathname = "/registracija";
-    url.search = "";
+    if (moved.host) {
+      url.protocol = "https:";
+      url.host = moved.host;
+      url.port = "";
+    }
+    url.pathname = moved.pathname;
+    if (!moved.keepQuery) url.search = "";
     return NextResponse.redirect(url);
   }
   // kiosk.zcore.ba only serves the attendance kiosk (D-048).
