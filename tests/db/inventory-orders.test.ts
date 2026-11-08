@@ -5,7 +5,7 @@ import { decimalFromDb } from "@/lib/decimal";
 import type { Database, Json } from "@/lib/supabase/types";
 import { ensureUser } from "@/modules/organizations/provision";
 import { testTenantPassword } from "../shared/test-tenants";
-import { setupFixture, signIn, type Fixture } from "./fixtures";
+import { setTenantLocked, setupFixture, signIn, type Fixture } from "./fixtures";
 
 // Inventory part B (D-032): material of production orders. Requirement with
 // kerf and bars, reservation on release and its release, coverage, issue with
@@ -558,5 +558,41 @@ describe("Treba rezanje", () => {
     ).toEqual([ids.turnType]);
     const denied = await warehouse.rpc("set_order_cutting", { p_order_id: orderId, p_needs: true });
     expect(denied.error?.code).toBe("42501");
+  });
+});
+
+describe("while the organization is locked (D-049)", () => {
+  let orderId: string;
+  let lotId: string;
+
+  beforeAll(async () => {
+    orderId = await createOrder(10);
+    lotId = await receive(1);
+    await setTenantLocked(fx.service, fx.a.org.id, true);
+  });
+  afterAll(() => setTenantLocked(fx.service, fx.a.org.id, false));
+
+  it("still issues material with a remnant to an existing order", async () => {
+    const result = await issue(orderId, { lot_id: lotId, cut_pieces: 10, offcut_length_mm: 42 });
+    expect(result.error).toBeNull();
+  });
+
+  it("refuses a new receipt", async () => {
+    const result = await warehouse.rpc("post_stock_receipt", {
+      p_org_id: fx.a.org.id,
+      p_idempotency_key: randomUUID(),
+      p_header: { supplier: "DBO" },
+      p_lines: [
+        {
+          item_id: ids.item,
+          location_id: ids.location,
+          pieces: 1,
+          length_mm: 3000,
+          unit_price: 2,
+          price_unit: "kg",
+        },
+      ],
+    });
+    expect(result.error).toMatchObject({ code: "42501", message: "organization_locked" });
   });
 });

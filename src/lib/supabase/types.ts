@@ -6377,6 +6377,7 @@ export type Database = {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
       }
+      my_billing_notice: { Args: { p_org_id: string }; Returns: Json }
       my_company_change_requests: {
         Args: { p_org_id: string }
         Returns: {

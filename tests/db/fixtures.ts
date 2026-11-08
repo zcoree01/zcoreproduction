@@ -80,3 +80,24 @@ export async function setupFixture(): Promise<Fixture> {
     b: await setupTenant(service, TEST_TENANTS.b.slug, TEST_TENANTS.b.name),
   };
 }
+
+/**
+ * Locks or unlocks an organization by hand (D-049), as the platform admin does
+ * with platform_set_lock. Set through the service role so tests can lock a
+ * tenant around a single step.
+ */
+export async function setTenantLocked(
+  service: SupabaseClient<Database>,
+  organizationId: string,
+  locked: boolean,
+) {
+  const { error } = await service.from("organization_billing").upsert(
+    {
+      organization_id: organizationId,
+      locked_at: locked ? new Date().toISOString() : null,
+      locked_reason: locked ? "DB test" : null,
+    },
+    { onConflict: "organization_id" },
+  );
+  if (error) throw error;
+}

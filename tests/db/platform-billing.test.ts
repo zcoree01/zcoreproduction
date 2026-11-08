@@ -64,15 +64,13 @@ async function billB(prices: { from: string; price: string }[], from: string) {
   const packageId = created.data!;
   // Price history and the start month are set directly: the RPCs date them today.
   await fx.service.from("billing_package_prices").delete().eq("package_id", packageId);
-  const priced = await fx.service
-    .from("billing_package_prices")
-    .insert(
-      prices.map((p) => ({
-        package_id: packageId,
-        valid_from: p.from,
-        monthly_price: numericParam(p.price),
-      })),
-    );
+  const priced = await fx.service.from("billing_package_prices").insert(
+    prices.map((p) => ({
+      package_id: packageId,
+      valid_from: p.from,
+      monthly_price: numericParam(p.price),
+    })),
+  );
   expect(priced.error).toBeNull();
   const assigned = await fx.service
     .from("organization_packages")

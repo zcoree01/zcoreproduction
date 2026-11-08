@@ -5,7 +5,7 @@ import { decimalFromDb } from "@/lib/decimal";
 import type { Database, Json } from "@/lib/supabase/types";
 import { ensureUser } from "@/modules/organizations/provision";
 import { testTenantPassword } from "../shared/test-tenants";
-import { setupFixture, signIn, type Fixture } from "./fixtures";
+import { setTenantLocked, setupFixture, signIn, type Fixture } from "./fixtures";
 
 // Inventory part D (D-034): finished goods and delivery notes. Only good
 // pieces of the last operation are received (also partly, each once); a
@@ -323,5 +323,16 @@ describe("delivery notes", () => {
       .select("id")
       .eq("order_id", orderId);
     expect(data).toEqual([]);
+  });
+});
+
+describe("while the organization is locked (D-049)", () => {
+  afterAll(() => setTenantLocked(fx.service, fx.a.org.id, false));
+
+  it("still receives finished goods of an existing order and ships them", async () => {
+    const orderId = await orderWithGood(4);
+    await setTenantLocked(fx.service, fx.a.org.id, true);
+    expect((await receive(orderId, 4)).error).toBeNull();
+    expect((await issue([{ order_id: orderId, quantity: 4 }])).error).toBeNull();
   });
 });
