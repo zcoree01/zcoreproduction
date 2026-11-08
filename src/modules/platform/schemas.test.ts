@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   assignPackageSchema,
+  billingSettingsSchema,
   orgBillingSchema,
+  packageSchema,
   overviewFilter,
   setLockSchema,
   setPaymentSchema,
+  toggleModule,
   unlockUntilSchema,
 } from "./schemas";
 
@@ -85,5 +88,45 @@ describe("billing schemas (D-049)", () => {
     expect(overviewFilter("late")).toBe("late");
     expect(overviewFilter("whatever")).toBe("all");
     expect(overviewFilter(undefined)).toBe("all");
+  });
+});
+
+describe("package and billing settings schemas (D-049)", () => {
+  it("rejects a negative price and a name over 80 characters", () => {
+    const base = { name: "Osnovni", monthlyPrice: "120", modules: ["production"] };
+    expect(packageSchema.safeParse(base).success).toBe(true);
+    expect(packageSchema.safeParse({ ...base, monthlyPrice: "-1" }).success).toBe(false);
+    expect(packageSchema.safeParse({ ...base, name: "x".repeat(81) }).success).toBe(false);
+    expect(packageSchema.safeParse({ ...base, modules: ["platform"] }).success).toBe(false);
+    expect(packageSchema.parse({ ...base, monthlyPrice: "99,50" }).monthlyPrice).toBe("99.5");
+  });
+
+  it("accepts grace 0 to 90 and warning 0 to 30 days", () => {
+    const base = { graceDays: "15", warningDays: "5", contact: "" };
+    expect(billingSettingsSchema.safeParse(base).success).toBe(true);
+    expect(billingSettingsSchema.safeParse({ ...base, graceDays: "91" }).success).toBe(false);
+    expect(billingSettingsSchema.safeParse({ ...base, warningDays: "31" }).success).toBe(false);
+    expect(billingSettingsSchema.safeParse({ ...base, contact: "x".repeat(301) }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("toggleModule", () => {
+  const deps = [
+    { module: "planning", requires: "production" },
+    { module: "kiosk", requires: "attendance" },
+  ];
+
+  it("checks the module a checked one needs", () => {
+    expect(toggleModule(["attendance"], "planning", true, deps).sort()).toEqual(
+      ["attendance", "planning", "production"].sort(),
+    );
+  });
+
+  it("unchecks the modules that need an unchecked one", () => {
+    expect(
+      toggleModule(["production", "planning", "attendance"], "production", false, deps),
+    ).toEqual(["attendance"]);
   });
 });

@@ -1,14 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { dbErrorKind, type DbError } from "@/lib/actions/result";
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
-import { nullableParam } from "@/lib/supabase/numeric";
+import { nullableParam, numericParam } from "@/lib/supabase/numeric";
 import { createClient } from "@/lib/supabase/server";
 import {
   assignPackageSchema,
+  billingSettingsSchema,
   orgBillingSchema,
+  packageSchema,
   setLockSchema,
   setPaymentSchema,
   unlockUntilSchema,
@@ -119,6 +122,60 @@ export async function unlockUntilAction(input: unknown): Promise<BillingActionRe
     p_until: nullableParam(parsed.data.until),
   });
   if (error) return billingFail(error, "unlockUntilAction");
+  revalidateBilling();
+  return { ok: true };
+}
+
+/** New (id null) or changed package; firms on it get its modules at once. */
+export async function savePackageAction(
+  id: string | null,
+  input: unknown,
+): Promise<BillingActionResult & { id?: string }> {
+  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  const parsedId = z.uuid().nullable().safeParse(id);
+  const parsed = packageSchema.safeParse(input);
+  if (!parsedId.success || !parsed.success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("platform_save_package", {
+    p_id: nullableParam(parsedId.data),
+    p_name: parsed.data.name,
+    p_monthly_price: numericParam(parsed.data.monthlyPrice),
+    p_modules: parsed.data.modules,
+  });
+  if (error) return billingFail(error, "savePackageAction");
+  revalidateBilling();
+  return { ok: true, id: data };
+}
+
+export async function setPackageArchivedAction(
+  id: unknown,
+  archived: unknown,
+): Promise<BillingActionResult> {
+  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  const parsedId = z.uuid().safeParse(id);
+  const parsedArchived = z.boolean().safeParse(archived);
+  if (!parsedId.success || !parsedArchived.success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("platform_set_package_archived", {
+    p_id: parsedId.data,
+    p_archived: parsedArchived.data,
+  });
+  if (error) return billingFail(error, "setPackageArchivedAction");
+  revalidateBilling();
+  return { ok: true };
+}
+
+export async function saveBillingSettingsAction(input: unknown): Promise<BillingActionResult> {
+  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  const parsed = billingSettingsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("platform_save_billing_settings", {
+    p_grace_days: parsed.data.graceDays,
+    p_warning_days: parsed.data.warningDays,
+    p_contact: parsed.data.contact,
+  });
+  if (error) return billingFail(error, "saveBillingSettingsAction");
   revalidateBilling();
   return { ok: true };
 }

@@ -62,10 +62,40 @@ export async function listPlatformOrganizations(): Promise<PlatformOrganization[
   });
 }
 
-export async function getPlatformSettings(): Promise<{ defaultTrialDays: number }> {
+export type PlatformSettings = {
+  defaultTrialDays: number;
+  /** Days after the end of a month to pay it (D-049). */
+  paymentGraceDays: number;
+  /** Days before the lock that the firm is warned. */
+  lockWarningDays: number;
+  /** Whom a locked firm contacts. */
+  lockContact: string;
+};
+
+export async function getPlatformSettings(): Promise<PlatformSettings> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("platform_get_settings");
   if (error) throw error;
-  const parsed = z.object({ default_trial_days: z.number().int() }).parse(data);
-  return { defaultTrialDays: parsed.default_trial_days };
+  const parsed = z
+    .object({
+      default_trial_days: z.number().int(),
+      payment_grace_days: z.number().int(),
+      lock_warning_days: z.number().int(),
+      lock_contact: z.string(),
+    })
+    .parse(data);
+  return {
+    defaultTrialDays: parsed.default_trial_days,
+    paymentGraceDays: parsed.payment_grace_days,
+    lockWarningDays: parsed.lock_warning_days,
+    lockContact: parsed.lock_contact,
+  };
+}
+
+/** Which module needs which (public.module_dependencies, D-049). */
+export async function listModuleDependencies(): Promise<{ module: string; requires: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("module_dependencies").select("module_key, requires");
+  if (error) throw error;
+  return data.map((row) => ({ module: row.module_key, requires: row.requires }));
 }

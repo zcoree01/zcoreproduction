@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { parseDecimal } from "@/lib/decimal";
+import { SELLABLE_MODULES } from "./modules";
 
 /**
  * Module of an organization: on / off and optionally until a day (trial).
@@ -85,4 +87,47 @@ export type OverviewFilter = (typeof OVERVIEW_FILTERS)[number];
 
 export function overviewFilter(value: string | undefined): OverviewFilter {
   return OVERVIEW_FILTERS.find((filter) => filter === value) ?? "all";
+}
+
+/** A package: name, monthly price in KM (up to 2 decimals) and sellable modules. */
+export const packageSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  monthlyPrice: z
+    .string()
+    .transform((value) => parseDecimal(value, 2))
+    .refine((value): value is string => value !== null && !value.startsWith("-")),
+  modules: z.array(z.enum(SELLABLE_MODULES)),
+});
+
+export const billingSettingsSchema = z.object({
+  graceDays: z.coerce.number().int().min(0).max(90),
+  warningDays: z.coerce.number().int().min(0).max(30),
+  contact: z.string().trim().max(300),
+});
+
+export type ModuleDependency = { module: string; requires: string };
+
+/**
+ * Checkbox rule of the package form: checking a module checks what it needs,
+ * unchecking one unchecks the modules that need it (repeated through chains).
+ */
+export function toggleModule(
+  selected: readonly string[],
+  key: string,
+  checked: boolean,
+  dependencies: readonly ModuleDependency[],
+): string[] {
+  const next = new Set(selected);
+  const add = (module: string) => {
+    if (next.has(module)) return;
+    next.add(module);
+    for (const d of dependencies) if (d.module === module) add(d.requires);
+  };
+  const remove = (module: string) => {
+    if (!next.delete(module)) return;
+    for (const d of dependencies) if (d.requires === module) remove(d.module);
+  };
+  if (checked) add(key);
+  else remove(key);
+  return [...next];
 }

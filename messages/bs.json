@@ -3519,6 +3519,47 @@
         "unexpected": "Promjena nije sačuvana zbog greške.",
         "reason_required": "Unesite razlog (1–300 znakova).",
         "module_requirement": "Modul treba i modul od kojeg zavisi."
+      },
+      "packages": {
+        "title": "Paketi",
+        "description": "Skup modula s jednom mjesečnom cijenom. Promjena cijene važi od tekućeg mjeseca; prošli mjeseci ostaju s cijenom koju su imali.",
+        "empty": "Još nema paketa.",
+        "add": "Novi paket",
+        "edit": "Izmijeni",
+        "archive": "Arhiviraj",
+        "restore": "Vrati",
+        "archived": "Arhiviran",
+        "columns": {
+          "name": "Naziv",
+          "monthly": "Mjesečno",
+          "modules": "Moduli",
+          "firms": "Firme"
+        },
+        "sheetNew": "Novi paket",
+        "sheetEdit": "Paket {name}",
+        "name": "Naziv",
+        "nameHint": "1–80 znakova.",
+        "monthly": "Mjesečna cijena (KM)",
+        "monthlyInvalid": "Unesite iznos, npr. 120 ili 99,50.",
+        "modules": "Moduli",
+        "modulesHint": "Osnova je uvijek uključena. Modul koji treba drugi modul uključuje i njega.",
+        "core": "Osnova (uvijek)",
+        "save": "Sačuvaj",
+        "savedToast": "Paket {name} je sačuvan.",
+        "archivedToast": "Paket je arhiviran.",
+        "restoredToast": "Paket je vraćen."
+      },
+      "settingsForm": {
+        "title": "Plaćanje i zaključavanje",
+        "description": "Vrijedi za sve firme; pojedinoj firmi rok možete promijeniti na njenoj stranici.",
+        "grace": "Rok za uplatu nakon isteka mjeseca (dana)",
+        "graceHint": "0–90 dana.",
+        "warning": "Upozorenje firmi prije zaključavanja (dana)",
+        "warningHint": "0–30 dana.",
+        "contact": "Kontakt za zaključane firme",
+        "contactHint": "Npr. Zcore, 061 000 000, uplate@zcore.ba (do 300 znakova).",
+        "save": "Sačuvaj",
+        "savedToast": "Postavke su sačuvane."
       }
     }
   },
