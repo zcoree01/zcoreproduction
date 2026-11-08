@@ -356,7 +356,10 @@ describe("smaller or no package (product owner, 2026-11-08)", () => {
       return new Set((data ?? []).map((m) => m.module_key));
     };
 
-    await platform.rpc("platform_assign_package", { p_org_id: fx.b.org.id, p_package_id: big.data! });
+    await platform.rpc("platform_assign_package", {
+      p_org_id: fx.b.org.id,
+      p_package_id: big.data!,
+    });
     expect(await enabled()).toEqual(new Set(["core", "production", "planning", "tools"]));
 
     await platform.rpc("platform_assign_package", {
