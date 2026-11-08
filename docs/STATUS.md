@@ -259,6 +259,11 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-08 — Test organizations removed, tests clean up
+
+- 45 archived test organizations (DBT… / E2E… registrations) deleted with their data and users (product owner ran the SQL; 48 Storage files of tenant B removed through the Storage API). Left: zcore, demo, jabl, test-tenant-a, test-tenant-b.
+- `public.purge_test_organization` (`20261110160000`, service role only, only slugs `dbt-reg-…` / `e2e-…`): `tests/db/company-directory` and `e2e/companies.spec` now remove the organizations they register instead of archiving them. DB tests for removal and refusal; `npm run check` 512, company-directory 12/12, companies e2e 3/3.
+
 ### 2026-11-08 — Platform billing: packages, payments, lock (D-049)
 
 - Firm page made like the approved mockup (B): support and lock in the header, package card as label / value rows (grace "iz postavki · promijeni za ovu firmu", auto-lock select), modules card with one row per module (iz paketa / proba do datum / uključen / nije u paketu) and one action (Dodaj kao probu… / Ukloni probu / Isključi); the old per-module editor is gone. Product owner: a smaller package or none switches off the modules it does not have, after a warning listing them (`20261110150000_package_removal`, DB + e2e test). Test packages are cleaned up by the lock test. Support banner countdown no longer causes a hydration error.

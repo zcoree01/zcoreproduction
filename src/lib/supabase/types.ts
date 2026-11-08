@@ -6736,6 +6736,10 @@ export type Database = {
           tool: string
         }[]
       }
+      purge_test_organization: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
       receive_finished_goods: {
         Args: {
           p_idempotency_key: string

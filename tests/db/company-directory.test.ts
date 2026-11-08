@@ -94,11 +94,10 @@ afterAll(async () => {
     .from("memberships")
     .update({ archived_at: new Date().toISOString() })
     .eq("user_id", platformUserId);
-  if (registeredOrgs.length > 0) {
-    await f.service
-      .from("organizations")
-      .update({ archived_at: new Date().toISOString() })
-      .in("id", registeredOrgs);
+  // Registered test organizations are removed completely, not archived.
+  for (const id of registeredOrgs) {
+    const purged = await f.service.rpc("purge_test_organization", { p_org_id: id });
+    if (purged.error) throw purged.error;
   }
 });
 
@@ -446,5 +445,39 @@ describe("support access", () => {
       p_reason: "x",
     });
     expect(error?.code).toBe("42501");
+  });
+});
+
+describe("purging test organizations (product owner, 2026-11-08)", () => {
+  it("removes a registered test organization with its users and data", async () => {
+    const { data, error } = await f.service.rpc("register_organization", {
+      p_slug: `dbt-reg-purge-${RUN}`,
+      p_timezone: "Europe/Sarajevo",
+      p_country: "BA",
+      p_tax_id: jib("9"),
+      p_fields: { name: `DBT Brisanje ${RUN}`, address: "Nova 9", city: "Tuzla" },
+      p_bank_accounts: [],
+    });
+    expect(error).toBeNull();
+    const orgId = (data as { organization_id: string }).organization_id;
+
+    const purged = await f.service.rpc("purge_test_organization", { p_org_id: orgId });
+    expect(purged.error).toBeNull();
+    const left = await f.service.from("organizations").select("id").eq("id", orgId);
+    expect(left.data).toEqual([]);
+    const modules = await f.service
+      .from("org_modules")
+      .select("module_key")
+      .eq("organization_id", orgId);
+    expect(modules.data).toEqual([]);
+  });
+
+  it("refuses organizations that are not test registrations, and non-service callers", async () => {
+    const real = await f.service.rpc("purge_test_organization", { p_org_id: f.a.org.id });
+    expect(real.error?.code).toBe("42501");
+    const asAdmin = await f.a.admin.rpc("purge_test_organization", { p_org_id: f.a.org.id });
+    expect(asAdmin.error).not.toBeNull();
+    const still = await f.service.from("organizations").select("id").eq("id", f.a.org.id);
+    expect(still.data).toHaveLength(1);
   });
 });

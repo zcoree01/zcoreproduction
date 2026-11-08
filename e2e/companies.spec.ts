@@ -5,7 +5,7 @@ import { expectPath, login } from "./helpers";
 
 // Company registration, company data and the shared company directory
 // (D-026). Requires the test tenants (npm run test:db). Every run registers
-// one organization "e2e-<run>" (archived at the end) and adds directory
+// one organization "e2e-<run>" (removed at the end) and adds directory
 // entries with fresh tax ids (never deleted).
 
 const RUN = Date.now().toString().slice(-8);
@@ -94,11 +94,13 @@ test("a company registers in six steps and its administrator signs in", async ({
   await expect(page.getByLabel("ID broj (JIB)")).toHaveAttribute("readonly", "");
   await expect(page.getByRole("link", { name: "Radni nalozi" })).toBeVisible();
 
+  // The registered test organization is removed completely, not archived.
   const service = createAdminClient();
-  await service
-    .from("organizations")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("slug", slug);
+  const registered = await service.from("organizations").select("id").eq("slug", slug).single();
+  if (registered.data) {
+    const purged = await service.rpc("purge_test_organization", { p_org_id: registered.data.id });
+    if (purged.error) throw purged.error;
+  }
 });
 
 test("a customer is offered from the directory and a change can be proposed", async ({ page }) => {
