@@ -6497,6 +6497,7 @@ export type Database = {
           state: string
         }[]
       }
+      platform_billing_packages: { Args: never; Returns: Json }
       platform_get_settings: { Args: never; Returns: Json }
       platform_organization_billing: {
         Args: { p_org_id: string }

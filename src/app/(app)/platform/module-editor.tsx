@@ -27,8 +27,9 @@ export function ModuleEditor({
   const t = useTranslations("platform.modules");
   const tModule = useTranslations("moduleNames");
   // Modules added later show their key until they get a name.
-  const label =
-    module.key === "production" || module.key === "attendance" ? tModule(module.key) : module.key;
+  const label = tModule.has(module.key as "production")
+    ? tModule(module.key as "production")
+    : module.key;
   const [enabled, setEnabled] = useState(module.enabled);
   const [until, setUntil] = useState(initialUntilDay);
   const [pending, startTransition] = useTransition();

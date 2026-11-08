@@ -279,3 +279,30 @@ describe("package modules", () => {
     expect(created.error?.code).toBe("22023");
   });
 });
+
+describe("package list", () => {
+  it("lists packages with price, modules and how many firms have them", async () => {
+    const created = await platform.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: "DBB Lista",
+      p_monthly_price: 90,
+      p_modules: ["attendance", "kiosk"],
+    });
+    expect(created.error).toBeNull();
+    await platform.rpc("platform_assign_package", {
+      p_org_id: fx.b.org.id,
+      p_package_id: created.data!,
+    });
+    const { data, error } = await platform.rpc("platform_billing_packages");
+    expect(error).toBeNull();
+    const listed = (data as unknown as { id: string }[]).find((p) => p.id === created.data);
+    expect(listed).toMatchObject({
+      name: "DBB Lista",
+      monthly_price: 90,
+      modules: ["attendance", "kiosk"],
+      archived: false,
+      organization_count: 1,
+    });
+    expect((await fx.b.admin.rpc("platform_billing_packages")).error?.code).toBe("42501");
+  });
+});

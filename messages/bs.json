@@ -3141,8 +3141,16 @@
     "label": "Firme iz imenika"
   },
   "moduleNames": {
+    "core": "Osnova",
     "production": "Proizvodnja",
-    "attendance": "Radno vrijeme"
+    "planning": "Planiranje",
+    "reports": "Izvještaji",
+    "inventory": "Magacin materijala",
+    "finished_goods": "Gotova roba i otpremnice",
+    "tools": "Alati",
+    "attendance": "Radno vrijeme",
+    "kiosk": "Kiosk",
+    "payroll": "Obračun sati za plate"
   },
   "companyFields": {
     "name": "Puni naziv firme",
@@ -3387,6 +3395,131 @@
       "approvedToast": "Firma je odobrila pristup. Možete ući.",
       "rejectedToast": "Firma je odbila zahtjev za pristup.",
       "endedNotice": "Sesija podrške je završena. Vraćeni ste u Zcore."
+    },
+    "billing": {
+      "filters": {
+        "all": "Sve",
+        "late": "Kasne s uplatom",
+        "locked": "Zaključane",
+        "trial": "Proba"
+      },
+      "search": "Traži firmu…",
+      "searchLabel": "Pretraga firmi",
+      "emptyFiltered": "Nijedna firma ne odgovara filteru.",
+      "columns": {
+        "organization": "Firma",
+        "package": "Paket",
+        "monthly": "Mjesečno",
+        "state": "Stanje",
+        "lastPaid": "Zadnja uplata",
+        "members": "Korisnici"
+      },
+      "noPackage": "—",
+      "amount": "{amount} KM",
+      "states": {
+        "trial": "Proba",
+        "active": "Aktivna",
+        "warning": "Upozorenje",
+        "overdue": "Kasni",
+        "locked": "Zaključana"
+      },
+      "back": "Sve firme",
+      "notFoundTitle": "Firma nije pronađena",
+      "notFoundDescription": "Firma ne postoji ili je to Zcore platforma.",
+      "header": "{slug} · {members} · od {date}",
+      "banner": {
+        "locked": {
+          "manual": "Firma je zaključana od {date}: {reason}",
+          "unpaid": "Firma je zaključana: uplata za {month} nije evidentirana (rok je bio {due})."
+        },
+        "warning": "Uplata za {month} nije evidentirana; zaključavanje {date}.",
+        "overdue": "Uplata za {month} nije evidentirana; rok je prošao, ali firma nije zaključana."
+      },
+      "lock": {
+        "lock": "Zaključaj",
+        "unlock": "Otključaj",
+        "title": "Zaključaj firmu",
+        "description": "Firma i dalje može gledati podatke, koristiti kiosk i završiti započete naloge; ništa novo ne može dodati.",
+        "reason": "Razlog",
+        "reasonHint": "Vidi ga platformski admin i historija (1–300 znakova).",
+        "confirm": "Zaključaj",
+        "cancel": "Odustani",
+        "lockedToast": "Firma {name} je zaključana.",
+        "unlockedToast": "Firma {name} je otključana.",
+        "until": "Otvori do",
+        "untilHint": "Firma ostaje otvorena do ovog dana iako uplata kasni (prazno = do daljnjeg nije).",
+        "untilSave": "Sačuvaj",
+        "untilToast": "Sačuvano."
+      },
+      "packageCard": {
+        "title": "Paket",
+        "package": "Paket",
+        "none": "Bez paketa",
+        "monthly": "Mjesečni iznos",
+        "grace": "Rok za uplatu (dana nakon mjeseca)",
+        "graceDefault": "Prazno = iz postavki ({days} dana)",
+        "autoLock": "Automatsko zaključavanje nakon roka",
+        "save": "Sačuvaj",
+        "savedToast": "Sačuvano.",
+        "packageToast": "Paket je promijenjen."
+      },
+      "modulesCard": {
+        "title": "Moduli",
+        "description": "Moduli iz paketa uključuju se sami; ostale možete dati kao probu do nekog dana.",
+        "source": {
+          "package": "iz paketa",
+          "trial": "proba",
+          "manual": "ručno",
+          "off": "nije u paketu"
+        }
+      },
+      "payments": {
+        "title": "Plaćanja po mjesecima",
+        "empty": "Firma još nema paket, pa nema mjeseci za plaćanje.",
+        "columns": {
+          "month": "Mjesec",
+          "amount": "Iznos",
+          "due": "Rok",
+          "state": "Stanje"
+        },
+        "paid": "Plaćeno {date}",
+        "pending": "Čeka uplatu",
+        "unpaid": "Nije plaćeno",
+        "markPaid": "Označi plaćeno",
+        "cancel": "Poništi",
+        "sheetTitle": "Uplata za {month}",
+        "paidOn": "Datum uplate",
+        "note": "Napomena",
+        "noteHint": "Npr. broj fakture (do 200 znakova).",
+        "save": "Sačuvaj",
+        "paidToast": "Uplata za {month} je evidentirana.",
+        "cancelTitle": "Poništiti uplatu za {month}?",
+        "cancelDescription": "Mjesec ponovo postaje neplaćen; ako je rok prošao, firma se može zaključati.",
+        "cancelConfirm": "Poništi uplatu",
+        "cancelledToast": "Uplata je poništena."
+      },
+      "history": {
+        "title": "Historija",
+        "empty": "Još nema promjena.",
+        "by": "{who}",
+        "actions": {
+          "billing.package_assigned": "Promijenjen paket",
+          "billing.settings": "Promijenjen rok / automatsko zaključavanje",
+          "billing.payment_recorded": "Evidentirana uplata",
+          "billing.payment_cancelled": "Poništena uplata",
+          "billing.locked": "Zaključano",
+          "billing.unlocked": "Otključano",
+          "billing.unlocked_until": "Otvoreno do datuma"
+        }
+      },
+      "errors": {
+        "invalid": "Provjerite unesene podatke.",
+        "denied": "Nemate dozvolu.",
+        "not_found": "Firma ili paket nije pronađen.",
+        "unexpected": "Promjena nije sačuvana zbog greške.",
+        "reason_required": "Unesite razlog (1–300 znakova).",
+        "module_requirement": "Modul treba i modul od kojeg zavisi."
+      }
     }
   },
   "support": {
