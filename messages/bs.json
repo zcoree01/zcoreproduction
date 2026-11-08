@@ -3522,7 +3522,7 @@
       },
       "packages": {
         "title": "Paketi",
-        "description": "Skup modula s jednom mjesečnom cijenom. Promjena cijene važi od tekućeg mjeseca; prošli mjeseci ostaju s cijenom koju su imali.",
+        "description": "Skup modula s jednom mjesečnom cijenom. Nova cijena važi od sljedećeg mjeseca; tekući i prošli mjeseci ostaju s cijenom koju su imali.",
         "empty": "Još nema paketa.",
         "add": "Novi paket",
         "edit": "Izmijeni",
@@ -3547,7 +3547,8 @@
         "save": "Sačuvaj",
         "savedToast": "Paket {name} je sačuvan.",
         "archivedToast": "Paket je arhiviran.",
-        "restoredToast": "Paket je vraćen."
+        "restoredToast": "Paket je vraćen.",
+        "nextPrice": "od {date}: {amount} KM"
       },
       "settingsForm": {
         "title": "Plaćanje i zaključavanje",

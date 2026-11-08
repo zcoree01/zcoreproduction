@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { writeAudit } from "@/lib/audit";
+import { getMemberAccess } from "@/lib/auth/access";
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -32,6 +33,8 @@ const fail = (error: CreateUserError, fields: CreateUserField[] = []): CreateUse
 export async function createUserAction(input: unknown): Promise<CreateUserResult> {
   const member = await requireMember();
   if (!(await permitAction(member.organization.id, "users.manage"))) return fail("denied");
+  // The Auth Admin API writes past the database lock (D-049): check it here.
+  if ((await getMemberAccess(member)).locked) return fail("denied");
 
   const parsed = createUserSchema.safeParse(input);
   if (!parsed.success) {
@@ -67,6 +70,7 @@ export async function resetUserPasswordAction(userId: unknown): Promise<ResetPas
   const member = await requireMember();
   const organizationId = member.organization.id;
   if (!(await permitAction(organizationId, "users.manage"))) return { ok: false, error: "denied" };
+  if ((await getMemberAccess(member)).locked) return { ok: false, error: "denied" };
 
   const parsed = z.uuid().safeParse(userId);
   if (!parsed.success) return { ok: false, error: "invalid" };

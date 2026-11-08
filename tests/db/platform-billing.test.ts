@@ -306,3 +306,27 @@ describe("package list", () => {
     expect((await fx.b.admin.rpc("platform_billing_packages")).error?.code).toBe("42501");
   });
 });
+
+describe("price changes (final review)", () => {
+  it("apply from the next month; the current month keeps its price", async () => {
+    const created = await platform.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: "DBB Cijena",
+      p_monthly_price: 100,
+      p_modules: ["production"],
+    });
+    expect(created.error).toBeNull();
+    const changed = await platform.rpc("platform_save_package", {
+      p_id: created.data!,
+      p_name: "DBB Cijena",
+      p_monthly_price: 150,
+      p_modules: ["production"],
+    });
+    expect(changed.error).toBeNull();
+    const { data } = await platform.rpc("platform_billing_packages");
+    const listed = (data as unknown as { id: string; monthly_price: number }[]).find(
+      (p) => p.id === created.data,
+    );
+    expect(listed?.monthly_price).toBe(100);
+  });
+});

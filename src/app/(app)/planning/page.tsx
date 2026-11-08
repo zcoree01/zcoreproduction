@@ -55,8 +55,10 @@ async function PlanningContent({ searchParams }: { searchParams: Promise<SearchP
   const basis = basisSchema.catch("planned").parse(firstParam(params.basis) ?? "planned");
   const data = await getPlanningData(organizationId, from, addDays(from, DAYS + LOOKAHEAD_DAYS));
   const board = buildBoard(data, { from, days: DAYS, today, basis });
-  const canManage = access.permissions.has("orders.manage");
-  const canManageDowntime = canManage || access.permissions.has("machines.manage");
+  // A locked organization views the plan only (D-049).
+  const canManage = access.permissions.has("orders.manage") && !access.locked;
+  const canManageDowntime =
+    canManage || (access.permissions.has("machines.manage") && !access.locked);
 
   const href = (next: { from?: string; basis?: string }) => {
     const query = new URLSearchParams({ from: next.from ?? from, basis: next.basis ?? basis });

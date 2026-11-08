@@ -1,7 +1,7 @@
 "use client";
 
 import { PencilIcon, PlusIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export function PackagesCard({
   const tb = useTranslations("platform.billing");
   const tErrors = useTranslations("platform.billing.errors");
   const tModule = useTranslations("moduleNames");
+  const format = useFormatter();
   const [editing, setEditing] = useState<BillingPackage | "new" | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -87,6 +88,16 @@ export function PackagesCard({
                       {pkg.monthlyPrice
                         ? tb("amount", { amount: formatDecimal(pkg.monthlyPrice) })
                         : "—"}
+                      {pkg.nextMonthlyPrice ? (
+                        <div className="text-xs text-muted-foreground">
+                          {t("nextPrice", {
+                            amount: formatDecimal(pkg.nextMonthlyPrice),
+                            date: format.dateTime(new Date(`${pkg.nextFrom}T12:00:00Z`), {
+                              dateStyle: "medium",
+                            }),
+                          })}
+                        </div>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-sm">
                       {pkg.modules.map((key) => tModule(key as "production")).join(", ")}
@@ -145,7 +156,7 @@ function PackageSheet({
   const tModule = useTranslations("moduleNames");
   const existing = pkg !== null && pkg !== "new" ? pkg : null;
   const [name, setName] = useState(existing?.name ?? "");
-  const [price, setPrice] = useState(existing?.monthlyPrice ?? "");
+  const [price, setPrice] = useState(existing?.nextMonthlyPrice ?? existing?.monthlyPrice ?? "");
   const [modules, setModules] = useState<string[]>(existing?.modules ?? []);
   const [invalid, setInvalid] = useState<"name" | "price" | null>(null);
   const [pending, startTransition] = useTransition();

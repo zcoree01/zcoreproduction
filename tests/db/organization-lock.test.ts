@@ -48,6 +48,7 @@ async function cleanup() {
     .like("first_name", `${MARK}%`);
   const employeeIds = (employees.data ?? []).map((row) => row.id);
   if (employeeIds.length > 0) {
+    await s.from("employee_kiosk_credentials").delete().in("employee_id", employeeIds);
     await s.from("attendance_alerts").delete().in("employee_id", employeeIds);
     await s.from("attendance_sessions").delete().in("employee_id", employeeIds);
     await s.from("employee_machines").delete().in("employee_id", employeeIds);
@@ -68,6 +69,8 @@ async function cleanup() {
     }
     await s.from("products").delete().in("id", productIds);
   }
+  await s.from("attendance_kiosks").delete().eq("organization_id", org).like("name", `${MARK}%`);
+  await s.from("machine_downtimes").delete().eq("organization_id", org);
   await s.from("machines").delete().eq("organization_id", org).like("code", `${MARK}%`);
   await s.from("operation_types").delete().eq("organization_id", org).like("code", `${MARK}%`);
   await s.from("customers").delete().eq("organization_id", org).like("name", `${MARK}%`);
@@ -449,5 +452,92 @@ describe("billing lock", () => {
     await fx.service.from("billing_package_modules").delete().eq("package_id", created.data!);
     await fx.service.from("billing_package_prices").delete().eq("package_id", created.data!);
     await fx.service.from("billing_packages").delete().eq("id", created.data!);
+  });
+});
+
+describe("editing while locked (final review)", () => {
+  let order = { orderId: "", turningId: "" };
+
+  beforeAll(async () => {
+    order = await readyOrder();
+    await setTenantLocked(fx.service, fx.b.org.id, true);
+  });
+  afterAll(() => setTenantLocked(fx.service, fx.b.org.id, false));
+
+  it("refuses editing an order's fields but still changes its status", async () => {
+    const edited = await fx.b.admin
+      .from("production_orders")
+      .update({ quantity: 99 })
+      .eq("id", order.orderId)
+      .select("id");
+    expect(edited.error).toMatchObject(LOCKED);
+    const status = await fx.b.admin.rpc("set_production_order_status", {
+      p_order_id: order.orderId,
+      p_status: "waiting_material",
+    });
+    expect(status.error).toBeNull();
+  });
+
+  it("refuses re-planning an operation onto another machine", async () => {
+    const moved = await fx.b.admin
+      .from("production_order_operations")
+      .update({ machine_id: ids.saw })
+      .eq("id", order.turningId)
+      .select("id");
+    expect(moved.error).toMatchObject(LOCKED);
+  });
+
+  it("refuses new kiosk activations and PINs set by the admin, not the worker's own PIN", async () => {
+    const kiosk = await fx.b.admin.rpc("create_kiosk_activation", {
+      p_org_id: fx.b.org.id,
+      p_kiosk_id: nullableParam<string>(null),
+      p_name: `${MARK} kiosk`,
+    });
+    expect(kiosk.error).toMatchObject(LOCKED);
+    const adminPin = await fx.b.admin.rpc("set_employee_pin", {
+      p_employee_id: ids.employee,
+      p_pin: "4321",
+    });
+    expect(adminPin.error).toMatchObject(LOCKED);
+    const ownPin = await fx.b.operator.rpc("set_own_pin", { p_org_id: fx.b.org.id, p_pin: "1234" });
+    expect(ownPin.error).toBeNull();
+  });
+});
+
+describe("planning module", () => {
+  afterAll(async () => {
+    await fx.service
+      .from("org_modules")
+      .update({ enabled: true })
+      .eq("organization_id", fx.b.org.id)
+      .eq("module_key", "planning");
+    await fx.service.from("machine_downtimes").delete().eq("organization_id", fx.b.org.id);
+  });
+
+  it("refuses machine downtime planning without the planning module", async () => {
+    const reason = await fx.service
+      .from("catalog_items")
+      .select("id")
+      .eq("organization_id", fx.b.org.id)
+      .eq("kind", "downtime_reason")
+      .is("archived_at", null)
+      .limit(1)
+      .single()
+      .throwOnError();
+    await fx.service
+      .from("org_modules")
+      .update({ enabled: false })
+      .eq("organization_id", fx.b.org.id)
+      .eq("module_key", "planning");
+    const saved = await fx.b.admin.rpc("save_machine_downtime", {
+      p_org_id: fx.b.org.id,
+      p_id: nullableParam<string>(null),
+      p_machine_id: ids.cnc,
+      p_starts_on: "2030-01-10",
+      p_ends_on: "2030-01-11",
+      p_reason_id: reason.data.id,
+      p_note: `${MARK} servis`,
+    });
+    expect(saved.error?.code).toBe("42501");
   });
 });

@@ -197,6 +197,9 @@ export type BillingPackage = {
   id: string;
   name: string;
   monthlyPrice: string | null;
+  /** A price change waiting for the next month (D-049), with its first day. */
+  nextMonthlyPrice: string | null;
+  nextFrom: string;
   modules: string[];
   archived: boolean;
   organizationCount: number;
@@ -207,6 +210,8 @@ const packagesSchema = z.array(
     id: z.string(),
     name: z.string(),
     monthly_price: numeric,
+    next_monthly_price: numeric,
+    next_from: z.string(),
     modules: z.array(z.string()),
     archived: z.boolean(),
     organization_count: z.number(),
@@ -221,6 +226,8 @@ export async function listBillingPackages(): Promise<BillingPackage[]> {
     id: p.id,
     name: p.name,
     monthlyPrice: decimalFromDb(p.monthly_price),
+    nextMonthlyPrice: decimalFromDb(p.next_monthly_price),
+    nextFrom: p.next_from,
     modules: p.modules,
     archived: p.archived,
     organizationCount: p.organization_count,
