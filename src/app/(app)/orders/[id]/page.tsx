@@ -211,7 +211,7 @@ async function OrderContent({
               wholePieces={isWholeUnit(order.unit)}
               quantity={order.quantity}
             />
-            {canManage ? (
+            {canManage && !access.locked ? (
               <OrderActions
                 order={order}
                 priorityMode={settings.priorityMode}

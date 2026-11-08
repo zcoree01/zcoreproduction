@@ -19,6 +19,7 @@ import { getCurrentSupportSession, listPendingSupportRequests } from "@/modules/
 import { AppSidebar } from "./app-sidebar";
 import { CloseRequestBell } from "./close-request-bell";
 import { SiteHeader } from "./site-header";
+import { BillingNoticeBanner } from "@/components/shared/billing-notice";
 import { SupportBanner } from "./support-banner";
 import { SupportRequestPrompt } from "./support-request-prompt";
 
@@ -112,6 +113,7 @@ async function AppShell({ children }: { children: ReactNode }) {
       />
       <SidebarInset>
         {supportApprover ? <SupportRequestPrompt initial={pendingSupport} /> : null}
+        <BillingNoticeBanner notice={access.notice} timezone={member.organization.timezone} />
         {supportSession ? (
           <SupportBanner
             requestId={supportSession.id}

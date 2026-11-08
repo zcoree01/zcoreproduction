@@ -69,7 +69,7 @@ async function OrdersContent({ searchParams }: { searchParams: Promise<SearchPar
         title={t("title")}
         description={t("description")}
         actions={
-          canManage ? (
+          canManage && !access.locked ? (
             <CreateOrderButton
               options={{
                 customers,

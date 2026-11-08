@@ -5296,5 +5296,14 @@
       "role_in_use": "Uloga ima aktivne korisnike.",
       "unexpected": "Nije sačuvano. Pokušaj ponovo."
     }
+  },
+  "billingNotice": {
+    "locked": {
+      "manual": "Firma je zaključana. Možete pregledati podatke, koristiti kiosk i završiti započete naloge; ništa novo se ne može dodati.",
+      "unpaid": "Firma je zaključana jer uplata za {month} nije evidentirana. Možete pregledati podatke, koristiti kiosk i završiti započete naloge; ništa novo se ne može dodati."
+    },
+    "warning": "Uplata za {month} nije evidentirana. Ako ne bude evidentirana, aplikacija se zaključava {date}.",
+    "overdue": "Uplata za {month} nije evidentirana; rok je prošao.",
+    "contact": "Kontakt: {contact}"
   }
 }
