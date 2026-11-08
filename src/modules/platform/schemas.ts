@@ -131,3 +131,24 @@ export function toggleModule(
   else remove(key);
   return [...next];
 }
+
+/**
+ * Paid modules a firm loses when it gets `packageModules` (null = no package):
+ * enabled ones without a trial end that the new package does not contain
+ * (platform_assign_package switches them off; the screen warns first).
+ */
+export function modulesLost(
+  modules: readonly { key: string; enabled: boolean; activeUntil: string | null }[],
+  packageModules: readonly string[] | null,
+): string[] {
+  return modules
+    .filter(
+      (m) =>
+        m.enabled &&
+        m.activeUntil === null &&
+        m.key !== "core" &&
+        m.key !== "platform" &&
+        !(packageModules ?? []).includes(m.key),
+    )
+    .map((m) => m.key);
+}

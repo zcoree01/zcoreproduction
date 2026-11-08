@@ -23,9 +23,12 @@ import type { SupportRequest } from "@/modules/support/queries";
 export function SupportControl({
   organizationId,
   request,
+  compact = false,
 }: {
   organizationId: string;
   request: SupportRequest | null;
+  /** In a page header: no title, buttons aligned right (firm page, D-049). */
+  compact?: boolean;
 }) {
   const t = useTranslations("platform.support");
   const format = useFormatter();
@@ -59,9 +62,9 @@ export function SupportControl({
   };
 
   return (
-    <div className="flex flex-col gap-3 pt-3">
+    <div className={compact ? "flex flex-col items-end gap-2" : "flex flex-col gap-3 pt-3"}>
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-medium">{t("title")}</span>
+        {compact ? null : <span className="font-medium">{t("title")}</span>}
         {request && open ? (
           <StatusBadge tone={status === "pending" ? "warning" : "success"}>
             {status === "pending"

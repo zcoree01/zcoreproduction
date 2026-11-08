@@ -74,7 +74,12 @@ export function SupportBanner({
     >
       <ShieldAlertIcon className="size-4 text-amber-600 dark:text-amber-400" aria-hidden />
       <span>{t("text", { name: requesterName })}</span>
-      <span className="font-mono font-semibold tabular-nums" aria-label={t("remainingLabel")}>
+      {/* Server and browser clocks differ by a second or so: the client tick wins. */}
+      <span
+        className="font-mono font-semibold tabular-nums"
+        aria-label={t("remainingLabel")}
+        suppressHydrationWarning
+      >
         {t("remaining", { time: remaining(left) })}
       </span>
       <Button

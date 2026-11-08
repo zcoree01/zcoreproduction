@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assignPackageSchema,
   billingSettingsSchema,
+  modulesLost,
   orgBillingSchema,
   packageSchema,
   overviewFilter,
@@ -128,5 +129,22 @@ describe("toggleModule", () => {
     expect(
       toggleModule(["production", "planning", "attendance"], "production", false, deps),
     ).toEqual(["attendance"]);
+  });
+});
+
+describe("modulesLost", () => {
+  const modules = [
+    { key: "production", enabled: true, activeUntil: null },
+    { key: "planning", enabled: true, activeUntil: null },
+    { key: "tools", enabled: true, activeUntil: "2030-01-01T00:00:00Z" },
+    { key: "inventory", enabled: false, activeUntil: null },
+  ];
+
+  it("lists paid modules the new package does not have (trials stay)", () => {
+    expect(modulesLost(modules, ["production"])).toEqual(["planning"]);
+  });
+
+  it("lists every paid module when the package is removed", () => {
+    expect(modulesLost(modules, null)).toEqual(["production", "planning"]);
   });
 });

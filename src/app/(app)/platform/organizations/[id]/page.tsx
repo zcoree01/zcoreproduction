@@ -9,7 +9,7 @@ import { PermissionDenied } from "@/components/shared/permission-denied";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { zonedDate } from "@/lib/timezone";
@@ -17,18 +17,11 @@ import { cn } from "@/lib/utils";
 import { getOrganizationBilling, listBillingPackages } from "@/modules/platform/billing-queries";
 import { listPlatformSupportRequests } from "@/modules/support/queries";
 import { BillingStateBadge } from "../../billing-state-badge";
-import { ModuleEditor } from "../../module-editor";
 import { SupportControl } from "../../support-control";
 import { LockControls } from "./lock-controls";
+import { ModulesCard } from "./modules-card";
 import { PackageCard } from "./package-card";
 import { PaymentsTable } from "./payments-table";
-
-const SOURCE_TONES = {
-  package: "success",
-  trial: "info",
-  manual: "neutral",
-  off: "neutral",
-} as const;
 
 export default function PlatformOrganizationPage({
   params,
@@ -146,56 +139,41 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
               {organization.city ? ` · ${organization.city}` : ""}
             </p>
           </div>
-          <LockControls
-            organizationId={organization.id}
-            name={organization.name}
-            lockedByHand={billing.lockedAt !== null}
-            lockedForPayment={billing.reason === "unpaid"}
-            unlockedUntil={billing.unlockedUntil}
-          />
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-wrap items-end justify-end gap-2">
+              <SupportControl
+                organizationId={organization.id}
+                request={support.get(organization.id) ?? null}
+                compact
+              />
+              <LockControls
+                organizationId={organization.id}
+                name={organization.name}
+                lockedByHand={billing.lockedAt !== null}
+                lockedForPayment={billing.reason === "unpaid"}
+                unlockedUntil={billing.unlockedUntil}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <PackageCard
           organizationId={organization.id}
-          packages={choices.map((p) => ({ id: p.id, name: p.name }))}
+          packages={choices.map((p) => ({ id: p.id, name: p.name, modules: p.modules }))}
           packageId={billing.package?.id ?? null}
           monthlyPrice={billing.package?.monthlyPrice ?? null}
           graceDays={billing.graceDays}
           defaultGraceDays={billing.effectiveGraceDays}
           autoLock={billing.autoLock}
+          modules={billing.modules}
         />
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{tb("modulesCard.title")}</CardTitle>
-            <CardDescription>{tb("modulesCard.description")}</CardDescription>
-          </CardHeader>
-          <CardContent className="divide-y">
-            {billing.modules.map((module) => (
-              <div key={module.key} className="flex items-center gap-2">
-                <div className="flex-1">
-                  <ModuleEditor
-                    organizationId={organization.id}
-                    module={module}
-                    initialUntilDay={
-                      module.activeUntil
-                        ? zonedDate(new Date(module.activeUntil), "Europe/Sarajevo")
-                        : ""
-                    }
-                  />
-                </div>
-                <StatusBadge tone={SOURCE_TONES[module.source]}>
-                  {tb(`modulesCard.source.${module.source}`)}
-                </StatusBadge>
-              </div>
-            ))}
-            <SupportControl
-              organizationId={organization.id}
-              request={support.get(organization.id) ?? null}
-            />
-          </CardContent>
-        </Card>
+        <ModulesCard
+          organizationId={organization.id}
+          modules={billing.modules}
+          today={zonedDate(new Date(), "Europe/Sarajevo")}
+        />
       </div>
 
       <Card>

@@ -28,6 +28,14 @@ async function cleanup() {
   await s.from("billing_payments").delete().eq("organization_id", org);
   await s.from("organization_packages").delete().eq("organization_id", org);
   await s.from("organization_billing").delete().eq("organization_id", org);
+  const packages = await s.from("billing_packages").select("id").like("name", `${MARK} paket%`);
+  const packageIds = (packages.data ?? []).map((row) => row.id);
+  if (packageIds.length > 0) {
+    await s.from("organization_packages").delete().in("package_id", packageIds);
+    await s.from("billing_package_modules").delete().in("package_id", packageIds);
+    await s.from("billing_package_prices").delete().in("package_id", packageIds);
+    await s.from("billing_packages").delete().in("id", packageIds);
+  }
   const orders = await s
     .from("production_orders")
     .select("id")

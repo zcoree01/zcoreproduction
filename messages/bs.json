@@ -3461,7 +3461,21 @@
         "autoLock": "Automatsko zaključavanje nakon roka",
         "save": "Sačuvaj",
         "savedToast": "Sačuvano.",
-        "packageToast": "Paket je promijenjen."
+        "packageToast": "Paket je promijenjen.",
+        "graceFromSettings": "{days} dana (iz postavki)",
+        "graceOwn": "{days} dana (samo za ovu firmu)",
+        "changeGrace": "promijeni za ovu firmu",
+        "useDefault": "vrati na postavke",
+        "graceInput": "Broj dana",
+        "graceSave": "Sačuvaj",
+        "graceCancel": "Odustani",
+        "graceShort": "Rok za uplatu nakon mjeseca",
+        "autoOn": "Uključeno",
+        "autoOff": "Isključeno",
+        "loseTitle": "Promijeniti paket?",
+        "loseDescription": "Firmi će se isključiti: {modules}. Njeni korisnici te dijelove aplikacije više neće vidjeti; podaci ostaju sačuvani.",
+        "loseConfirm": "Promijeni paket",
+        "cancel": "Odustani"
       },
       "modulesCard": {
         "title": "Moduli",
@@ -3471,7 +3485,18 @@
           "trial": "proba",
           "manual": "ručno",
           "off": "nije u paketu"
-        }
+        },
+        "trialUntil": "proba do {date}",
+        "on": "uključen",
+        "addTrial": "Dodaj kao probu…",
+        "removeTrial": "Ukloni probu",
+        "turnOff": "Isključi",
+        "trialTitle": "Proba: {module}",
+        "trialDescription": "Modul je uključen do kraja izabranog dana, zatim se sam isključuje.",
+        "trialUntilLabel": "Posljednji dan probe",
+        "trialSave": "Dodaj probu",
+        "trialToast": "{module} je dodat kao proba.",
+        "offToast": "{module} je isključen."
       },
       "payments": {
         "title": "Plaćanja po mjesecima",

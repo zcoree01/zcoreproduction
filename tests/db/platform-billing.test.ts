@@ -330,3 +330,46 @@ describe("price changes (final review)", () => {
     expect(listed?.monthly_price).toBe(100);
   });
 });
+
+describe("smaller or no package (product owner, 2026-11-08)", () => {
+  it("switches off the modules the new package does not have, also when the package is removed", async () => {
+    const big = await platform.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: "DBB Veliki",
+      p_monthly_price: 300,
+      p_modules: ["production", "planning", "tools"],
+    });
+    const small = await platform.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: "DBB Mali",
+      p_monthly_price: 100,
+      p_modules: ["production"],
+    });
+    expect(big.error).toBeNull();
+    expect(small.error).toBeNull();
+    const enabled = async () => {
+      const { data } = await fx.service
+        .from("org_modules")
+        .select("module_key")
+        .eq("organization_id", fx.b.org.id)
+        .eq("enabled", true);
+      return new Set((data ?? []).map((m) => m.module_key));
+    };
+
+    await platform.rpc("platform_assign_package", { p_org_id: fx.b.org.id, p_package_id: big.data! });
+    expect(await enabled()).toEqual(new Set(["core", "production", "planning", "tools"]));
+
+    await platform.rpc("platform_assign_package", {
+      p_org_id: fx.b.org.id,
+      p_package_id: small.data!,
+    });
+    expect(await enabled()).toEqual(new Set(["core", "production"]));
+
+    const removed = await platform.rpc("platform_assign_package", {
+      p_org_id: fx.b.org.id,
+      p_package_id: nullableParam<string>(null),
+    });
+    expect(removed.error).toBeNull();
+    expect(await enabled()).toEqual(new Set(["core"]));
+  });
+});

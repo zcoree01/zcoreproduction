@@ -82,7 +82,13 @@ test("platform admin creates a package, locks a firm and unlocks it", async ({ p
   await page.getByRole("link", { name: TEST_TENANTS.b.name, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: TEST_TENANTS.b.name })).toBeVisible();
   await page.getByLabel("Paket", { exact: true }).selectOption({ label: PACKAGE });
+  // Modules outside the package are switched off: the screen asks first.
+  const confirm = page.getByRole("alertdialog", { name: "Promijeniti paket?" });
+  await expect(confirm).toContainText("Alati");
+  await confirm.getByRole("button", { name: "Promijeni paket" }).click();
   await expect(page.getByText("Paket je promijenjen.")).toBeVisible();
+  await expect(page.getByTestId("module-tools")).toContainText("nije u paketu");
+  await expect(page.getByTestId("module-planning")).toContainText("iz paketa");
   await page.getByRole("button", { name: "Zaključaj" }).click();
   await page.getByRole("dialog").getByLabel("Razlog").fill("E2E provjera zaključavanja");
   await page.getByRole("dialog").getByRole("button", { name: "Zaključaj" }).click();
