@@ -24,5 +24,5 @@ export const SIGN_IN_ERRORS = [
 
 export type SignInError = (typeof SIGN_IN_ERRORS)[number];
 
-// On success the action redirects and never returns.
-export type SignInResult = { error: SignInError };
+// On success the client shows the Zcore loading screen and opens `to`.
+export type SignInResult = { error: SignInError } | { error: null; to: string };

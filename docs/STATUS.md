@@ -261,13 +261,25 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ### 2026-11-08 — Platform billing: packages, payments, lock (D-049)
 
-- Firm page made like the approved mockup (B): support and lock in the header, package card as label / value rows (grace "iz postavki · promijeni za ovu firmu", auto-lock select), modules card with one row per module (iz paketa / proba do datum / uključen / nije u paketu) and one action (Dodaj kao probu… / Ukloni probu / Isključi); the old per-module editor is gone. Product owner: a smaller package or none switches off the modules it does not have, after a warning listing them (`20261110150000_package_removal`, DB + e2e test). Test packages are cleaned up by the lock test. Support banner countdown no longer causes a hydration error. Note: the product owner's `npm run dev` in the main folder shows the old platform page until this branch is merged.
+- Firm page made like the approved mockup (B): support and lock in the header, package card as label / value rows (grace "iz postavki · promijeni za ovu firmu", auto-lock select), modules card with one row per module (iz paketa / proba do datum / uključen / nije u paketu) and one action (Dodaj kao probu… / Ukloni probu / Isključi); the old per-module editor is gone. Product owner: a smaller package or none switches off the modules it does not have, after a warning listing them (`20261110150000_package_removal`, DB + e2e test). Test packages are cleaned up by the lock test. Support banner countdown no longer causes a hydration error.
 - Product owner: per-firm overview with packages and payments by invoice; lock firms that do not pay (by hand / automatically after a grace period from the settings) except viewing, kiosk and finishing existing orders; no instalments. Brainstormed with mockups, design and plan in `docs/superpowers/`, executed in a worktree on `feat/platform-billing`.
 - Migrations (applied): `20261110100000_module_split`, `20261110101000_permission_modules` (applied by the product owner: the auto-mode classifier blocked it), `20261110110000_platform_billing`, `20261110120000_organization_lock`, `20261110121000_lock_guard_generated_columns`, `20261110130000_billing_package_list`. Types regenerated.
 - App: module keys in navigation, widgets and pages; `getMemberAccess` (module-bound and locked permissions, billing notice); notice strip in both layouts; platform list, firm detail, packages and billing settings; module names for all ten modules; test that no message key contains a dot (next-intl).
 - Checks: `npm run check` (509 unit tests), full `test:db` 27 files / 287 tests green on the branch, new DB tests `module-split`, `platform-billing`, `organization-lock` + lock cases in `inventory-orders` / `finished-goods`; e2e `platform.spec` (updated for the firm page) and new `platform-billing.spec` 4/4.
 - Final review (fresh reviewer, read-only): no critical findings; fixed in `20261110140000_lock_review_fixes` with DB tests first (RED → GREEN): planning, order field edits, operation re-planning, kiosk activations and PINs for others are refused while locked; planning needs the planning module; lock state cached per transaction; a price change applies from the next month (shown as "od <datum>"). Users create / password reset check the lock in the action. After the fixes: `npm run check` 510, full `test:db` 27 files / 293 tests, platform e2e 4/4 (the support test is flaky on the support banner's countdown hydration, existing), build green.
 - Fixed on the way: a first run of the role test changed tenant B's `operater` to warehouse before the lock existed — restored, the test now writes the same role. Seen, not changed: hydration mismatch warning on `/settings/support` (support request status badge, existing).
+
+### 2026-11-05 — Loader as on www.zcore.ba
+
+- The loading screen is now the website's loader: black with a grid, the real Zcore mark assembling (two corners, then the diagonal), "ZCORE PRODUCTION" in JetBrains Mono, a thin bar with a 000–100 counter, then the wipe upwards (`AppSplash`, `.zsplash*` in globals.css, reduced motion respected). After sign-in one loader (`SplashHost` in the root layout) stays until the app has rendered and then wipes away; the app / floor shells show it while loading.
+- Tab icon and Apple touch icon taken from the website (`app/icon.svg`, `app/apple-icon.png`).
+
+### 2026-11-04 — Zcore loading screen, tab icon, Zcore sign-in
+
+- After a successful sign-in a full-screen Zcore loading screen (logo, wordmark and bar in the website's colours, `AppSplash`) stays until the app has rendered; the app / floor shells use the same screen while they load. `signInAction` now returns the target and the client navigates (the proxy sees the request), instead of a server-action redirect.
+- Tab icon: Zcore "Z" mark (`src/app/icon.svg`, website gradient), the default Next.js `favicon.ico` removed.
+- The Zcore organization's sign-in page has no "Zaboravili ste lozinku?" hint.
+- The smoke test still expected the old no-company title; updated to "Prijava u vašu firmu".
 
 ### 2026-11-04 — No registration link on a company's sign-in
 

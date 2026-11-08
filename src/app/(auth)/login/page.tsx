@@ -12,6 +12,7 @@ import { SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
 import { firstParam, type SearchParamsRecord } from "@/lib/data-table/params";
 import { getTenantSlug } from "@/lib/tenant/server";
 import { getLoginOrganizationName } from "@/modules/auth/queries";
+import { PLATFORM_SLUG } from "@/modules/support/schemas";
 import { LoginForm } from "./login-form";
 
 // Layout from the shadcn login-03 block.
@@ -131,7 +132,10 @@ async function LoginCard({ searchParams }: { searchParams: Promise<SearchParamsR
           </Alert>
         ) : null}
         <LoginForm />
-        <p className="text-center text-sm text-muted-foreground">{t("forgotPassword")}</p>
+        {/* Zcore admins reset their passwords themselves; the hint is for companies. */}
+        {slug === PLATFORM_SLUG ? null : (
+          <p className="text-center text-sm text-muted-foreground">{t("forgotPassword")}</p>
+        )}
       </CardContent>
     </Card>
   );

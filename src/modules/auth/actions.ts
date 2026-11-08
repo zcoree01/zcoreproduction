@@ -42,7 +42,11 @@ export async function signInAction(input: unknown): Promise<SignInResult> {
   if (others.error) console.error("revoking other sessions failed", others.error);
 
   // A temporary password must be replaced first (D-022).
-  redirect(member.mustChangePassword ? CHANGE_PASSWORD_PATH : homePathFor(member.role.key));
+  // The client navigates (behind the loading screen), so the proxy sees the request.
+  return {
+    error: null,
+    to: member.mustChangePassword ? CHANGE_PASSWORD_PATH : homePathFor(member.role.key),
+  };
 }
 
 // Signs out this device only (other sessions cannot exist, see signInAction).

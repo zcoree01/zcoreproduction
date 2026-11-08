@@ -12,7 +12,8 @@
     "actions": "Akcije",
     "myProfile": "Moj profil",
     "newCompany": "Nova firma?",
-    "register": "Registrujte firmu"
+    "register": "Registrujte firmu",
+    "loadingCaps": "UČITAVANJE"
   },
   "metadata": {
     "title": "Zcore Production",

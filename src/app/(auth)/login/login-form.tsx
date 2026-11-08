@@ -2,8 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { showSplash } from "@/components/shared/splash-host";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -15,6 +17,8 @@ export function LoginForm() {
   const t = useTranslations("auth.login");
   const [serverError, setServerError] = useState<SignInError | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const pathname = usePathname();
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInFormSchema),
     defaultValues: { username: "", password: "" },
@@ -23,8 +27,13 @@ export function LoginForm() {
   const onSubmit = form.handleSubmit((values) => {
     setServerError(null);
     startTransition(async () => {
-      // Redirects on success; only returns on failure.
       const result = await signInAction(values);
+      if (result.error === null) {
+        // Signed in: the Zcore loader stays until the app has rendered.
+        showSplash(pathname);
+        router.replace(result.to);
+        return;
+      }
       setServerError(result.error);
       form.resetField("password");
     });
