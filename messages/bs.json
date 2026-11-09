@@ -5621,7 +5621,7 @@
       "usersHint": "aktivni, bez naloga podrške",
       "late": "Kasne s uplatom",
       "lateTotal": "{amount} dugovanja",
-      "lateLocked": "{count} zaključanih"
+      "lateLocked": "{count} {count, plural, one {zaključana} few {zaključane} other {zaključanih}}"
     },
     "todo": {
       "title": "Za riješiti",
@@ -5635,7 +5635,7 @@
       "title": "Stanje firmi",
       "empty": "Nema firmi za prikaz.",
       "alt": "Stanje firmi: {summary}",
-      "total": "firmi"
+      "total": "{count, plural, one {firma} few {firme} other {firmi}}"
     },
     "revenueChart": {
       "title": "Prihod po mjesecima",

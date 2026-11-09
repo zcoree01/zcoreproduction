@@ -78,7 +78,9 @@ export function FirmStates({ firms }: { firms: PlatformHome["firms"] }) {
                 className="absolute inset-0 flex flex-col items-center justify-center"
               >
                 <span className="text-xl font-semibold tabular-nums">{total}</span>
-                <span className="text-xs text-muted-foreground">{t("total")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("total", { count: total })}
+                </span>
               </div>
             </div>
             <ul className="flex flex-col gap-1.5 text-sm">

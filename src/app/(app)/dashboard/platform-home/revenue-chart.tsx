@@ -1,16 +1,14 @@
 import { useFormatter, useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { compareDecimals, divideDecimal } from "@/lib/decimal";
+import { cn } from "@/lib/utils";
 import { seriesMax } from "@/modules/dashboard/stats";
 import { formatKm, type PlatformHome } from "@/modules/platform/home";
 
 type Revenue = NonNullable<PlatformHome["revenue"]>;
 
-const W = 600;
-const H = 160;
-const LABEL_H = 22;
-const SLOT = W / 12;
-const BAR = 24;
+// Fixed plot: bars are HTML so labels stay text-xs at every width.
+const PLOT_PX = 130;
 
 export function RevenueChart({
   revenue,
@@ -39,43 +37,50 @@ export function RevenueChart({
         <CardTitle className="text-base">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent>
-        <svg
-          viewBox={`0 0 ${W} ${H + LABEL_H}`}
-          role="img"
-          aria-label={t("alt")}
-          className="h-auto w-full text-muted-foreground"
-        >
-          <line x1="0" x2={W} y1={H} y2={H} className="stroke-border" strokeWidth="1" />
-          {months.map((m, i) => {
-            const ratio = compareDecimals(max, "0") > 0 ? Number(divideDecimal(m.paid, max, 4)) : 0;
-            const height = Math.max(ratio * (H - 12), ratio > 0 ? 2 : 0);
-            const x = i * SLOT + (SLOT - BAR) / 2;
-            const current = m.period === currentPeriod;
-            return (
-              <g key={m.period}>
-                <rect
-                  x={x}
-                  y={H - height}
-                  width={BAR}
-                  height={height}
-                  rx="3"
-                  className={current ? "fill-primary/50" : "fill-primary"}
-                >
-                  <title>{`${monthLabel(m.period, "long")}: ${formatKm(m.paid)}`}</title>
-                </rect>
-                <text
-                  x={i * SLOT + SLOT / 2}
-                  y={H + 15}
-                  textAnchor="middle"
-                  fontSize="11"
-                  className="fill-current"
+        <div className="overflow-x-auto">
+          <div role="img" aria-label={t("alt")} className="min-w-[640px]">
+            <div className="flex items-end gap-2 border-b" style={{ height: PLOT_PX + 20 }}>
+              {months.map((m) => {
+                const positive = compareDecimals(m.paid, "0") > 0;
+                const ratio = positive ? Number(divideDecimal(m.paid, max, 4)) : 0;
+                const height = positive ? Math.max(Math.round(ratio * PLOT_PX), 2) : 0;
+                return (
+                  <div
+                    key={m.period}
+                    title={`${monthLabel(m.period, "long")}: ${formatKm(m.paid)}`}
+                    className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
+                  >
+                    {positive ? (
+                      <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+                        {formatKm(m.paid)}
+                      </span>
+                    ) : null}
+                    <div
+                      className={cn(
+                        "w-full max-w-8 rounded-t-md",
+                        m.period === currentPeriod ? "bg-primary" : "bg-muted-foreground/35",
+                      )}
+                      style={{ height }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-1 flex gap-2">
+              {months.map((m) => (
+                <span
+                  key={m.period}
+                  className={cn(
+                    "min-w-0 flex-1 text-center text-xs text-muted-foreground",
+                    m.period === currentPeriod && "font-medium text-foreground",
+                  )}
                 >
                   {monthLabel(m.period, "short")}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
         <table className="sr-only">
           <caption>{t("alt")}</caption>
           <thead>
