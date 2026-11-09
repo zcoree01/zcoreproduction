@@ -2327,6 +2327,41 @@ export type Database = {
           },
         ]
       }
+      organization_archive_periods: {
+        Row: {
+          archived_at: string
+          archived_by: string | null
+          id: string
+          organization_id: string
+          reason: string | null
+          restored_at: string | null
+        }
+        Insert: {
+          archived_at: string
+          archived_by?: string | null
+          id?: string
+          organization_id: string
+          reason?: string | null
+          restored_at?: string | null
+        }
+        Update: {
+          archived_at?: string
+          archived_by?: string | null
+          id?: string
+          organization_id?: string
+          reason?: string | null
+          restored_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_archive_periods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_billing: {
         Row: {
           auto_lock: boolean
@@ -2401,8 +2436,10 @@ export type Database = {
       organizations: {
         Row: {
           archived_at: string | null
+          archived_reason: string | null
           company_id: string | null
           created_at: string
+          delete_after: string | null
           id: string
           is_platform: boolean
           name: string
@@ -2413,8 +2450,10 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          archived_reason?: string | null
           company_id?: string | null
           created_at?: string
+          delete_after?: string | null
           id?: string
           is_platform?: boolean
           name: string
@@ -2425,8 +2464,10 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          archived_reason?: string | null
           company_id?: string | null
           created_at?: string
+          delete_after?: string | null
           id?: string
           is_platform?: boolean
           name?: string
@@ -6518,6 +6559,10 @@ export type Database = {
         Args: { p_moves: Json; p_org_id: string }
         Returns: undefined
       }
+      platform_archive_organization: {
+        Args: { p_org_id: string; p_reason: string }
+        Returns: undefined
+      }
       platform_assign_package: {
         Args: { p_org_id: string; p_package_id: string }
         Returns: undefined
@@ -6534,6 +6579,8 @@ export type Database = {
         Args: never
         Returns: {
           archived: boolean
+          archived_at: string
+          delete_after: string
           is_platform: boolean
           last_paid_period: string
           member_count: number
@@ -6546,6 +6593,10 @@ export type Database = {
         }[]
       }
       platform_billing_packages: { Args: never; Returns: Json }
+      platform_cancel_organization_deletion: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
       platform_get_settings: { Args: never; Returns: Json }
       platform_organization_billing: {
         Args: { p_org_id: string }
@@ -6569,6 +6620,10 @@ export type Database = {
         Args: { p_org_id: string; p_reason: string }
         Returns: string
       }
+      platform_restore_organization: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
       platform_save_billing_settings: {
         Args: {
           p_contact: string
@@ -6584,6 +6639,10 @@ export type Database = {
           p_monthly_price: number
           p_name: string
         }
+        Returns: string
+      }
+      platform_schedule_organization_deletion: {
+        Args: { p_confirm_name: string; p_org_id: string }
         Returns: string
       }
       platform_set_lock: {
