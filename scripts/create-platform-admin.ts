@@ -49,7 +49,7 @@ async function main() {
       app_metadata: {
         organization_id: org.id,
         username,
-        role: "admin",
+        role: "platform_admin",
         must_change_password: true,
       },
       user_metadata: { full_name: fullName.trim() },

@@ -13,6 +13,8 @@ describe("homePathFor", () => {
       operator: "/floor",
       quality_inspector: "/dashboard",
       hr: "/dashboard",
+      platform_admin: "/dashboard",
+      platform_technician: "/dashboard",
     });
   });
 

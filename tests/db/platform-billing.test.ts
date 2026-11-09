@@ -97,7 +97,7 @@ beforeAll(async () => {
     username: PLATFORM_USER,
     password: testTenantPassword(),
     fullName: "DB Platform",
-    role: "admin",
+    role: "platform_admin",
   });
   await fx.service.from("memberships").update({ archived_at: null }).eq("user_id", platformUserId);
   platform = await signIn(PLATFORM_USER, "zcore");

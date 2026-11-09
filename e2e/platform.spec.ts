@@ -19,7 +19,7 @@ test.beforeAll(async () => {
     username: PLATFORM_USER.username,
     password: PLATFORM_USER.password,
     fullName: "DB Platform",
-    role: "admin",
+    role: "platform_admin",
   });
   await service.from("memberships").update({ archived_at: null }).eq("user_id", platformUserId);
   const tenantA = await service

@@ -70,7 +70,7 @@ beforeAll(async () => {
     username: PLATFORM_USER,
     password: testTenantPassword(),
     fullName: "DB Platform",
-    role: "admin",
+    role: "platform_admin",
   });
   const reactivated = await f.service
     .from("memberships")
