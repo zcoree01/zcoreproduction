@@ -37,48 +37,51 @@ export function RevenueChart({
         <CardTitle className="text-base">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <div role="img" aria-label={t("alt")} className="min-w-[640px]">
-            <div className="flex items-end gap-2 border-b" style={{ height: PLOT_PX + 20 }}>
-              {months.map((m) => {
-                const positive = compareDecimals(m.paid, "0") > 0;
-                const ratio = positive ? Number(divideDecimal(m.paid, max, 4)) : 0;
-                const height = positive ? Math.max(Math.round(ratio * PLOT_PX), 2) : 0;
-                return (
-                  <div
-                    key={m.period}
-                    title={`${monthLabel(m.period, "long")}: ${formatKm(m.paid)}`}
-                    className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
-                  >
-                    {positive ? (
-                      <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-                        {formatKm(m.paid)}
-                      </span>
-                    ) : null}
-                    <div
-                      className={cn(
-                        "w-full max-w-8 rounded-t-md",
-                        m.period === currentPeriod ? "bg-primary" : "bg-muted-foreground/35",
-                      )}
-                      style={{ height }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-1 flex gap-2">
-              {months.map((m) => (
-                <span
+        <div role="img" aria-label={t("alt")} className="w-full">
+          <div className="flex items-end gap-2 border-b" style={{ height: PLOT_PX + 20 }}>
+            {months.map((m, index) => {
+              const positive = compareDecimals(m.paid, "0") > 0;
+              const ratio = positive ? Number(divideDecimal(m.paid, max, 4)) : 0;
+              const height = positive ? Math.max(Math.round(ratio * PLOT_PX), 2) : 0;
+              return (
+                <div
                   key={m.period}
+                  title={`${monthLabel(m.period, "long")}: ${formatKm(m.paid)}`}
                   className={cn(
-                    "min-w-0 flex-1 text-center text-xs text-muted-foreground",
-                    m.period === currentPeriod && "font-medium text-foreground",
+                    "min-w-0 flex-1 flex-col items-center justify-end gap-1",
+                    // Phones show the last 6 months; sm and up show all 12.
+                    index < months.length - 6 ? "hidden sm:flex" : "flex",
                   )}
                 >
-                  {monthLabel(m.period, "short")}
-                </span>
-              ))}
-            </div>
+                  {positive ? (
+                    <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+                      {formatKm(m.paid)}
+                    </span>
+                  ) : null}
+                  <div
+                    className={cn(
+                      "w-full max-w-8 rounded-t-md",
+                      m.period === currentPeriod ? "bg-primary" : "bg-muted-foreground/35",
+                    )}
+                    style={{ height }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-1 flex gap-2">
+            {months.map((m, index) => (
+              <span
+                key={m.period}
+                className={cn(
+                  "min-w-0 flex-1 text-center text-xs text-muted-foreground",
+                  index < months.length - 6 && "hidden sm:block",
+                  m.period === currentPeriod && "font-medium text-foreground",
+                )}
+              >
+                {monthLabel(m.period, "short")}
+              </span>
+            ))}
           </div>
         </div>
         <table className="sr-only">
