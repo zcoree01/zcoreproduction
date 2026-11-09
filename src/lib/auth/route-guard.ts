@@ -27,6 +27,15 @@ export const PUBLIC_PATHS: ReadonlySet<string> = new Set([
 
 export const CHANGE_PASSWORD_PATH = "/change-password";
 
+/**
+ * Vercel Cron routes: no tenant and no user session, they authenticate with
+ * the CRON_SECRET bearer header themselves (D-049).
+ */
+const CRON_PATH_PREFIX = "/api/cron/";
+export function isCronPath(path: string): boolean {
+  return path.startsWith(CRON_PATH_PREFIX) && path.length > CRON_PATH_PREFIX.length;
+}
+
 /** ?session=replaced on /login: explain why the user was signed out. */
 export const SESSION_REPLACED_PARAM = { name: "session", value: "replaced" } as const;
 

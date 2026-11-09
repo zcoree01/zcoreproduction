@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideRoute } from "./route-guard";
+import { decideRoute, isCronPath } from "./route-guard";
 
 describe("decideRoute", () => {
   it("lets an active session through and keeps it off /login", () => {
@@ -112,5 +112,15 @@ describe("decideRoute", () => {
         supportEnded: true,
       }),
     ).toEqual({ action: "next" });
+  });
+});
+
+describe("isCronPath", () => {
+  it("lets the Vercel cron routes past the tenant and session gate", () => {
+    expect(isCronPath("/api/cron/purge-organizations")).toBe(true);
+    expect(isCronPath("/api/cron")).toBe(false);
+    expect(isCronPath("/api/cronx/purge")).toBe(false);
+    expect(isCronPath("/login")).toBe(false);
+    expect(isCronPath("/x/api/cron/purge-organizations")).toBe(false);
   });
 });

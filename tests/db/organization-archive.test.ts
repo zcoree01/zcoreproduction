@@ -390,3 +390,148 @@ describe("scheduled deletion", () => {
     ).toBe("not_archived");
   });
 });
+
+// Permanent deletion (D-049). A second temporary firm dbt-reg-arch-p-<random>,
+// so the tests above keep theirs. Only this firm is ever purged here.
+describe("permanent deletion", () => {
+  const PURGE_SLUG = `dbt-reg-arch-p-${crypto.randomUUID().slice(0, 8)}`;
+  const PURGE_NAME = "Brisanje Test d.o.o.";
+  let purgeOrgId = "";
+  let purgeUserId = "";
+  let companyId = "";
+  let zcoreId = "";
+
+  beforeAll(async () => {
+    const zcore = await fx.service.from("organizations").select("id").eq("slug", "zcore").single();
+    zcoreId = zcore.data!.id;
+    const org = await ensureOrganization(fx.service, { slug: PURGE_SLUG, name: PURGE_NAME });
+    purgeOrgId = org.id;
+    await fx.service.from("organizations").update({ name: PURGE_NAME }).eq("id", purgeOrgId);
+    purgeUserId = await ensureUser(fx.service, org, {
+      username: "clan",
+      password: testTenantPassword(),
+      fullName: "Clan Brisanja",
+      role: "admin",
+    });
+    const customer = await fx.service
+      .from("customers")
+      .insert({ organization_id: purgeOrgId, name: "Kupac brisanja" });
+    expect(customer.error).toBeNull();
+    // The firm's own directory entry, as after a registration.
+    const company = await fx.service
+      .from("companies")
+      .insert({
+        name: PURGE_NAME,
+        country: "DE",
+        tax_id: `DBT${crypto.randomUUID().slice(0, 8)}`.toUpperCase(),
+        owner_organization_id: purgeOrgId,
+        created_by_organization_id: purgeOrgId,
+      })
+      .select("id")
+      .single();
+    expect(company.error).toBeNull();
+    companyId = company.data!.id;
+    await fx.service.from("organizations").update({ company_id: companyId }).eq("id", purgeOrgId);
+    const payment = await fx.service.from("platform_payment_records").insert({
+      firm_id: purgeOrgId,
+      firm_name: PURGE_NAME,
+      firm_slug: PURGE_SLUG,
+      period: firstOfMonth(1),
+      amount: numericParam("100"),
+      paid_on: firstOfMonth(1, 5),
+    });
+    expect(payment.error).toBeNull();
+  });
+
+  afterAll(async () => {
+    // Only if a test failed before the purge: the temporary firm still exists.
+    const left = await fx.service.rpc("purge_test_organization", { p_org_id: purgeOrgId });
+    expect(left.error).toBeNull();
+    await fx.service.from("platform_payment_records").delete().eq("firm_id", purgeOrgId);
+    if (companyId) await fx.service.from("companies").delete().eq("id", companyId);
+  });
+
+  it("refuses purge before the 30 days and purges after", async () => {
+    const active = await fx.service.rpc("purge_organization", { p_org_id: purgeOrgId });
+    expect(active.error?.code).toBe("42501");
+
+    await admin.rpc("platform_archive_organization", { p_org_id: purgeOrgId, p_reason: "Kraj" });
+    const archivedOnly = await fx.service.rpc("purge_organization", { p_org_id: purgeOrgId });
+    expect(archivedOnly.error?.code).toBe("42501");
+    const scheduled = await admin.rpc("platform_schedule_organization_deletion", {
+      p_org_id: purgeOrgId,
+      p_confirm_name: PURGE_NAME,
+    });
+    expect(scheduled.error).toBeNull();
+    const early = await fx.service.rpc("purge_organization", { p_org_id: purgeOrgId });
+    expect(early.error?.code).toBe("42501");
+    // Not for signed-in users, not even the platform admin.
+    const asAdmin = await admin.rpc("purge_organization", { p_org_id: purgeOrgId });
+    expect(asAdmin.error).not.toBeNull();
+    expect(
+      (await fx.service.from("organizations").select("id").eq("id", purgeOrgId)).data,
+    ).toHaveLength(1);
+
+    const due = await fx.service
+      .from("organizations")
+      .update({ delete_after: new Date(Date.now() - 60_000).toISOString() })
+      .eq("id", purgeOrgId);
+    expect(due.error).toBeNull();
+    const purged = await fx.service.rpc("purge_organization", { p_org_id: purgeOrgId });
+    expect(purged.error).toBeNull();
+    expect(purged.data).toBe(true);
+
+    expect((await fx.service.from("organizations").select("id").eq("id", purgeOrgId)).data).toEqual(
+      [],
+    );
+    for (const table of [
+      "customers",
+      "memberships",
+      "profiles",
+      "roles",
+      "org_modules",
+      "organization_archive_periods",
+      "audit_log",
+    ] as const) {
+      const rows = await fx.service
+        .from(table)
+        .select("organization_id")
+        .eq("organization_id", purgeOrgId);
+      expect(rows.error).toBeNull();
+      expect(rows.data, table).toEqual([]);
+    }
+    const user = await fx.service.auth.admin.getUserById(purgeUserId);
+    expect(user.data.user).toBeNull();
+
+    const payments = await fx.service
+      .from("platform_payment_records")
+      .select("firm_id")
+      .eq("firm_id", purgeOrgId);
+    expect(payments.data).toHaveLength(1);
+    const company = await fx.service
+      .from("companies")
+      .select("owner_organization_id, created_by_organization_id")
+      .eq("id", companyId)
+      .single();
+    expect(company.data).toEqual({ owner_organization_id: null, created_by_organization_id: null });
+
+    const audit = await fx.service
+      .from("audit_log")
+      .select("organization_id, before")
+      .eq("action", "organization.purged")
+      .eq("entity_id", purgeOrgId);
+    expect(audit.data).toHaveLength(1);
+    expect(audit.data![0]!.organization_id).toBe(zcoreId);
+    expect(audit.data![0]!.before).toMatchObject({
+      name: PURGE_NAME,
+      slug: PURGE_SLUG,
+      member_count: 1,
+    });
+  });
+
+  it("is safe to run twice", async () => {
+    const again = await fx.service.rpc("purge_organization", { p_org_id: purgeOrgId });
+    expect(again.error).toBeNull();
+    expect(again.data).toBe(false);
+  });
+});

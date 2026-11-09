@@ -6843,6 +6843,7 @@ export type Database = {
           tool: string
         }[]
       }
+      purge_organization: { Args: { p_org_id: string }; Returns: boolean }
       purge_test_organization: {
         Args: { p_org_id: string }
         Returns: undefined

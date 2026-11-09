@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { decideRoute, SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
+import { decideRoute, isCronPath, SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
 import { slugFromAuthEmail } from "@/lib/auth/username";
 import { getPublicEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
@@ -29,6 +29,8 @@ import {
  * membership and permissions on every request.
  */
 export async function proxy(request: NextRequest) {
+  // Cron routes check their own secret; no host redirect, tenant or session.
+  if (isCronPath(request.nextUrl.pathname)) return NextResponse.next();
   // app.zcore.ba only registers companies; prijava.zcore.ba only finds a
   // company's address for signing in (D-047).
   const moved = hostRedirect(requestHost(request.headers), request.nextUrl.pathname);
