@@ -45,6 +45,8 @@ test("support access: dialog for the organization, countdown, ended by the organ
   page,
   browser,
 }) => {
+  // Two browsers, a 10 s status poll and the heavier Zcore home on first compile: needs more than the default 60 s.
+  test.setTimeout(120_000);
   // The organization's admin is signed in in another browser.
   const orgContext = await browser.newContext();
   const org = await orgContext.newPage();
