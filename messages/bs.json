@@ -5602,5 +5602,59 @@
     "warning": "Pretplata za {month} nije plaćena. Rok za uplatu: {date}; nakon toga se aplikacija zaključava.",
     "overdue": "Pretplata za {month} nije plaćena; rok za uplatu je prošao.",
     "contact": "Kontakt: {contact}"
+  },
+  "platformHome": {
+    "title": "Zcore pregled",
+    "description": "Stanje svih firmi na platformi.",
+    "errorTitle": "Pregled nije moguće učitati",
+    "kpi": {
+      "revenue": "Prihod ovaj mjesec",
+      "revenueOf": "od {expected} očekivano",
+      "using": "Firme koje koriste",
+      "usingTrend": {
+        "up": "{delta} više nego prošlog mjeseca",
+        "down": "{delta} manje nego prošlog mjeseca",
+        "same": "isto kao prošlog mjeseca"
+      },
+      "trial": "{count} u probi",
+      "users": "Korisnici",
+      "usersHint": "aktivni, bez naloga podrške",
+      "late": "Kasne s uplatom",
+      "lateTotal": "{amount} dugovanja",
+      "lateLocked": "{count} zaključanih"
+    },
+    "todo": {
+      "title": "Za riješiti",
+      "open": "Otvori",
+      "directoryRequests": "Zahtjevi za imenik",
+      "supportPending": "Podrška na čekanju",
+      "trialsEnding": "Probe ističu (7 dana)",
+      "deletionsScheduled": "Zakazane za brisanje"
+    },
+    "states": {
+      "title": "Stanje firmi",
+      "empty": "Nema firmi za prikaz.",
+      "alt": "Stanje firmi: {summary}",
+      "total": "firmi"
+    },
+    "revenueChart": {
+      "title": "Prihod po mjesecima",
+      "alt": "Prihod po mjesecima, zadnjih 12 mjeseci",
+      "month": "Mjesec",
+      "paid": "Uplaćeno"
+    },
+    "overdue": {
+      "title": "Firme koje kasne s uplatom",
+      "empty": "Nijedna firma ne kasni s uplatom",
+      "columns": {
+        "firm": "Firma",
+        "package": "Paket",
+        "month": "Mjesec",
+        "amount": "Iznos",
+        "days": "Kasni (dana)",
+        "state": "Stanje"
+      },
+      "noPackage": "—"
+    }
   }
 }

@@ -10,6 +10,7 @@ import { getMemberAccess } from "@/lib/auth/access";
 import { requireMember } from "@/lib/auth/session";
 import { getRoleLayout } from "@/modules/dashboard/queries";
 import { visibleWidgets } from "@/modules/dashboard/widgets";
+import { PlatformHome } from "./platform-home/platform-home";
 import { DashboardGrid } from "./widgets";
 
 export default function DashboardPage() {
@@ -24,8 +25,16 @@ async function DashboardContent() {
   const member = await requireMember();
   const organizationId = member.organization.id;
   const [t, access] = await Promise.all([getTranslations("dashboard"), getMemberAccess(member)]);
-  // The Zcore organization has no production dashboard; its home is the platform.
-  if (access.modules.has("platform")) redirect("/platform");
+  // The Zcore organization has no production dashboard; its home is the platform home.
+  if (access.modules.has("platform")) {
+    if (!access.permissions.has("platform.read")) redirect("/platform");
+    return (
+      <PlatformHome
+        canSeeRevenue={access.permissions.has("platform.revenue.read")}
+        organizationName={member.organization.name}
+      />
+    );
+  }
   const layout = member.role.archived
     ? { widgets: [], custom: false }
     : await getRoleLayout(organizationId, member.role);

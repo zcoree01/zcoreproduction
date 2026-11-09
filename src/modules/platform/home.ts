@@ -33,7 +33,7 @@ export const platformHomeSchema = z.object({
       period: z.string(),
       amount: money,
       days_late: count,
-      state: z.string(),
+      state: z.enum(["overdue", "locked"]),
     }),
   ),
   revenue: z
@@ -72,4 +72,13 @@ export function stateSlices(
   firms: PlatformHome["firms"],
 ): { key: (typeof SLICE_KEYS)[number]; value: number }[] {
   return SLICE_KEYS.map((key) => ({ key, value: firms[key] })).filter((slice) => slice.value > 0);
+}
+
+/** "4.350 KM" / "4.350,50 KM": thousands dots, decimal comma, ".00" dropped. */
+export function formatKm(amount: string): string {
+  const negative = amount.startsWith("-");
+  const [whole = "0", fraction = ""] = (negative ? amount.slice(1) : amount).split(".");
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const cents = fraction.replace(/0+$/, "");
+  return `${negative ? "-" : ""}${grouped}${cents ? `,${cents.padEnd(2, "0")}` : ""} KM`;
 }

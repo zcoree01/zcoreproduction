@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { firmTrend, platformHomeSchema, revenueProgress, stateSlices } from "./home";
+import { firmTrend, formatKm, platformHomeSchema, revenueProgress, stateSlices } from "./home";
 
 const example = {
   today: "2026-11-09",
@@ -74,5 +74,13 @@ describe("platformHomeSchema", () => {
   });
   it("accepts revenue: null", () => {
     expect(platformHomeSchema.parse({ ...example, revenue: null }).revenue).toBeNull();
+  });
+});
+
+describe("formatKm", () => {
+  it("groups thousands and drops zero cents", () => {
+    expect(formatKm("4350.00")).toBe("4.350 KM");
+    expect(formatKm("1234567.5")).toBe("1.234.567,50 KM");
+    expect(formatKm("0.00")).toBe("0 KM");
   });
 });
