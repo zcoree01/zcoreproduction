@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  archiveOrganizationSchema,
   assignPackageSchema,
+  deleteOrganizationSchema,
   billingSettingsSchema,
   modulesLost,
   orgBillingSchema,
@@ -83,6 +85,24 @@ describe("billing schemas (D-049)", () => {
       orgBillingSchema.safeParse({ organizationId: org, graceDays: "91", autoLock: true }).success,
     ).toBe(false);
     expect(unlockUntilSchema.parse({ organizationId: org, until: "" }).until).toBeNull();
+  });
+
+  it("accepts the archived filter", () => {
+    expect(overviewFilter("archived")).toBe("archived");
+  });
+
+  it("validates the archive and delete inputs", () => {
+    expect(archiveOrganizationSchema.safeParse({ orgId: org, reason: "  " }).success).toBe(false);
+    expect(
+      archiveOrganizationSchema.safeParse({ orgId: org, reason: "x".repeat(301) }).success,
+    ).toBe(false);
+    expect(archiveOrganizationSchema.parse({ orgId: org, reason: " Zatvorena " }).reason).toBe(
+      "Zatvorena",
+    );
+    expect(deleteOrganizationSchema.safeParse({ orgId: org, confirmName: "" }).success).toBe(false);
+    expect(deleteOrganizationSchema.safeParse({ orgId: org, confirmName: "Ime" }).success).toBe(
+      true,
+    );
   });
 
   it("reads the list filter from the address", () => {

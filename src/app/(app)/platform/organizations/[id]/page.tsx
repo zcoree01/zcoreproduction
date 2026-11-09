@@ -19,6 +19,7 @@ import { getOrganizationBilling, listBillingPackages } from "@/modules/platform/
 import { listPlatformSupportRequests } from "@/modules/support/queries";
 import { BillingStateBadge } from "../../billing-state-badge";
 import { SupportControl } from "../../support-control";
+import { ArchiveControls } from "./archive-controls";
 import { LockControls } from "./lock-controls";
 import { ModulesCard } from "./modules-card";
 import { PackageCard } from "./package-card";
@@ -110,6 +111,30 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
         : billing.state === "overdue"
           ? tb("banner.overdue", { month: unpaidMonth })
           : null;
+  const archivedStrip = organization.archivedAt
+    ? organization.archivedReason
+      ? tb("archive.banner", {
+          date: format.dateTime(new Date(organization.archivedAt), {
+            dateStyle: "long",
+            timeZone: timezone,
+          }),
+          reason: organization.archivedReason,
+        })
+      : tb("archive.bannerNoReason", {
+          date: format.dateTime(new Date(organization.archivedAt), {
+            dateStyle: "long",
+            timeZone: timezone,
+          }),
+        })
+    : null;
+  const scheduledStrip = organization.deleteAfter
+    ? tb("archive.scheduledBanner", {
+        date: format.dateTime(new Date(organization.deleteAfter), {
+          dateStyle: "long",
+          timeZone: timezone,
+        }),
+      })
+    : null;
   const can = (key: PermissionKey) => access.permissions.has(key);
   const choices = packages.filter((p) => !p.archived || p.id === billing.package?.id);
 
@@ -117,7 +142,17 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
     <>
       <div className="flex flex-col gap-3">
         {back}
-        {banner ? (
+        {archivedStrip ? (
+          <Alert data-testid="archived-strip">
+            <AlertDescription>{archivedStrip}</AlertDescription>
+          </Alert>
+        ) : null}
+        {scheduledStrip ? (
+          <Alert variant="destructive" data-testid="deletion-strip">
+            <AlertDescription>{scheduledStrip}</AlertDescription>
+          </Alert>
+        ) : null}
+        {banner && !organization.archived ? (
           <Alert variant={billing.state === "locked" ? "destructive" : "default"}>
             <AlertDescription>{banner}</AlertDescription>
           </Alert>
@@ -150,7 +185,18 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
                   compact
                 />
               ) : null}
-              {can("platform.lock") ? (
+              {can("platform.organizations.archive") || can("platform.organizations.delete") ? (
+                <ArchiveControls
+                  organizationId={organization.id}
+                  name={organization.name}
+                  timezone={timezone}
+                  archived={organization.archived}
+                  deletionScheduled={organization.deleteAfter !== null}
+                  canArchive={can("platform.organizations.archive")}
+                  canDelete={can("platform.organizations.delete")}
+                />
+              ) : null}
+              {can("platform.lock") && !organization.archived ? (
                 <LockControls
                   organizationId={organization.id}
                   name={organization.name}

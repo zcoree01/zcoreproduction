@@ -391,6 +391,32 @@ describe("scheduled deletion", () => {
   });
 });
 
+describe("cancelling a deletion", () => {
+  it("refuses to cancel once the 30 days have passed (not_cancellable)", async () => {
+    await resetOrg();
+    await admin.rpc("platform_archive_organization", { p_org_id: orgId, p_reason: "Rok" });
+    const scheduled = await admin.rpc("platform_schedule_organization_deletion", {
+      p_org_id: orgId,
+      p_confirm_name: NAME,
+    });
+    expect(scheduled.error).toBeNull();
+    const detail = await admin.rpc("platform_organization_billing", { p_org_id: orgId });
+    const org = (detail.data as unknown as { organization: Record<string, unknown> }).organization;
+    expect(org.archived_at).not.toBeNull();
+    expect(org.archived_reason).toBe("Rok");
+    expect(org.delete_after).not.toBeNull();
+
+    await fx.service
+      .from("organizations")
+      .update({ delete_after: new Date(Date.now() - 60_000).toISOString() })
+      .eq("id", orgId);
+    const refused = await admin.rpc("platform_cancel_organization_deletion", { p_org_id: orgId });
+    expect(refused.error?.message).toBe("not_cancellable");
+    expect(refused.error?.code).toBe("22023");
+    await resetOrg();
+  });
+});
+
 // Permanent deletion (D-049). A second temporary firm dbt-reg-arch-p-<random>,
 // so the tests above keep theirs. Only this firm is ever purged here.
 describe("permanent deletion", () => {

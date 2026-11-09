@@ -22,6 +22,8 @@ export type BillingOverviewRow = {
   lastPaidPeriod: string | null;
   memberCount: number;
   archived: boolean;
+  archivedAt: string | null;
+  deleteAfter: string | null;
 };
 
 export async function listBillingOverview(): Promise<BillingOverviewRow[]> {
@@ -38,6 +40,8 @@ export async function listBillingOverview(): Promise<BillingOverviewRow[]> {
     lastPaidPeriod: row.last_paid_period,
     memberCount: row.member_count,
     archived: row.archived,
+    archivedAt: row.archived_at,
+    deleteAfter: row.delete_after,
   }));
 }
 
@@ -49,6 +53,9 @@ const detailSchema = z.object({
     timezone: z.string(),
     created_at: z.string(),
     archived: z.boolean(),
+    archived_at: z.string().nullable(),
+    archived_reason: z.string().nullable(),
+    delete_after: z.string().nullable(),
     member_count: z.number(),
     tax_id: z.string().nullable(),
     city: z.string().nullable(),
@@ -112,6 +119,9 @@ export type OrganizationBilling = {
     timezone: string;
     createdAt: string;
     archived: boolean;
+    archivedAt: string | null;
+    archivedReason: string | null;
+    deleteAfter: string | null;
     memberCount: number;
     taxId: string | null;
     city: string | null;
@@ -153,6 +163,9 @@ export async function getOrganizationBilling(id: string): Promise<OrganizationBi
       timezone: d.organization.timezone,
       createdAt: d.organization.created_at,
       archived: d.organization.archived,
+      archivedAt: d.organization.archived_at,
+      archivedReason: d.organization.archived_reason,
+      deleteAfter: d.organization.delete_after,
       memberCount: d.organization.member_count,
       taxId: d.organization.tax_id,
       city: d.organization.city,

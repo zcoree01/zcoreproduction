@@ -9,9 +9,12 @@ import { requireMember } from "@/lib/auth/session";
 import { nullableParam, numericParam } from "@/lib/supabase/numeric";
 import { createClient } from "@/lib/supabase/server";
 import {
+  archiveOrganizationSchema,
   assignPackageSchema,
   billingSettingsSchema,
+  deleteOrganizationSchema,
   orgBillingSchema,
+  orgIdSchema,
   packageSchema,
   setLockSchema,
   setPaymentSchema,
@@ -21,7 +24,9 @@ import {
 // Platform billing actions (D-049): each action checks its own platform permission here and in the RPC.
 
 export type BillingActionError =
-  "invalid" | "denied" | "not_found" | "unexpected" | "reason_required" | "module_requirement" | "not_billed";
+  "invalid" | "denied" | "not_found" | "unexpected" | "reason_required" | "module_requirement" | "not_billed"
+  | "already_archived" | "not_archived" | "deletion_scheduled" | "already_scheduled"
+  | "not_scheduled" | "name_mismatch" | "not_cancellable";
 export type BillingActionResult = { ok: true } | { ok: false; error: BillingActionError };
 
 async function platformAllowed(permission: PermissionKey): Promise<boolean> {
@@ -29,10 +34,23 @@ async function platformAllowed(permission: PermissionKey): Promise<boolean> {
   return permitAction(member.organization.id, permission);
 }
 
+const ARCHIVE_ERRORS = [
+  "already_archived",
+  "not_archived",
+  "deletion_scheduled",
+  "already_scheduled",
+  "not_scheduled",
+  "name_mismatch",
+  "not_cancellable",
+] as const;
+
 function billingFail(error: DbError, label: string): BillingActionResult {
   const message = error?.message ?? "";
   if (message === "reason_required") return { ok: false, error: "reason_required" };
   if (message === "not_billed") return { ok: false, error: "not_billed" };
+  for (const known of ARCHIVE_ERRORS) {
+    if (message === known) return { ok: false, error: known };
+  }
   if (message === "module_requirement") return { ok: false, error: "module_requirement" };
   const kind = dbErrorKind(error);
   if (kind === "denied") return { ok: false, error: "denied" };
@@ -184,6 +202,76 @@ export async function saveBillingSettingsAction(input: unknown): Promise<Billing
     p_contact: parsed.data.contact,
   });
   if (error) return billingFail(error, "saveBillingSettingsAction");
+  revalidateBilling();
+  return { ok: true };
+}
+
+// Archive, restore, scheduled deletion (D-049). Archive/restore need
+// platform.organizations.archive, delete/cancel need platform.organizations.delete.
+
+export async function archiveOrganizationAction(input: unknown): Promise<BillingActionResult> {
+  if (!(await platformAllowed("platform.organizations.archive"))) {
+    return { ok: false, error: "denied" };
+  }
+  const parsed = archiveOrganizationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "reason_required" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("platform_archive_organization", {
+    p_org_id: parsed.data.orgId,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return billingFail(error, "archiveOrganizationAction");
+  revalidateBilling();
+  return { ok: true };
+}
+
+export async function restoreOrganizationAction(input: unknown): Promise<BillingActionResult> {
+  if (!(await platformAllowed("platform.organizations.archive"))) {
+    return { ok: false, error: "denied" };
+  }
+  const parsed = orgIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("platform_restore_organization", {
+    p_org_id: parsed.data.orgId,
+  });
+  if (error) return billingFail(error, "restoreOrganizationAction");
+  revalidateBilling();
+  return { ok: true };
+}
+
+/** Schedules the purge 30 days ahead; returns the moment (ISO) it is scheduled for. */
+export async function scheduleOrganizationDeletionAction(
+  input: unknown,
+): Promise<BillingActionResult & { deleteAfter?: string }> {
+  if (!(await platformAllowed("platform.organizations.delete"))) {
+    return { ok: false, error: "denied" };
+  }
+  const parsed = deleteOrganizationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "name_mismatch" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("platform_schedule_organization_deletion", {
+    p_org_id: parsed.data.orgId,
+    p_confirm_name: parsed.data.confirmName.trim(),
+  });
+  if (error) return billingFail(error, "scheduleOrganizationDeletionAction");
+  revalidateBilling();
+  return { ok: true, deleteAfter: data };
+}
+
+export async function cancelOrganizationDeletionAction(
+  input: unknown,
+): Promise<BillingActionResult> {
+  if (!(await platformAllowed("platform.organizations.delete"))) {
+    return { ok: false, error: "denied" };
+  }
+  const parsed = orgIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("platform_cancel_organization_deletion", {
+    p_org_id: parsed.data.orgId,
+  });
+  if (error) return billingFail(error, "cancelOrganizationDeletionAction");
   revalidateBilling();
   return { ok: true };
 }

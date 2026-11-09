@@ -35,11 +35,13 @@ export default function PlatformPage({ searchParams }: PageProps<"/platform">) {
   );
 }
 
+// Archived firms (also those scheduled for deletion) only show under "Arhiva".
 const matches: Record<OverviewFilter, (row: BillingOverviewRow) => boolean> = {
-  all: () => true,
-  late: (row) => row.state === "warning" || row.state === "overdue",
-  locked: (row) => row.state === "locked",
-  trial: (row) => row.state === "trial",
+  all: (row) => !row.archived,
+  late: (row) => !row.archived && (row.state === "warning" || row.state === "overdue"),
+  locked: (row) => !row.archived && row.state === "locked",
+  trial: (row) => !row.archived && row.state === "trial",
+  archived: (row) => row.archived,
 };
 
 async function PlatformContent({ searchParams }: { searchParams: Promise<SearchParamsRecord> }) {
@@ -147,6 +149,15 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
                           {row.archived ? (
                             <Badge variant="secondary" className="ml-2">
                               {t("archived")}
+                            </Badge>
+                          ) : null}
+                          {row.deleteAfter ? (
+                            <Badge variant="destructive" className="ml-2">
+                              {tb("archive.scheduledBanner", {
+                                date: format.dateTime(new Date(row.deleteAfter), {
+                                  dateStyle: "long",
+                                }),
+                              })}
                             </Badge>
                           ) : null}
                         </div>

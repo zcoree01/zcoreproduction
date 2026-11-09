@@ -82,12 +82,25 @@ export const unlockUntilSchema = z.object({
   until: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
 });
 
-export const OVERVIEW_FILTERS = ["all", "late", "locked", "trial"] as const;
+export const OVERVIEW_FILTERS = ["all", "late", "locked", "trial", "archived"] as const;
 export type OverviewFilter = (typeof OVERVIEW_FILTERS)[number];
 
 export function overviewFilter(value: string | undefined): OverviewFilter {
   return OVERVIEW_FILTERS.find((filter) => filter === value) ?? "all";
 }
+
+/** Archive of a firm needs a reason; deletion needs the exact name typed again. */
+export const archiveOrganizationSchema = z.object({
+  orgId: z.uuid(),
+  reason: z.string().trim().min(1).max(300),
+});
+
+export const deleteOrganizationSchema = z.object({
+  orgId: z.uuid(),
+  confirmName: z.string().min(1).max(200),
+});
+
+export const orgIdSchema = z.object({ orgId: z.uuid() });
 
 /** A package: name, monthly price in KM (up to 2 decimals) and sellable modules. */
 export const packageSchema = z.object({
