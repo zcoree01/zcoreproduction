@@ -10,6 +10,7 @@ import {
 import { SELLABLE_MODULES } from "@/modules/platform/modules";
 import { testTenantPassword } from "../shared/test-tenants";
 import { setupFixture, signIn, type Fixture } from "./fixtures";
+import { localMonthDay, localToday } from "./months";
 
 // Packages, monthly payments and the computed lock state (D-049). Tenant B is
 // the billed firm; every run starts it without billing and ends it with all
@@ -24,13 +25,8 @@ let platformUserId = "";
 let platformOrgId = "";
 let tech: Db;
 let techUserId = "";
-let originalPrepaidSince = "";
 
-const firstOfMonth = (monthsAgo: number) => {
-  const now = new Date();
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo, 1));
-  return d.toISOString().slice(0, 10);
-};
+const firstOfMonth = (monthsAgo: number) => localMonthDay(monthsAgo);
 
 async function resetBilling() {
   const b = fx.b.org.id;
@@ -93,12 +89,21 @@ async function billing() {
   return data as unknown as { state: string; reason: string | null; months: Month[] };
 }
 
+/**
+ * The transition day of tenant B only (organization_billing.prepaid_since).
+ * Tests never write the global platform_settings.prepaid_since: the database
+ * is the one production uses.
+ */
 async function setPrepaidSince(day: string) {
-  const { error } = await fx.service.from("platform_settings").update({ prepaid_since: day }).eq("id", true);
+  const { error } = await fx.service
+    .from("organization_billing")
+    .upsert(
+      { organization_id: fx.b.org.id, prepaid_since: day },
+      { onConflict: "organization_id" },
+    );
   expect(error).toBeNull();
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
 async function setGrace(days: number) {
   const { error } = await platform.rpc("platform_set_org_billing", {
     p_org_id: fx.b.org.id,
@@ -110,9 +115,6 @@ async function setGrace(days: number) {
 
 beforeAll(async () => {
   fx = await setupFixture();
-  const settings = await fx.service.from("platform_settings").select("prepaid_since").single();
-  expect(settings.error).toBeNull();
-  originalPrepaidSince = settings.data!.prepaid_since;
   const zcore = await ensureOrganization(fx.service, { slug: "zcore", name: "Zcore" });
   platformOrgId = zcore.id;
   platformUserId = await ensureUser(fx.service, zcore, {
@@ -141,7 +143,6 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await resetBilling();
-  await setPrepaidSince(originalPrepaidSince);
   await fx.service.from("platform_payment_records").delete().eq("firm_id", fx.b.org.id);
   await fx.service
     .from("memberships")
@@ -168,7 +169,7 @@ describe("billing months", () => {
     const october = (await billing()).months.find((m) => m.period === "2026-10-01");
     expect(october?.due_on).toBe("2026-11-25");
     // Relative to today so the check stays valid after that date.
-    await setPrepaidSince(today());
+    await setPrepaidSince(localToday());
     expect((await billing()).state).not.toBe("locked");
   });
 
@@ -182,15 +183,79 @@ describe("billing months", () => {
     const running = result.months.at(-1)!;
     expect(running.due_on).toBe(running.period);
     expect(running.paid_on).toBeNull();
-    const localToday = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Sarajevo" }).format(
-      new Date(),
-    );
-    if (running.due_on < localToday) {
+    if (running.due_on < localToday()) {
       expect(result).toMatchObject({ state: "locked", reason: "unpaid" });
     } else {
       // Due today: not yet past due, so only the warning applies.
       expect(result.state).toBe("warning");
     }
+  });
+
+  it("starts the due date on the day a package is assigned, never before it", async () => {
+    // Tenant B is in trial (no package). It gets a package today through the
+    // RPC; with grace 0 the old rule made the month due on its first day, so
+    // any assignment after the 1st locked the firm on the spot.
+    await setGrace(0);
+    const created = await platform.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: `DBB ${crypto.randomUUID().slice(0, 8)}`,
+      p_monthly_price: numericParam("100"),
+      p_modules: ["production"],
+    });
+    expect(created.error).toBeNull();
+    const assigned = await platform.rpc("platform_assign_package", {
+      p_org_id: fx.b.org.id,
+      p_package_id: created.data!,
+    });
+    expect(assigned.error).toBeNull();
+
+    const row = await fx.service
+      .from("organization_packages")
+      .select("valid_from, assigned_on")
+      .eq("organization_id", fx.b.org.id)
+      .single();
+    expect(row.data).toEqual({ valid_from: firstOfMonth(0), assigned_on: localToday() });
+
+    const result = await billing();
+    expect(result.months).toHaveLength(1);
+    const running = result.months[0]!;
+    expect(running.period).toBe(firstOfMonth(0));
+    // Due = assignment day + grace (0): today, not yet past.
+    expect(running.due_on).toBe(localToday());
+    // Warning or active depending on the global warning window; never locked.
+    expect(["warning", "active"]).toContain(result.state);
+  });
+
+  it("does not move the due date when a firm that already pays changes its package", async () => {
+    // A package since last month (assigned then); a new one today. Billing
+    // began long before today, so the running month stays due on its first day.
+    await billB([{ from: "2026-01-01", price: "100" }], firstOfMonth(1));
+    await setGrace(0);
+    const created = await platform.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: `DBB ${crypto.randomUUID().slice(0, 8)}`,
+      p_monthly_price: numericParam("150"),
+      p_modules: ["production"],
+    });
+    expect(created.error).toBeNull();
+    expect(
+      (
+        await platform.rpc("platform_assign_package", {
+          p_org_id: fx.b.org.id,
+          p_package_id: created.data!,
+        })
+      ).error,
+    ).toBeNull();
+    const running = (await billing()).months.find((m) => m.period === firstOfMonth(0));
+    expect(running?.due_on).toBe(firstOfMonth(0));
+  });
+
+  it("uses the firm's own transition day before the global one", async () => {
+    await billB([{ from: "2026-09-01", price: "120" }], "2026-10-01");
+    await setGrace(15);
+    await setPrepaidSince("2027-03-01");
+    const october = (await billing()).months.find((m) => m.period === "2026-10-01");
+    expect(october?.due_on).toBe("2027-03-16");
   });
 
   it("keeps the amount of earlier months when the price changes", async () => {

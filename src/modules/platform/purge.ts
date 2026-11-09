@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
-// Permanent deletion of firms whose 30-day undo has passed (D-049). Run daily
+// Permanent deletion of firms whose 30-day undo has passed (D-050). Run daily
 // by the Vercel Cron route with the service-role client. The database refuses
 // any firm that is not archived and due (public.purge_organization).
 
@@ -27,6 +27,19 @@ export function isCronAuthorized(header: string | null, secret: string | undefin
   return timingSafeEqual(digest(header), digest(`Bearer ${secret}`));
 }
 
+/**
+ * Storage files are removed before the database checks `delete_after` with its
+ * own clock. A firm is picked only when it has been due for this long, so a
+ * skewed app clock can never wipe the files of a firm the database still
+ * considers not due (the RPC would then refuse, leaving rows without files).
+ */
+export const PURGE_SAFETY_MARGIN_MS = 10 * 60_000;
+
+/** Firms whose `delete_after` is at or before this moment are purged. */
+export function purgeCutoff(now: Date): Date {
+  return new Date(now.getTime() - PURGE_SAFETY_MARGIN_MS);
+}
+
 export async function purgeDueOrganizations(
   service: SupabaseClient<Database>,
   now: Date,
@@ -35,7 +48,7 @@ export async function purgeDueOrganizations(
     .from("organizations")
     .select("id")
     .not("archived_at", "is", null)
-    .lte("delete_after", now.toISOString())
+    .lte("delete_after", purgeCutoff(now).toISOString())
     .eq("is_platform", false)
     .order("delete_after");
   if (due.error) throw new Error(due.error.message);

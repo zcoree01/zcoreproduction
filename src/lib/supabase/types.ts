@@ -2369,6 +2369,7 @@ export type Database = {
           locked_at: string | null
           locked_reason: string | null
           organization_id: string
+          prepaid_since: string | null
           unlocked_until: string | null
           updated_at: string
         }
@@ -2378,6 +2379,7 @@ export type Database = {
           locked_at?: string | null
           locked_reason?: string | null
           organization_id: string
+          prepaid_since?: string | null
           unlocked_until?: string | null
           updated_at?: string
         }
@@ -2387,6 +2389,7 @@ export type Database = {
           locked_at?: string | null
           locked_reason?: string | null
           organization_id?: string
+          prepaid_since?: string | null
           unlocked_until?: string | null
           updated_at?: string
         }
@@ -2402,16 +2405,19 @@ export type Database = {
       }
       organization_packages: {
         Row: {
+          assigned_on: string | null
           organization_id: string
           package_id: string | null
           valid_from: string
         }
         Insert: {
+          assigned_on?: string | null
           organization_id: string
           package_id?: string | null
           valid_from: string
         }
         Update: {
+          assigned_on?: string | null
           organization_id?: string
           package_id?: string | null
           valid_from?: string
@@ -6590,6 +6596,7 @@ export type Database = {
           package_name: string
           slug: string
           state: string
+          timezone: string
         }[]
       }
       platform_billing_packages: { Args: never; Returns: Json }

@@ -3434,10 +3434,10 @@
       "banner": {
         "locked": {
           "manual": "Firma je zaključana od {date}: {reason}",
-          "unpaid": "Firma je zaključana: uplata za {month} nije evidentirana (rok je bio {due})."
+          "unpaid": "Firma je zaključana: pretplata za {month} nije plaćena (rok je bio {due})."
         },
-        "warning": "Uplata za {month} nije evidentirana; zaključavanje {date}.",
-        "overdue": "Uplata za {month} nije evidentirana; rok je prošao, ali firma nije zaključana."
+        "warning": "Pretplata za {month} nije plaćena; zaključavanje {date}.",
+        "overdue": "Pretplata za {month} nije plaćena; rok je prošao, ali firma nije zaključana."
       },
       "lock": {
         "lock": "Zaključaj",
@@ -3460,7 +3460,7 @@
         "package": "Paket",
         "none": "Bez paketa",
         "monthly": "Mjesečni iznos",
-        "grace": "Rok za uplatu (dana nakon mjeseca)",
+        "grace": "Rok za uplatu (dana od početka mjeseca)",
         "graceDefault": "Prazno = iz postavki ({days} dana)",
         "autoLock": "Automatsko zaključavanje nakon roka",
         "save": "Sačuvaj",
@@ -3473,7 +3473,7 @@
         "graceInput": "Broj dana",
         "graceSave": "Sačuvaj",
         "graceCancel": "Odustani",
-        "graceShort": "Rok za uplatu nakon mjeseca",
+        "graceShort": "Rok za uplatu od početka mjeseca",
         "autoOn": "Uključeno",
         "autoOff": "Isključeno",
         "loseTitle": "Promijeniti paket?",
@@ -3616,7 +3616,7 @@
       "settingsForm": {
         "title": "Plaćanje i zaključavanje",
         "description": "Vrijedi za sve firme; pojedinoj firmi rok možete promijeniti na njenoj stranici.",
-        "grace": "Rok za uplatu nakon isteka mjeseca (dana)",
+        "grace": "Rok za uplatu od početka mjeseca (dana)",
         "graceHint": "0–90 dana.",
         "warning": "Upozorenje firmi prije zaključavanja (dana)",
         "warningHint": "0–30 dana.",

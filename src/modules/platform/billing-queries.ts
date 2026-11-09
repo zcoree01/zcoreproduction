@@ -24,6 +24,8 @@ export type BillingOverviewRow = {
   archived: boolean;
   archivedAt: string | null;
   deleteAfter: string | null;
+  /** The firm's timezone (IANA), for dates shown in the list. */
+  timezone: string;
 };
 
 export async function listBillingOverview(): Promise<BillingOverviewRow[]> {
@@ -42,6 +44,7 @@ export async function listBillingOverview(): Promise<BillingOverviewRow[]> {
     archived: row.archived,
     archivedAt: row.archived_at,
     deleteAfter: row.delete_after,
+    timezone: row.timezone,
   }));
 }
 

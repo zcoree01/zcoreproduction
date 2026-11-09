@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isCronAuthorized, purgeDueOrganizations } from "@/modules/platform/purge";
 
 // Daily Vercel Cron (vercel.json): permanently deletes firms whose 30-day
-// undo has passed (D-049). Vercel sends `Authorization: Bearer <CRON_SECRET>`.
+// undo has passed (D-050). Vercel sends `Authorization: Bearer <CRON_SECRET>`.
 export const maxDuration = 300;
 
 export async function GET(request: Request) {

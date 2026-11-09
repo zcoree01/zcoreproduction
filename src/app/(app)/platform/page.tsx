@@ -156,6 +156,7 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
                               {tb("archive.scheduledBanner", {
                                 date: format.dateTime(new Date(row.deleteAfter), {
                                   dateStyle: "long",
+                                  timeZone: row.timezone,
                                 }),
                               })}
                             </Badge>

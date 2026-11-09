@@ -9,6 +9,7 @@ import {
 } from "@/modules/organizations/provision";
 import { testTenantPassword } from "../shared/test-tenants";
 import { setupFixture, signIn, type Fixture } from "./fixtures";
+import { localMonthDay, localToday } from "./months";
 
 // Archive, restore, scheduled deletion (D-049). A temporary firm
 // dbt-reg-arch-<random> is created for the run and purged in afterAll.
@@ -26,12 +27,8 @@ let member: Db;
 let packageId = "";
 const userIds: string[] = [];
 
-const firstOfMonth = (monthsAgo: number, day = 1) => {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo, day))
-    .toISOString()
-    .slice(0, 10);
-};
+// Months in Europe/Sarajevo, the firm's timezone (billing_months uses it).
+const firstOfMonth = (monthsAgo: number, day = 1) => localMonthDay(monthsAgo, day);
 
 async function periods() {
   const { data, error } = await admin.rpc("platform_organization_billing", {
@@ -260,6 +257,65 @@ describe("archiving a firm", () => {
     expect(await periods()).toEqual([all[0], all[1], all[2]]);
   });
 
+  it("counts archive and restore days in the firm's timezone", async () => {
+    await resetOrg();
+    const all = [4, 3, 2, 1, 0].map((n) => firstOfMonth(n));
+    // Restored at 23:30 UTC on the last day of month -2: already the 1st of
+    // month -1 in Sarajevo, so month -2 stays unbilled (in UTC it would not).
+    const lastDay = new Date(`${firstOfMonth(1)}T23:30:00Z`);
+    lastDay.setUTCDate(lastDay.getUTCDate() - 1);
+    const closed = await fx.service.from("organization_archive_periods").insert({
+      organization_id: orgId,
+      archived_at: `${firstOfMonth(3, 10)}T10:00:00Z`,
+      restored_at: lastDay.toISOString(),
+    });
+    expect(closed.error).toBeNull();
+    expect(await periods()).toEqual([all[0], all[1], all[3], all[4]]);
+  });
+
+  it("starts the restore month's due date on the restore day, never before it", async () => {
+    await resetOrg();
+    // Grace 0 and the firm's own transition day long past (set on this
+    // temporary firm only; the global setting is never written by tests).
+    await fx.service
+      .from("organization_billing")
+      .upsert(
+        { organization_id: orgId, grace_days: 0, prepaid_since: "2026-01-01" },
+        { onConflict: "organization_id" },
+      )
+      .throwOnError();
+    try {
+      const archived = await admin.rpc("platform_archive_organization", {
+        p_org_id: orgId,
+        p_reason: "Pauza",
+      });
+      expect(archived.error).toBeNull();
+      // Archived before the package started: every earlier month is unbilled.
+      await fx.service
+        .from("organization_archive_periods")
+        .update({ archived_at: `${firstOfMonth(5, 10)}T10:00:00Z` })
+        .eq("organization_id", orgId)
+        .throwOnError();
+      const restored = await admin.rpc("platform_restore_organization", { p_org_id: orgId });
+      expect(restored.error).toBeNull();
+
+      const { data, error } = await admin.rpc("platform_organization_billing", {
+        p_org_id: orgId,
+      });
+      expect(error).toBeNull();
+      const detail = data as unknown as {
+        state: string;
+        months: { period: string; due_on: string }[];
+      };
+      expect(detail.months.map((m) => m.period)).toEqual([firstOfMonth(0)]);
+      // Due = restore day + grace (0): today, not yet past, so not locked.
+      expect(detail.months[0]!.due_on).toBe(localToday());
+      expect(detail.state).not.toBe("locked");
+    } finally {
+      await fx.service.from("organization_billing").delete().eq("organization_id", orgId);
+    }
+  });
+
   it("refuses archive and deletion for the Tehničar", async () => {
     await resetOrg();
     const archive = await tech.rpc("platform_archive_organization", {
@@ -477,6 +533,49 @@ describe("permanent deletion", () => {
     if (companyId) await fx.service.from("companies").delete().eq("id", companyId);
   });
 
+  /** Row counts of tenant A, which must survive another firm's purge unchanged. */
+  async function neighbourCounts() {
+    const counts: Record<string, number | null> = {};
+    for (const table of [
+      "customers",
+      "memberships",
+      "profiles",
+      "roles",
+      "org_modules",
+      "audit_log",
+    ] as const) {
+      const { count, error } = await fx.service
+        .from(table)
+        .select("organization_id", { count: "exact", head: true })
+        .eq("organization_id", fx.a.org.id);
+      expect(error).toBeNull();
+      counts[table] = count;
+    }
+    expect(counts.memberships).toBeGreaterThan(0);
+    return counts;
+  }
+
+  it("keeps audit_log append-only for everyone but the purge", async () => {
+    const row = await fx.service
+      .from("audit_log")
+      .select("id")
+      .eq("organization_id", fx.a.org.id)
+      .limit(1)
+      .single();
+    expect(row.error).toBeNull();
+    const id = row.data!.id;
+    const deleted = await fx.service.from("audit_log").delete().eq("id", id).select("id");
+    expect(deleted.error).not.toBeNull();
+    const updated = await fx.service
+      .from("audit_log")
+      .update({ action: "tampered" })
+      .eq("id", id)
+      .select("id");
+    expect(updated.error).not.toBeNull();
+    const still = await fx.service.from("audit_log").select("action").eq("id", id).single();
+    expect(still.data?.action).not.toBe("tampered");
+  });
+
   it("refuses purge before the 30 days and purges after", async () => {
     const active = await fx.service.rpc("purge_organization", { p_org_id: purgeOrgId });
     expect(active.error?.code).toBe("42501");
@@ -503,9 +602,16 @@ describe("permanent deletion", () => {
       .update({ delete_after: new Date(Date.now() - 60_000).toISOString() })
       .eq("id", purgeOrgId);
     expect(due.error).toBeNull();
+    const neighbourBefore = await neighbourCounts();
+
+    // The purge removes the firm's audit rows through the transaction-local
+    // marker (no ALTER TABLE lock on audit_log, 20261110221000).
     const purged = await fx.service.rpc("purge_organization", { p_org_id: purgeOrgId });
     expect(purged.error).toBeNull();
     expect(purged.data).toBe(true);
+
+    // The neighbouring firm (tenant A) is untouched.
+    expect(await neighbourCounts()).toEqual(neighbourBefore);
 
     expect((await fx.service.from("organizations").select("id").eq("id", purgeOrgId)).data).toEqual(
       [],

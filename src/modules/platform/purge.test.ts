@@ -144,7 +144,8 @@ describe("purgeDueOrganizations", () => {
     const result = await actual.purgeDueOrganizations(fake.client, now);
     expect(result).toEqual({ purged: ["org-a"], failed: [] });
     expect(fake.rpcCalls).toEqual(["org-a"]);
-    expect(fake.filters).toContainEqual(["lte", "delete_after", now.toISOString()]);
+    // Ten minutes of margin: the files go before the database checks with its own clock.
+    expect(fake.filters).toContainEqual(["lte", "delete_after", "2026-12-10T02:50:00.000Z"]);
     expect(fake.filters).toContainEqual(["not", "archived_at", "is", null]);
     const product = fake.removed
       .filter((r) => r.bucket === "product-files")
@@ -153,6 +154,13 @@ describe("purgeDueOrganizations", () => {
     const absence = fake.removed.filter((r) => r.bucket === "absence-documents");
     expect(absence.flatMap((r) => r.paths)).toHaveLength(150);
     expect(fake.removed.some((r) => r.bucket === "stock-certificates")).toBe(false);
+  });
+
+  it("selects only firms due at least the safety margin ago", () => {
+    expect(actual.PURGE_SAFETY_MARGIN_MS).toBe(10 * 60_000);
+    expect(actual.purgeCutoff(new Date("2026-12-10T00:05:00Z")).toISOString()).toBe(
+      "2026-12-09T23:55:00.000Z",
+    );
   });
 
   it("keeps going when one firm fails", async () => {

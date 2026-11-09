@@ -5,6 +5,7 @@ import type { Database, Json } from "@/lib/supabase/types";
 import { ensureOrganization, ensureUser } from "@/modules/organizations/provision";
 import { testTenantPassword } from "../shared/test-tenants";
 import { setTenantLocked, setupFixture, signIn, type Fixture } from "./fixtures";
+import { localMonthDay, localToday } from "./months";
 
 // A locked organization (D-049) keeps viewing, the kiosk and the work already
 // in progress, and nothing else. Tenant B is locked around each scenario.
@@ -357,25 +358,13 @@ describe("work in progress while locked", () => {
 });
 
 describe("billing lock", () => {
-  let originalPrepaidSince = "";
-
-  beforeAll(async () => {
-    // Prepaid billing: a month is due on its first day + grace, never before
-    // prepaid_since + grace; the tests need that transition period to be over.
-    const settings = await fx.service.from("platform_settings").select("prepaid_since").single();
-    originalPrepaidSince = settings.data!.prepaid_since;
-    await fx.service
-      .from("platform_settings")
-      .update({ prepaid_since: "2026-01-01" })
-      .eq("id", true)
-      .throwOnError();
-  });
+  // Prepaid billing: a month is due on its first day + grace, never before
+  // prepaid_since + grace; the tests need that transition period to be over.
+  // Set on tenant B only (organization_billing); tests never write the global
+  // platform_settings.prepaid_since.
+  const PREPAID_SINCE = "2026-01-01";
 
   afterAll(async () => {
-    await fx.service
-      .from("platform_settings")
-      .update({ prepaid_since: originalPrepaidSince })
-      .eq("id", true);
     await fx.service.from("platform_payment_records").delete().eq("firm_id", fx.b.org.id);
     await fx.service.from("billing_payments").delete().eq("organization_id", fx.b.org.id);
     await fx.service.from("organization_packages").delete().eq("organization_id", fx.b.org.id);
@@ -395,17 +384,17 @@ describe("billing lock", () => {
       .from("billing_package_prices")
       .insert({ package_id: created.data!, valid_from: "2026-01-01", monthly_price: 100 })
       .throwOnError();
-    const now = new Date();
-    const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-      .toISOString()
-      .slice(0, 10);
+    const lastMonth = localMonthDay(1);
     await fx.service
       .from("organization_packages")
       .insert({ organization_id: fx.b.org.id, valid_from: lastMonth, package_id: created.data! })
       .throwOnError();
     await fx.service
       .from("organization_billing")
-      .upsert({ organization_id: fx.b.org.id, grace_days: 0 }, { onConflict: "organization_id" })
+      .upsert(
+        { organization_id: fx.b.org.id, grace_days: 0, prepaid_since: PREPAID_SINCE },
+        { onConflict: "organization_id" },
+      )
       .throwOnError();
 
     const before = await fx.b.admin
@@ -414,15 +403,13 @@ describe("billing lock", () => {
     expect(before.error).toMatchObject(LOCKED);
 
     // Prepaid: both last month and the running month are due (grace 0).
-    const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-      .toISOString()
-      .slice(0, 10);
+    const thisMonth = localMonthDay(0);
     for (const period of [lastMonth, thisMonth]) {
       const paid = await platform.rpc("platform_set_payment", {
         p_org_id: fx.b.org.id,
         p_period: period,
         p_paid: true,
-        p_paid_on: now.toISOString().slice(0, 10),
+        p_paid_on: localToday(),
         p_note: `${MARK} uplata`,
       });
       expect(paid.error).toBeNull();
@@ -445,7 +432,10 @@ describe("billing lock", () => {
     await fx.service.from("platform_payment_records").delete().eq("firm_id", fx.b.org.id);
     await fx.service
       .from("organization_billing")
-      .upsert({ organization_id: fx.b.org.id, grace_days: 90 }, { onConflict: "organization_id" })
+      .upsert(
+        { organization_id: fx.b.org.id, grace_days: 90, prepaid_since: PREPAID_SINCE },
+        { onConflict: "organization_id" },
+      )
       .throwOnError();
     const created = await platform.rpc("platform_save_package", {
       p_id: nullableParam<string>(null),
@@ -459,8 +449,9 @@ describe("billing lock", () => {
       .upsert({ package_id: created.data!, valid_from: "2026-01-01", monthly_price: 100 })
       .throwOnError();
     // Due exactly tomorrow: inside the warning window of 5 days.
-    const tomorrow = new Date(Date.now() + 86_400_000);
-    tomorrow.setUTCHours(0, 0, 0, 0);
+    // Org-local (Europe/Sarajevo) days, as billing_months counts them.
+    const tomorrow = new Date(`${localToday()}T00:00:00Z`);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     const month = new Date(Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth() - 1, 1));
     // Prepaid: due = first day of the month + grace.
     const grace = Math.round((tomorrow.getTime() - month.getTime()) / 86_400_000);
