@@ -22,6 +22,9 @@ let fx: Fixture;
 let platform: Db;
 let platformUserId = "";
 let platformOrgId = "";
+let tech: Db;
+let techUserId = "";
+let originalPrepaidSince = "";
 
 const firstOfMonth = (monthsAgo: number) => {
   const now = new Date();
@@ -32,6 +35,7 @@ const firstOfMonth = (monthsAgo: number) => {
 async function resetBilling() {
   const b = fx.b.org.id;
   await fx.service.from("billing_payments").delete().eq("organization_id", b);
+  await fx.service.from("platform_payment_records").delete().eq("firm_id", b);
   await fx.service.from("organization_packages").delete().eq("organization_id", b);
   await fx.service.from("organization_billing").delete().eq("organization_id", b);
   const packages = await fx.service.from("billing_packages").select("id").like("name", "DBB%");
@@ -89,8 +93,26 @@ async function billing() {
   return data as unknown as { state: string; reason: string | null; months: Month[] };
 }
 
+async function setPrepaidSince(day: string) {
+  const { error } = await fx.service.from("platform_settings").update({ prepaid_since: day }).eq("id", true);
+  expect(error).toBeNull();
+}
+
+const today = () => new Date().toISOString().slice(0, 10);
+async function setGrace(days: number) {
+  const { error } = await platform.rpc("platform_set_org_billing", {
+    p_org_id: fx.b.org.id,
+    p_grace_days: days,
+    p_auto_lock: true,
+  });
+  expect(error).toBeNull();
+}
+
 beforeAll(async () => {
   fx = await setupFixture();
+  const settings = await fx.service.from("platform_settings").select("prepaid_since").single();
+  expect(settings.error).toBeNull();
+  originalPrepaidSince = settings.data!.prepaid_since;
   const zcore = await ensureOrganization(fx.service, { slug: "zcore", name: "Zcore" });
   platformOrgId = zcore.id;
   platformUserId = await ensureUser(fx.service, zcore, {
@@ -101,12 +123,30 @@ beforeAll(async () => {
   });
   await fx.service.from("memberships").update({ archived_at: null }).eq("user_id", platformUserId);
   platform = await signIn(PLATFORM_USER, "zcore");
+  techUserId = await ensureUser(fx.service, zcore, {
+    username: "db.platform.tech.billing",
+    password: testTenantPassword(),
+    fullName: "DB Platform Tech",
+    role: "platform_technician",
+  });
+  await fx.service.from("memberships").update({ archived_at: null }).eq("user_id", techUserId);
+  tech = await signIn("db.platform.tech.billing", "zcore");
 });
 
-beforeEach(resetBilling);
+beforeEach(async () => {
+  await resetBilling();
+  // Old enough that the transition deadline does not matter unless a test sets it.
+  await setPrepaidSince("2026-01-01");
+});
 
 afterAll(async () => {
   await resetBilling();
+  await setPrepaidSince(originalPrepaidSince);
+  await fx.service.from("platform_payment_records").delete().eq("firm_id", fx.b.org.id);
+  await fx.service
+    .from("memberships")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("user_id", techUserId);
   await fx.service
     .from("memberships")
     .update({ archived_at: new Date().toISOString() })
@@ -116,9 +156,31 @@ afterAll(async () => {
 describe("billing months", () => {
   it("computes due dates in the organization's timezone", async () => {
     await billB([{ from: "2026-09-01", price: "120" }], "2026-10-01");
+    await setGrace(15);
     const october = (await billing()).months.find((m) => m.period === "2026-10-01");
-    expect(october?.due_on).toBe("2026-11-15");
+    expect(october?.due_on).toBe("2026-10-16");
   });
+
+  it("gives existing firms a transition deadline", async () => {
+    await billB([{ from: "2026-09-01", price: "120" }], "2026-10-01");
+    await setGrace(15);
+    await setPrepaidSince("2026-11-10");
+    const october = (await billing()).months.find((m) => m.period === "2026-10-01");
+    expect(october?.due_on).toBe("2026-11-25");
+    // Relative to today so the check stays valid after that date.
+    await setPrepaidSince(today());
+    expect((await billing()).state).not.toBe("locked");
+  });
+
+  it.skipIf(new Date().getUTCDate() === 1)(
+    "locks in the running month once its due date passed",
+    async () => {
+      await billB([{ from: "2026-01-01", price: "100" }], firstOfMonth(0));
+      await setGrace(0);
+      await setPrepaidSince("2026-01-01");
+      expect(await billing()).toMatchObject({ state: "locked", reason: "unpaid" });
+    },
+  );
 
   it("keeps the amount of earlier months when the price changes", async () => {
     await billB(
@@ -136,6 +198,71 @@ describe("billing months", () => {
   });
 });
 
+describe("payment records", () => {
+  const pay = (db: Db, period: string, paid: boolean) =>
+    db.rpc("platform_set_payment", {
+      p_org_id: fx.b.org.id,
+      p_period: period,
+      p_paid: paid,
+      p_paid_on: firstOfMonth(0),
+      p_note: "DBB uplata",
+    });
+  const records = async () => {
+    const { data, error } = await fx.service
+      .from("platform_payment_records")
+      .select("*")
+      .eq("firm_id", fx.b.org.id)
+      .order("recorded_at");
+    expect(error).toBeNull();
+    return data ?? [];
+  };
+
+  it("keeps a permanent payment record and marks it cancelled instead of deleting", async () => {
+    await fx.service.from("platform_payment_records").delete().eq("firm_id", fx.b.org.id);
+    await billB([{ from: "2026-01-01", price: "120.50" }], firstOfMonth(1));
+    expect((await pay(platform, firstOfMonth(1), true)).error).toBeNull();
+    let rows = await records();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      period: firstOfMonth(1),
+      firm_name: "Test Tenant B",
+      firm_slug: fx.b.org.slug,
+      cancelled_at: null,
+    });
+    expect(Number(rows[0]!.amount)).toBe(120.5);
+
+    // Saving the paid month again updates the active record.
+    expect((await pay(platform, firstOfMonth(1), true)).error).toBeNull();
+    expect(await records()).toHaveLength(1);
+
+    expect((await pay(platform, firstOfMonth(1), false)).error).toBeNull();
+    rows = await records();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.cancelled_at).not.toBeNull();
+    const left = await fx.service
+      .from("billing_payments")
+      .select("period")
+      .eq("organization_id", fx.b.org.id);
+    expect(left.data).toHaveLength(0);
+
+    // Paying again after cancelling adds a new active record next to the cancelled one.
+    expect((await pay(platform, firstOfMonth(1), true)).error).toBeNull();
+    expect(await records()).toHaveLength(2);
+  });
+
+  it("refuses a payment for a month without a package", async () => {
+    const result = await pay(platform, firstOfMonth(1), true);
+    expect(result.error).toMatchObject({ code: "22023", message: "not_billed" });
+  });
+
+  it("refuses cancelling a payment for the Tehničar", async () => {
+    await billB([{ from: "2026-01-01", price: "100" }], firstOfMonth(1));
+    expect((await pay(tech, firstOfMonth(1), true)).error).toBeNull();
+    expect((await pay(tech, firstOfMonth(1), false)).error?.code).toBe("42501");
+    expect((await records()).filter((r) => r.cancelled_at === null)).toHaveLength(1);
+  });
+});
+
 describe("lock state", () => {
   it("locks after the due date and unlocks when paid", async () => {
     await billB([{ from: "2026-01-01", price: "100" }], firstOfMonth(2));
@@ -147,7 +274,8 @@ describe("lock state", () => {
     expect(grace.error).toBeNull();
     expect(await billing()).toMatchObject({ state: "locked", reason: "unpaid" });
 
-    for (const period of [firstOfMonth(2), firstOfMonth(1)]) {
+    // Prepaid: the running month is due as well.
+    for (const period of [firstOfMonth(2), firstOfMonth(1), firstOfMonth(0)]) {
       const paid = await platform.rpc("platform_set_payment", {
         p_org_id: fx.b.org.id,
         p_period: period,

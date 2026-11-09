@@ -2503,6 +2503,51 @@ export type Database = {
           },
         ]
       }
+      platform_payment_records: {
+        Row: {
+          amount: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          firm_id: string
+          firm_name: string
+          firm_slug: string
+          id: string
+          note: string | null
+          paid_on: string
+          period: string
+          recorded_at: string
+          recorded_by: string | null
+        }
+        Insert: {
+          amount: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          firm_id: string
+          firm_name: string
+          firm_slug: string
+          id?: string
+          note?: string | null
+          paid_on: string
+          period: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Update: {
+          amount?: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          firm_id?: string
+          firm_name?: string
+          firm_slug?: string
+          id?: string
+          note?: string | null
+          paid_on?: string
+          period?: string
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           default_trial_days: number
@@ -2510,6 +2555,7 @@ export type Database = {
           lock_contact: string
           lock_warning_days: number
           payment_grace_days: number
+          prepaid_since: string
           updated_at: string
         }
         Insert: {
@@ -2518,6 +2564,7 @@ export type Database = {
           lock_contact?: string
           lock_warning_days?: number
           payment_grace_days?: number
+          prepaid_since?: string
           updated_at?: string
         }
         Update: {
@@ -2526,6 +2573,7 @@ export type Database = {
           lock_contact?: string
           lock_warning_days?: number
           payment_grace_days?: number
+          prepaid_since?: string
           updated_at?: string
         }
         Relationships: []

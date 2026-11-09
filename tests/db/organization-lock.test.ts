@@ -357,7 +357,26 @@ describe("work in progress while locked", () => {
 });
 
 describe("billing lock", () => {
+  let originalPrepaidSince = "";
+
+  beforeAll(async () => {
+    // Prepaid billing: a month is due on its first day + grace, never before
+    // prepaid_since + grace; the tests need that transition period to be over.
+    const settings = await fx.service.from("platform_settings").select("prepaid_since").single();
+    originalPrepaidSince = settings.data!.prepaid_since;
+    await fx.service
+      .from("platform_settings")
+      .update({ prepaid_since: "2026-01-01" })
+      .eq("id", true)
+      .throwOnError();
+  });
+
   afterAll(async () => {
+    await fx.service
+      .from("platform_settings")
+      .update({ prepaid_since: originalPrepaidSince })
+      .eq("id", true);
+    await fx.service.from("platform_payment_records").delete().eq("firm_id", fx.b.org.id);
     await fx.service.from("billing_payments").delete().eq("organization_id", fx.b.org.id);
     await fx.service.from("organization_packages").delete().eq("organization_id", fx.b.org.id);
     await fx.service.from("organization_billing").delete().eq("organization_id", fx.b.org.id);
@@ -394,14 +413,20 @@ describe("billing lock", () => {
       .insert({ organization_id: fx.b.org.id, name: `${MARK} Prije uplate` });
     expect(before.error).toMatchObject(LOCKED);
 
-    const paid = await platform.rpc("platform_set_payment", {
-      p_org_id: fx.b.org.id,
-      p_period: lastMonth,
-      p_paid: true,
-      p_paid_on: now.toISOString().slice(0, 10),
-      p_note: `${MARK} uplata`,
-    });
-    expect(paid.error).toBeNull();
+    // Prepaid: both last month and the running month are due (grace 0).
+    const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+      .toISOString()
+      .slice(0, 10);
+    for (const period of [lastMonth, thisMonth]) {
+      const paid = await platform.rpc("platform_set_payment", {
+        p_org_id: fx.b.org.id,
+        p_period: period,
+        p_paid: true,
+        p_paid_on: now.toISOString().slice(0, 10),
+        p_note: `${MARK} uplata`,
+      });
+      expect(paid.error).toBeNull();
+    }
     const after = await fx.b.admin
       .from("customers")
       .insert({ organization_id: fx.b.org.id, name: `${MARK} Nakon uplate` });
@@ -415,8 +440,9 @@ describe("billing lock", () => {
   });
 
   it("warns only members who manage the organization's settings", async () => {
-    // The previous test paid last month.
+    // The previous test paid last month and this month.
     await fx.service.from("billing_payments").delete().eq("organization_id", fx.b.org.id);
+    await fx.service.from("platform_payment_records").delete().eq("firm_id", fx.b.org.id);
     await fx.service
       .from("organization_billing")
       .upsert({ organization_id: fx.b.org.id, grace_days: 90 }, { onConflict: "organization_id" })
@@ -434,9 +460,10 @@ describe("billing lock", () => {
       .throwOnError();
     // Due exactly tomorrow: inside the warning window of 5 days.
     const tomorrow = new Date(Date.now() + 86_400_000);
+    tomorrow.setUTCHours(0, 0, 0, 0);
     const month = new Date(Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth() - 1, 1));
-    const lastDay = new Date(Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), 0));
-    const grace = Math.round((tomorrow.getTime() - lastDay.getTime()) / 86_400_000);
+    // Prepaid: due = first day of the month + grace.
+    const grace = Math.round((tomorrow.getTime() - month.getTime()) / 86_400_000);
     await fx.service
       .from("organization_billing")
       .update({ grace_days: grace })

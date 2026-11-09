@@ -28,8 +28,12 @@ export async function BillingNoticeBanner({
         timeZone: timezone,
       })
     : "";
+  // lockOn is the first locked day; the payment deadline is the day before.
   const date = notice.lockOn
-    ? format.dateTime(day(notice.lockOn), { dateStyle: "long", timeZone: timezone })
+    ? format.dateTime(new Date(day(notice.lockOn).getTime() - 86_400_000), {
+        dateStyle: "long",
+        timeZone: timezone,
+      })
     : "";
   const locked = notice.state === "locked";
   const message = locked
