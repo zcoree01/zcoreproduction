@@ -6605,6 +6605,7 @@ export type Database = {
         Returns: undefined
       }
       platform_get_settings: { Args: never; Returns: Json }
+      platform_home: { Args: never; Returns: Json }
       platform_organization_billing: {
         Args: { p_org_id: string }
         Returns: Json
