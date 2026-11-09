@@ -21,7 +21,7 @@ import {
 // Platform billing actions (D-049): each action checks its own platform permission here and in the RPC.
 
 export type BillingActionError =
-  "invalid" | "denied" | "not_found" | "unexpected" | "reason_required" | "module_requirement";
+  "invalid" | "denied" | "not_found" | "unexpected" | "reason_required" | "module_requirement" | "not_billed";
 export type BillingActionResult = { ok: true } | { ok: false; error: BillingActionError };
 
 async function platformAllowed(permission: PermissionKey): Promise<boolean> {
@@ -32,6 +32,7 @@ async function platformAllowed(permission: PermissionKey): Promise<boolean> {
 function billingFail(error: DbError, label: string): BillingActionResult {
   const message = error?.message ?? "";
   if (message === "reason_required") return { ok: false, error: "reason_required" };
+  if (message === "not_billed") return { ok: false, error: "not_billed" };
   if (message === "module_requirement") return { ok: false, error: "module_requirement" };
   const kind = dbErrorKind(error);
   if (kind === "denied") return { ok: false, error: "denied" };

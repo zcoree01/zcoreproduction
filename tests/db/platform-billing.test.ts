@@ -172,15 +172,26 @@ describe("billing months", () => {
     expect((await billing()).state).not.toBe("locked");
   });
 
-  it.skipIf(new Date().getUTCDate() === 1)(
-    "locks in the running month once its due date passed",
-    async () => {
-      await billB([{ from: "2026-01-01", price: "100" }], firstOfMonth(0));
-      await setGrace(0);
-      await setPrepaidSince("2026-01-01");
-      expect(await billing()).toMatchObject({ state: "locked", reason: "unpaid" });
-    },
-  );
+  it("locks in the running month once its due date passed", async () => {
+    await billB([{ from: "2026-01-01", price: "100" }], firstOfMonth(0));
+    await setGrace(0);
+    await setPrepaidSince("2026-01-01");
+    const result = await billing();
+    // Grace 0: the running month is due on its first day. The org-local day
+    // (Europe/Sarajevo) decides whether that is already in the past.
+    const running = result.months.at(-1)!;
+    expect(running.due_on).toBe(running.period);
+    expect(running.paid_on).toBeNull();
+    const localToday = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Sarajevo" }).format(
+      new Date(),
+    );
+    if (running.due_on < localToday) {
+      expect(result).toMatchObject({ state: "locked", reason: "unpaid" });
+    } else {
+      // Due today: not yet past due, so only the warning applies.
+      expect(result.state).toBe("warning");
+    }
+  });
 
   it("keeps the amount of earlier months when the price changes", async () => {
     await billB(

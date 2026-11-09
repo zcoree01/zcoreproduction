@@ -3546,7 +3546,8 @@
         "not_found": "Firma ili paket nije pronađen.",
         "unexpected": "Promjena nije sačuvana zbog greške.",
         "reason_required": "Unesite razlog (1–300 znakova).",
-        "module_requirement": "Modul treba i modul od kojeg zavisi."
+        "module_requirement": "Modul treba i modul od kojeg zavisi.",
+        "not_billed": "Za ovaj mjesec firma nema paket, pa se uplata ne može evidentirati."
       },
       "packages": {
         "title": "Paketi",
