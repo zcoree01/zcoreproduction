@@ -4,7 +4,6 @@ import { isCronAuthorized, purgeDueOrganizations } from "@/modules/platform/purg
 
 // Daily Vercel Cron (vercel.json): permanently deletes firms whose 30-day
 // undo has passed (D-049). Vercel sends `Authorization: Bearer <CRON_SECRET>`.
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
