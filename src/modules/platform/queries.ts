@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 // Zcore platform administration (D-026): registered organizations and their
-// modules only, never tenant data. Every RPC checks platform.manage itself.
+// modules only, never tenant data. Every RPC checks its platform permission itself.
 
 const modulesSchema = z.array(
   z.object({ key: z.string(), enabled: z.boolean(), active_until: z.string().nullable() }),

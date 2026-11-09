@@ -225,3 +225,45 @@ describe("platform RPC permissions", () => {
     expect(trial.error?.code).toBe("42501");
   });
 });
+
+describe("custom roles in the Zcore organization", () => {
+  const save = (permissions: string[], name: string) =>
+    admin.rpc("save_custom_role", {
+      p_org_id: zcoreId,
+      p_role_id: null as unknown as string,
+      p_name: name,
+      p_permissions: permissions,
+    });
+
+  afterAll(async () => {
+    const { data } = await fx.service
+      .from("roles")
+      .select("id")
+      .eq("organization_id", zcoreId)
+      .like("name", "DBR %");
+    const ids = (data ?? []).map((row) => row.id);
+    if (ids.length === 0) return;
+    await fx.service.from("role_permissions").delete().in("role_id", ids);
+    await fx.service.from("roles").delete().in("id", ids);
+  });
+
+  it("allows platform permissions plus user, role and audit management", async () => {
+    const ok = await save(
+      ["platform.read", "platform.lock", "users.read", "roles.manage", "audit.read"],
+      "DBR Podrška",
+    );
+    expect(ok.error).toBeNull();
+  });
+
+  it("refuses tenant permissions, platform.manage and the delete permission", async () => {
+    for (const key of [
+      "machines.read",
+      "orders.manage",
+      "platform.manage",
+      "platform.organizations.delete",
+    ]) {
+      const denied = await save([key], "DBR Odbijeno");
+      expect(denied.error?.message).toBe("invalid_permission");
+    }
+  });
+});

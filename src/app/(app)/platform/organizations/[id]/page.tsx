@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMemberAccess } from "@/lib/auth/access";
+import type { PermissionKey } from "@/lib/auth/permissions";
 import { requireMember } from "@/lib/auth/session";
 import { zonedDate } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,7 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
     getMemberAccess(member),
   ]);
   if (!access.modules.has("platform")) return <ModuleDisabled />;
-  if (!access.permissions.has("platform.manage")) {
+  if (!access.permissions.has("platform.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 
@@ -109,6 +110,7 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
         : billing.state === "overdue"
           ? tb("banner.overdue", { month: unpaidMonth })
           : null;
+  const can = (key: PermissionKey) => access.permissions.has(key);
   const choices = packages.filter((p) => !p.archived || p.id === billing.package?.id);
 
   return (
@@ -141,18 +143,22 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap items-end justify-end gap-2">
-              <SupportControl
-                organizationId={organization.id}
-                request={support.get(organization.id) ?? null}
-                compact
-              />
-              <LockControls
-                organizationId={organization.id}
-                name={organization.name}
-                lockedByHand={billing.lockedAt !== null}
-                lockedForPayment={billing.reason === "unpaid"}
-                unlockedUntil={billing.unlockedUntil}
-              />
+              {can("platform.support") ? (
+                <SupportControl
+                  organizationId={organization.id}
+                  request={support.get(organization.id) ?? null}
+                  compact
+                />
+              ) : null}
+              {can("platform.lock") ? (
+                <LockControls
+                  organizationId={organization.id}
+                  name={organization.name}
+                  lockedByHand={billing.lockedAt !== null}
+                  lockedForPayment={billing.reason === "unpaid"}
+                  unlockedUntil={billing.unlockedUntil}
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -168,11 +174,14 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
           defaultGraceDays={billing.effectiveGraceDays}
           autoLock={billing.autoLock}
           modules={billing.modules}
+          canAssign={can("platform.packages.assign")}
+          canBilling={can("platform.lock")}
         />
         <ModulesCard
           organizationId={organization.id}
           modules={billing.modules}
           today={zonedDate(new Date(), "Europe/Sarajevo")}
+          canManage={can("platform.modules.manage")}
         />
       </div>
 
@@ -186,6 +195,8 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
             months={billing.months}
             today={zonedDate(new Date(), timezone)}
             timezone={timezone}
+            canRecord={can("platform.payments.record")}
+            canCancel={can("platform.payments.cancel")}
           />
         </CardContent>
       </Card>

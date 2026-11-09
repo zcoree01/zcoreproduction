@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { PERMISSION_KEYS } from "@/lib/auth/permissions";
 import { activeNavItem, buildNavigation, NAV_ITEMS, type NavItemDef } from "./registry";
 
 const access = (modules: string[], permissions: string[] = []) => ({
   modules: new Set(modules),
   permissions: new Set(permissions),
 });
+
+const ALL_PERMISSION_KEYS: string[] = [...PERMISSION_KEYS];
 
 const ids = (sections: ReturnType<typeof buildNavigation>) =>
   sections.map((s) => [s.section, s.items.map((i) => i.id)]);
@@ -130,7 +133,7 @@ describe("buildNavigation", () => {
     ]);
   });
 
-  it("shows the platform section only with the platform module and platform.manage", () => {
+  it("shows the platform section only with the platform module and platform.read", () => {
     const withPlatform = (modules: string[], permissions: string[]) =>
       ids(
         buildNavigation("app", {
@@ -138,21 +141,64 @@ describe("buildNavigation", () => {
           permissions: new Set(permissions),
         }),
       ).find(([section]) => section === "platform");
-    expect(withPlatform(["platform"], ["platform.manage"])).toEqual([
+    expect(withPlatform(["platform"], ["platform.read", "platform.settings.manage"])).toEqual([
       "platform",
       ["platform-organizations", "platform-requests", "platform-settings"],
     ]);
-    expect(withPlatform([], ["platform.manage"])).toBeUndefined();
-    // The Zcore organization needs no company data or support settings of its own.
-    const zcoreAdmin = ids(
+    expect(withPlatform([], ["platform.read"])).toBeUndefined();
+    // The old catch-all permission opens nothing any more.
+    expect(withPlatform(["platform"], ["platform.manage"])).toBeUndefined();
+    expect(withPlatform(["platform"], [])).toBeUndefined();
+  });
+
+  it("shows only the platform items in the Zcore organization", () => {
+    const everything = ALL_PERMISSION_KEYS;
+    const zcore = ids(
       buildNavigation("app", {
         modules: new Set(["core", "platform"]),
-        permissions: new Set(["org.settings.manage", "support.approve", "platform.manage"]),
+        permissions: new Set(everything),
       }),
     );
-    expect(zcoreAdmin.flatMap(([, items]) => items)).not.toContain("company-settings");
-    expect(zcoreAdmin.flatMap(([, items]) => items)).not.toContain("support-settings");
-    expect(withPlatform(["platform"], [])).toBeUndefined();
+    expect(zcore.flatMap(([, items]) => items)).toEqual([
+      "dashboard",
+      "users",
+      "roles",
+      "platform-organizations",
+      "platform-requests",
+      "platform-settings",
+    ]);
+  });
+
+  it("hides platform settings from the Tehničar", () => {
+    const technician = [
+      "platform.read",
+      "platform.modules.manage",
+      "platform.packages.assign",
+      "platform.support",
+      "platform.directory.approve",
+      "platform.payments.record",
+      "platform.lock",
+    ];
+    const items = ids(
+      buildNavigation("app", {
+        modules: new Set(["core", "platform"]),
+        permissions: new Set(technician),
+      }),
+    ).flatMap(([, list]) => list);
+    expect(items).toEqual(["dashboard", "platform-organizations", "platform-requests"]);
+  });
+
+  it("shows platform settings with either settings or package management", () => {
+    const settings = (permission: string) =>
+      ids(
+        buildNavigation("app", {
+          modules: new Set(["core", "platform"]),
+          permissions: new Set(["platform.read", permission]),
+        }),
+      ).flatMap(([, list]) => list);
+    expect(settings("platform.settings.manage")).toContain("platform-settings");
+    expect(settings("platform.packages.manage")).toContain("platform-settings");
+    expect(settings("platform.lock")).not.toContain("platform-settings");
   });
 
   it("offers attendance to every worker on the floor and to managers in the app", () => {

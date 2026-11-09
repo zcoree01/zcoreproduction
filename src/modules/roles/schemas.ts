@@ -1,14 +1,40 @@
 import { z } from "zod";
-import { permissionKeySchema } from "@/lib/auth/permissions";
+import { isPermissionKey, permissionKeySchema, type PermissionKey } from "@/lib/auth/permissions";
 
-// Custom roles (D-046): name and permissions; platform.manage is never offered.
+// Custom roles (D-046): name and permissions; platform.manage and
+// platform.organizations.delete are never offered.
+
+const NEVER_CUSTOM: readonly string[] = ["platform.manage", "platform.organizations.delete"];
+const PLATFORM_ORG_EXTRA: readonly string[] = [
+  "users.read",
+  "users.manage",
+  "roles.manage",
+  "audit.read",
+];
+
+/**
+ * Permissions a custom role may get (mirrors public.save_custom_role): the
+ * Zcore organization only platform permissions plus user, role and audit
+ * management; every other organization nothing from the platform module.
+ */
+export function customRolePermissionKeys(
+  isPlatformOrg: boolean,
+  all: readonly { key: string; module: string }[],
+): PermissionKey[] {
+  return all.flatMap((row) => {
+    if (!isPermissionKey(row.key) || NEVER_CUSTOM.includes(row.key)) return [];
+    const platform = row.module === "platform";
+    const allowed = isPlatformOrg ? platform || PLATFORM_ORG_EXTRA.includes(row.key) : !platform;
+    return allowed ? [row.key] : [];
+  });
+}
 
 export const roleSchema = z.object({
   name: z.string().trim().min(1).max(100),
   permissions: z
     .array(permissionKeySchema)
     .max(100)
-    .refine((keys) => !keys.includes("platform.manage")),
+    .refine((keys) => !keys.some((key) => NEVER_CUSTOM.includes(key))),
 });
 
 export type RoleInput = z.infer<typeof roleSchema>;

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { dbErrorKind } from "@/lib/actions/result";
+import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { toAuthEmail } from "@/lib/auth/username";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,9 +35,12 @@ function fail(
   return { ok: false, error: "unexpected" };
 }
 
-/** Platform admin asks an organization for support access (platform.manage in the RPC). */
+/** Platform admin asks an organization for support access (platform.support here and in the RPC). */
 export async function requestSupportAction(input: unknown): Promise<Result> {
-  await requireMember();
+  const member = await requireMember();
+  if (!(await permitAction(member.organization.id, "platform.support"))) {
+    return { ok: false, error: "denied" };
+  }
   const parsed = requestSupportSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
@@ -76,7 +80,10 @@ export async function decideSupportAction(input: unknown): Promise<Result> {
  * approved time is over (RLS and the proxy stop the account at once).
  */
 export async function enterSupportAction(requestId: unknown): Promise<Result<{ url: string }>> {
-  await requireMember();
+  const member = await requireMember();
+  if (!(await permitAction(member.organization.id, "platform.support"))) {
+    return { ok: false, error: "denied" };
+  }
   const parsedId = z.uuid().safeParse(requestId);
   if (!parsedId.success) return { ok: false, error: "invalid" };
 

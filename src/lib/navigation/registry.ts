@@ -90,6 +90,8 @@ export type NavItemDef = {
   hiddenForModule?: string;
   /** Required permission; with a list, any one of them is enough. */
   permission?: PermissionKey | readonly PermissionKey[];
+  /** In an organization with the platform module only items with this flag are shown (Zcore organization). */
+  platformOrg?: true;
   surface: NavSurface;
   section: NavSectionKey;
 };
@@ -106,6 +108,7 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "dashboard",
     icon: "dashboard",
     module: "core",
+    platformOrg: true,
     surface: "app",
     section: "overview",
   },
@@ -356,6 +359,7 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "users",
     module: "core",
     permission: "users.read",
+    platformOrg: true,
     surface: "app",
     section: "administration",
   },
@@ -366,6 +370,7 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     icon: "shield",
     module: "core",
     permission: "roles.manage",
+    platformOrg: true,
     surface: "app",
     section: "administration",
   },
@@ -397,7 +402,8 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "platformOrganizations",
     icon: "shield",
     module: "platform",
-    permission: "platform.manage",
+    permission: "platform.read",
+    platformOrg: true,
     surface: "app",
     section: "platform",
   },
@@ -407,7 +413,8 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "platformRequests",
     icon: "inbox",
     module: "platform",
-    permission: "platform.manage",
+    permission: "platform.read",
+    platformOrg: true,
     surface: "app",
     section: "platform",
   },
@@ -417,7 +424,8 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     label: "platformSettings",
     icon: "settings",
     module: "platform",
-    permission: "platform.manage",
+    permission: ["platform.settings.manage", "platform.packages.manage"],
+    platformOrg: true,
     surface: "app",
     section: "platform",
   },
@@ -572,9 +580,11 @@ export function buildNavigation(
   access: NavAccess,
   items: readonly NavItemDef[] = NAV_ITEMS,
 ): NavSection[] {
+  const zcoreOrg = access.modules.has("platform");
   const visible = items.filter(
     (item) =>
       item.surface === surface &&
+      (!zcoreOrg || surface !== "app" || item.platformOrg === true) &&
       access.modules.has(item.module) &&
       !(item.hiddenForModule && access.modules.has(item.hiddenForModule)) &&
       hasAnyPermission(access.permissions, item.permission),

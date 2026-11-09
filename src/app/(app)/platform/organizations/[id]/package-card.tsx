@@ -36,6 +36,8 @@ export function PackageCard({
   defaultGraceDays,
   autoLock,
   modules,
+  canAssign,
+  canBilling,
 }: {
   organizationId: string;
   /** Packages that can be chosen (not archived, plus the current one) with their modules. */
@@ -46,6 +48,10 @@ export function PackageCard({
   defaultGraceDays: number;
   autoLock: boolean;
   modules: OrganizationBilling["modules"];
+  /** platform.packages.assign: change the package. */
+  canAssign: boolean;
+  /** platform.lock: grace period and auto-lock. */
+  canBilling: boolean;
 }) {
   const t = useTranslations("platform.billing.packageCard");
   const tb = useTranslations("platform.billing");
@@ -96,7 +102,7 @@ export function PackageCard({
           <NativeSelect
             aria-label={t("package")}
             value={packageId ?? ""}
-            disabled={pending}
+            disabled={pending || !canAssign}
             onChange={(event) => choose(event.target.value)}
             className="min-w-48"
           >
@@ -152,15 +158,19 @@ export function PackageCard({
                   ? t("graceFromSettings", { days: defaultGraceDays })
                   : t("graceOwn", { days: graceDays })}
               </span>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                className="underline underline-offset-2 hover:text-foreground"
-                onClick={() => setEditingGrace(true)}
-              >
-                {t("changeGrace")}
-              </button>
-              {graceDays !== null ? (
+              {canBilling ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <button
+                    type="button"
+                    className="underline underline-offset-2 hover:text-foreground"
+                    onClick={() => setEditingGrace(true)}
+                  >
+                    {t("changeGrace")}
+                  </button>
+                </>
+              ) : null}
+              {canBilling && graceDays !== null ? (
                 <>
                   <span aria-hidden>·</span>
                   <button
@@ -180,7 +190,7 @@ export function PackageCard({
           <NativeSelect
             aria-label={t("autoLock")}
             value={autoLock ? "on" : "off"}
-            disabled={pending}
+            disabled={pending || !canBilling}
             onChange={(event) =>
               saveBilling(graceDays === null ? "" : String(graceDays), event.target.value === "on")
             }

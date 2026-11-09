@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { setupFixture, type Fixture } from "./fixtures";
 
 // Role editor (D-046): custom roles with their permissions (create, change,
-// archive when unused), system roles fixed, platform.manage never granted,
+// archive when unused), system roles fixed, platform permissions never granted to tenants,
 // roles.manage and tenant checks. Roles named "DBR …".
 
 let fx: Fixture;
@@ -111,7 +111,7 @@ describe("custom roles", () => {
     expect(archived.error).toBeNull();
   });
 
-  it("keeps system roles fixed and never grants platform.manage", async () => {
+  it("keeps system roles fixed and never grants platform permissions to a tenant role", async () => {
     const admin = await fx.service
       .from("roles")
       .select("id")
@@ -133,6 +133,15 @@ describe("custom roles", () => {
       p_permissions: ["platform.manage"],
     });
     expect(platform.error?.message).toBe("invalid_permission");
+    for (const key of ["platform.read", "platform.lock", "platform.organizations.delete"]) {
+      const denied = await fx.a.admin.rpc("save_custom_role", {
+        p_org_id: fx.a.org.id,
+        p_role_id: null as unknown as string,
+        p_name: "DBR Platforma",
+        p_permissions: [key],
+      });
+      expect(denied.error?.message).toBe("invalid_permission");
+    }
     const taken = await fx.a.admin.rpc("save_custom_role", {
       p_org_id: fx.a.org.id,
       p_role_id: null as unknown as string,

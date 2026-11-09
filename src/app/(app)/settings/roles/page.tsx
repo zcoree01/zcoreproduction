@@ -34,7 +34,7 @@ async function RolesContent({ searchParams }: { searchParams: Promise<SearchPara
   }
   const [roles, permissions] = await Promise.all([
     listRolesWithPermissions(organizationId),
-    listGrantablePermissions(),
+    listGrantablePermissions(access.modules.has("platform")),
   ]);
   const params = await searchParams;
   const selected = z.uuid().safeParse(firstParam(params.role));

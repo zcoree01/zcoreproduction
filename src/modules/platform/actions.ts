@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { dbErrorKind } from "@/lib/actions/result";
+import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { zonedLocalToUtc } from "@/lib/timezone";
@@ -17,9 +18,12 @@ function fail(error: { code?: string; message?: string }, label: string): Platfo
   return { ok: false, error: "unexpected" };
 }
 
-/** Module on / off and trial end for an organization (platform.manage, checked in the RPC). */
+/** Module on / off and trial end for an organization (platform.modules.manage here and in the RPC). */
 export async function setOrganizationModuleAction(input: unknown): Promise<PlatformResult> {
-  await requireMember();
+  const member = await requireMember();
+  if (!(await permitAction(member.organization.id, "platform.modules.manage"))) {
+    return { ok: false, error: "denied" };
+  }
   const parsed = setModuleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
@@ -37,7 +41,10 @@ export async function setOrganizationModuleAction(input: unknown): Promise<Platf
 }
 
 export async function setTrialDaysAction(days: unknown): Promise<PlatformResult> {
-  await requireMember();
+  const member = await requireMember();
+  if (!(await permitAction(member.organization.id, "platform.settings.manage"))) {
+    return { ok: false, error: "denied" };
+  }
   const parsed = trialDaysSchema.safeParse(days);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const supabase = await createClient();

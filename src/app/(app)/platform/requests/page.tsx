@@ -23,7 +23,7 @@ async function PlatformRequestsContent() {
   const member = await requireMember();
   const [t, access] = await Promise.all([getTranslations("platform"), getMemberAccess(member)]);
   if (!access.modules.has("platform")) return <ModuleDisabled />;
-  if (!access.permissions.has("platform.manage")) {
+  if (!access.permissions.has("platform.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 
@@ -40,7 +40,10 @@ async function PlatformRequestsContent() {
         />
       ) : (
         <div className="max-w-3xl">
-          <ChangeRequestList requests={requests} />
+          <ChangeRequestList
+            requests={requests}
+            canDecide={access.permissions.has("platform.directory.approve")}
+          />
         </div>
       )}
     </>

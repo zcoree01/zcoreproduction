@@ -52,7 +52,7 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
     searchParams,
   ]);
   if (!access.modules.has("platform")) return <ModuleDisabled />;
-  if (!access.permissions.has("platform.manage")) {
+  if (!access.permissions.has("platform.read")) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 

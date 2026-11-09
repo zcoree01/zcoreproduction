@@ -22,7 +22,19 @@ import type { PermissionInfo, RoleWithPermissions } from "@/modules/roles/querie
 type Role = RoleWithPermissions & { label: string };
 type Draft = { id: string | null; name: string; permissions: PermissionKey[] };
 
-const MODULE_ORDER = ["core", "production", "attendance", "inventory"] as const;
+const MODULE_ORDER = [
+  "platform",
+  "core",
+  "production",
+  "planning",
+  "reports",
+  "attendance",
+  "inventory",
+  "finished_goods",
+  "tools",
+  "kiosk",
+  "payroll",
+] as const;
 const messageKey = (key: PermissionKey) => key.replace(/\./g, "_");
 
 /**
@@ -63,6 +75,7 @@ export function RoleEditor({
     );
   }
 
+  const grantable = new Set<string>(permissions.map((p) => p.key));
   const editing = draft !== null;
   const shown: PermissionKey[] = draft ? draft.permissions : (selected?.permissions ?? []);
   const dirty =
@@ -173,7 +186,7 @@ export function RoleEditor({
                     setDraft({
                       id: null,
                       name: t("copyName", { name: selected.label }),
-                      permissions: selected.permissions.filter((key) => key !== "platform.manage"),
+                      permissions: selected.permissions.filter((key) => grantable.has(key)),
                     });
                   }}
                 >

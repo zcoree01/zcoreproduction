@@ -5323,12 +5323,71 @@
     "moduleOff": "Modul nije uključen za firmu",
     "unsaved": "Ima nesačuvanih izmjena.",
     "modules": {
+      "platform": "Zcore platforma",
       "core": "Osnovno",
       "production": "Proizvodnja",
       "attendance": "Prisustvo i smjene",
-      "inventory": "Magacin"
+      "inventory": "Magacin",
+      "planning": "Planiranje",
+      "reports": "Izvještaji",
+      "finished_goods": "Gotova roba i otpremnice",
+      "tools": "Alati",
+      "kiosk": "Kiosk",
+      "payroll": "Obračun sati za plate"
     },
     "permissions": {
+      "platform_read": {
+        "label": "Pregled platforme",
+        "hint": "Lista firmi, njihovi moduli, paketi i stanje naplate."
+      },
+      "platform_revenue_read": {
+        "label": "Prihod platforme",
+        "hint": "Zbirni prihod od pretplata."
+      },
+      "platform_modules_manage": {
+        "label": "Moduli firmi",
+        "hint": "Uključivanje i isključivanje modula i probnih perioda firme."
+      },
+      "platform_packages_assign": {
+        "label": "Dodjela paketa",
+        "hint": "Dodjela paketa firmi."
+      },
+      "platform_packages_manage": {
+        "label": "Uređivanje paketa",
+        "hint": "Pravljenje, izmjena i arhiviranje paketa i cijena."
+      },
+      "platform_support": {
+        "label": "Podrška firmama",
+        "hint": "Traženje i korištenje pristupa za podršku."
+      },
+      "platform_directory_approve": {
+        "label": "Odluke o imeniku",
+        "hint": "Odobravanje zahtjeva za izmjenu i preuzimanje firmi u imeniku."
+      },
+      "platform_payments_record": {
+        "label": "Evidentiranje uplata",
+        "hint": "Označavanje mjeseci kao plaćenih."
+      },
+      "platform_payments_cancel": {
+        "label": "Poništavanje uplata",
+        "hint": "Poništavanje evidentiranih uplata."
+      },
+      "platform_lock": {
+        "label": "Zaključavanje firmi",
+        "hint": "Zaključavanje, otključavanje, rok i automatsko zaključavanje."
+      },
+      "platform_settings_manage": {
+        "label": "Postavke platforme",
+        "hint": "Rok plaćanja, upozorenja, kontakt i probni period."
+      },
+      "platform_organizations_archive": {
+        "label": "Arhiviranje firmi",
+        "hint": "Arhiviranje firmi."
+      },
+      "platform_organizations_delete": {
+        "label": "Brisanje firmi",
+        "hint": "Trajno brisanje firmi (samo sistemski Administrator)."
+      },
       "org_settings_manage": {
         "label": "Postavke firme",
         "hint": "Podaci o firmi i opšte postavke."

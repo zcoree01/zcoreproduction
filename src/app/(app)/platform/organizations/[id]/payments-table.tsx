@@ -29,12 +29,18 @@ export function PaymentsTable({
   months,
   today,
   timezone,
+  canRecord,
+  canCancel,
 }: {
   organizationId: string;
   months: BillingMonth[];
   /** Today in the organization's timezone (default payment day). */
   today: string;
   timezone: string;
+  /** platform.payments.record: mark a month paid. */
+  canRecord: boolean;
+  /** platform.payments.cancel: cancel a recorded payment. */
+  canCancel: boolean;
 }) {
   const t = useTranslations("platform.billing.payments");
   const tb = useTranslations("platform.billing");
@@ -112,15 +118,17 @@ export function PaymentsTable({
                 </TableCell>
                 <TableCell className="text-right">
                   {month.state === "paid" ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => setCancelling(month)}
-                    >
-                      {t("cancel")}
-                    </Button>
-                  ) : (
+                    canCancel ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => setCancelling(month)}
+                      >
+                        {t("cancel")}
+                      </Button>
+                    ) : null
+                  ) : canRecord ? (
                     <Button
                       size="sm"
                       disabled={pending}
@@ -132,7 +140,7 @@ export function PaymentsTable({
                     >
                       {t("markPaid")}
                     </Button>
-                  )}
+                  ) : null}
                 </TableCell>
               </TableRow>
             ))}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { actionFail, dbErrorKind, invalidFields } from "@/lib/actions/result";
+import { getMemberAccess } from "@/lib/auth/access";
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -140,6 +141,13 @@ export async function requestCompanyChangeAction(input: unknown) {
 /** Owner organization (own entry) or the platform admin (entries without owner, claims). */
 export async function decideCompanyChangeAction(input: unknown) {
   const member = await requireMember();
+  // The Zcore organization decides as the platform: platform.directory.approve.
+  if (
+    (await getMemberAccess(member)).modules.has("platform") &&
+    !(await permitAction(member.organization.id, "platform.directory.approve"))
+  ) {
+    return actionFail<"note">("denied");
+  }
   const parsed = decisionSchema.safeParse(input);
   if (!parsed.success) return actionFail<"note">("invalid", invalidFields(parsed.error, ["note"]));
   const supabase = await createClient();

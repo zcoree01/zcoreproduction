@@ -1,6 +1,7 @@
 import "server-only";
 import { isPermissionKey, type PermissionKey } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { customRolePermissionKeys } from "./schemas";
 
 // Roles of the organization with their permissions and active members
 // (D-046), read through RLS.
@@ -54,13 +55,19 @@ export async function listRolesWithPermissions(
   }));
 }
 
-/** Every permission a custom role may get, with its module (platform.manage excluded). */
-export async function listGrantablePermissions(): Promise<PermissionInfo[]> {
+/** Every permission a custom role of this organization may get, with its module. */
+export async function listGrantablePermissions(isPlatformOrg: boolean): Promise<PermissionInfo[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("permissions").select("key, module_key").order("key");
   if (error) throw error;
+  const allowed = new Set<string>(
+    customRolePermissionKeys(
+      isPlatformOrg,
+      data.map((row) => ({ key: row.key, module: row.module_key })),
+    ),
+  );
   return data.flatMap((row) =>
-    isPermissionKey(row.key) && row.key !== "platform.manage"
+    allowed.has(row.key) && isPermissionKey(row.key)
       ? [{ key: row.key, module: row.module_key }]
       : [],
   );

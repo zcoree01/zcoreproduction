@@ -31,9 +31,12 @@ export function ModulesCard({
   organizationId,
   modules,
   today,
+  canManage,
 }: {
   organizationId: string;
   modules: Module[];
+  /** platform.modules.manage: trial / turn off buttons. */
+  canManage: boolean;
   /** Today in the platform's time zone (smallest trial end). */
   today: string;
 }) {
@@ -105,7 +108,7 @@ export function ModulesCard({
                   <span className="flex-1">{name(module.key)}</span>
                   <StatusBadge tone={tone}>{label}</StatusBadge>
                   <div className="w-36 text-right">
-                    {module.source === "off" ? (
+                    {!canManage ? null : module.source === "off" ? (
                       <Button
                         variant="outline"
                         size="sm"

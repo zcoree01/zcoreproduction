@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { dbErrorKind, type DbError } from "@/lib/actions/result";
+import type { PermissionKey } from "@/lib/auth/permissions";
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { nullableParam, numericParam } from "@/lib/supabase/numeric";
@@ -17,15 +18,15 @@ import {
   unlockUntilSchema,
 } from "./schemas";
 
-// Platform billing actions (D-049): platform.manage here and in every RPC.
+// Platform billing actions (D-049): each action checks its own platform permission here and in the RPC.
 
 export type BillingActionError =
   "invalid" | "denied" | "not_found" | "unexpected" | "reason_required" | "module_requirement";
 export type BillingActionResult = { ok: true } | { ok: false; error: BillingActionError };
 
-async function platformAllowed(): Promise<boolean> {
+async function platformAllowed(permission: PermissionKey): Promise<boolean> {
   const member = await requireMember();
-  return permitAction(member.organization.id, "platform.manage");
+  return permitAction(member.organization.id, permission);
 }
 
 function billingFail(error: DbError, label: string): BillingActionResult {
@@ -45,7 +46,7 @@ function revalidateBilling() {
 }
 
 export async function assignPackageAction(input: unknown): Promise<BillingActionResult> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  if (!(await platformAllowed("platform.packages.assign"))) return { ok: false, error: "denied" };
   const parsed = assignPackageSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
@@ -59,7 +60,7 @@ export async function assignPackageAction(input: unknown): Promise<BillingAction
 }
 
 export async function setOrgBillingAction(input: unknown): Promise<BillingActionResult> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  if (!(await platformAllowed("platform.lock"))) return { ok: false, error: "denied" };
   const parsed = orgBillingSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
@@ -74,9 +75,15 @@ export async function setOrgBillingAction(input: unknown): Promise<BillingAction
 }
 
 export async function setPaymentAction(input: unknown): Promise<BillingActionResult> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
   const parsed = setPaymentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
+  if (
+    !(await platformAllowed(
+      parsed.data.paid ? "platform.payments.record" : "platform.payments.cancel",
+    ))
+  ) {
+    return { ok: false, error: "denied" };
+  }
   const supabase = await createClient();
   const { error } = await supabase.rpc("platform_set_payment", {
     p_org_id: parsed.data.organizationId,
@@ -91,7 +98,7 @@ export async function setPaymentAction(input: unknown): Promise<BillingActionRes
 }
 
 export async function setLockAction(input: unknown): Promise<BillingActionResult> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  if (!(await platformAllowed("platform.lock"))) return { ok: false, error: "denied" };
   const parsed = setLockSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -113,7 +120,7 @@ export async function setLockAction(input: unknown): Promise<BillingActionResult
 }
 
 export async function unlockUntilAction(input: unknown): Promise<BillingActionResult> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  if (!(await platformAllowed("platform.lock"))) return { ok: false, error: "denied" };
   const parsed = unlockUntilSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const supabase = await createClient();
@@ -131,7 +138,7 @@ export async function savePackageAction(
   id: string | null,
   input: unknown,
 ): Promise<BillingActionResult & { id?: string }> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  if (!(await platformAllowed("platform.packages.manage"))) return { ok: false, error: "denied" };
   const parsedId = z.uuid().nullable().safeParse(id);
   const parsed = packageSchema.safeParse(input);
   if (!parsedId.success || !parsed.success) return { ok: false, error: "invalid" };
@@ -151,7 +158,7 @@ export async function setPackageArchivedAction(
   id: unknown,
   archived: unknown,
 ): Promise<BillingActionResult> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  if (!(await platformAllowed("platform.packages.manage"))) return { ok: false, error: "denied" };
   const parsedId = z.uuid().safeParse(id);
   const parsedArchived = z.boolean().safeParse(archived);
   if (!parsedId.success || !parsedArchived.success) return { ok: false, error: "invalid" };
@@ -166,7 +173,7 @@ export async function setPackageArchivedAction(
 }
 
 export async function saveBillingSettingsAction(input: unknown): Promise<BillingActionResult> {
-  if (!(await platformAllowed())) return { ok: false, error: "denied" };
+  if (!(await platformAllowed("platform.settings.manage"))) return { ok: false, error: "denied" };
   const parsed = billingSettingsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const supabase = await createClient();

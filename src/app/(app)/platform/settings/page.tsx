@@ -23,7 +23,9 @@ async function PlatformSettingsContent() {
   const member = await requireMember();
   const [t, access] = await Promise.all([getTranslations("platform"), getMemberAccess(member)]);
   if (!access.modules.has("platform")) return <ModuleDisabled />;
-  if (!access.permissions.has("platform.manage")) {
+  const canSettings = access.permissions.has("platform.settings.manage");
+  const canPackages = access.permissions.has("platform.packages.manage");
+  if (!canSettings && !canPackages) {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
   const [settings, packages, dependencies] = await Promise.all([
@@ -34,15 +36,17 @@ async function PlatformSettingsContent() {
   return (
     <>
       <PageHeader title={t("settingsTitle")} description={t("settingsDescription")} />
-      <PackagesCard packages={packages} dependencies={dependencies} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <BillingSettingsForm
-          graceDays={settings.paymentGraceDays}
-          warningDays={settings.lockWarningDays}
-          contact={settings.lockContact}
-        />
-        <TrialDaysForm initial={settings.defaultTrialDays} />
-      </div>
+      {canPackages ? <PackagesCard packages={packages} dependencies={dependencies} /> : null}
+      {canSettings ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <BillingSettingsForm
+            graceDays={settings.paymentGraceDays}
+            warningDays={settings.lockWarningDays}
+            contact={settings.lockContact}
+          />
+          <TrialDaysForm initial={settings.defaultTrialDays} />
+        </div>
+      ) : null}
     </>
   );
 }

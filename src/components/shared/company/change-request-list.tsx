@@ -33,17 +33,30 @@ const SNAKE_TO_FIELD = Object.fromEntries(
 ) as Record<string, CompanyFieldKey>;
 
 /** Pending change requests / claims with old → new values and approve / reject. */
-export function ChangeRequestList({ requests }: { requests: ChangeRequestView[] }) {
+export function ChangeRequestList({
+  requests,
+  canDecide = true,
+}: {
+  requests: ChangeRequestView[];
+  /** False: the requests are shown without approve / reject. */
+  canDecide?: boolean;
+}) {
   return (
     <ul className="flex flex-col gap-4">
       {requests.map((request) => (
-        <ChangeRequestItem key={request.id} request={request} />
+        <ChangeRequestItem key={request.id} request={request} canDecide={canDecide} />
       ))}
     </ul>
   );
 }
 
-function ChangeRequestItem({ request }: { request: ChangeRequestView }) {
+function ChangeRequestItem({
+  request,
+  canDecide,
+}: {
+  request: ChangeRequestView;
+  canDecide: boolean;
+}) {
   const t = useTranslations("changeRequests");
   const tField = useTranslations("companyFields");
   const format = useFormatter();
@@ -137,7 +150,7 @@ function ChangeRequestItem({ request }: { request: ChangeRequestView }) {
         </Field>
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">
-        {rejecting ? (
+        {!canDecide ? null : rejecting ? (
           <>
             <Button variant="ghost" onClick={() => setRejecting(false)} disabled={pending}>
               {t("cancel")}
