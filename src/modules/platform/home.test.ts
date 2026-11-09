@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { firmTrend, formatKm, platformHomeSchema, revenueProgress, stateSlices } from "./home";
+import {
+  firmTrend,
+  formatKm,
+  overdueLockedCount,
+  platformHomeSchema,
+  revenueProgress,
+  stateSlices,
+} from "./home";
 
 const example = {
   today: "2026-11-09",
@@ -82,5 +89,22 @@ describe("formatKm", () => {
     expect(formatKm("4350.00")).toBe("4.350 KM");
     expect(formatKm("1234567.5")).toBe("1.234.567,50 KM");
     expect(formatKm("0.00")).toBe("0 KM");
+  });
+});
+
+describe("overdueLockedCount", () => {
+  const row = (state: "overdue" | "locked") => ({
+    organization_id: "o",
+    name: "n",
+    package_name: null,
+    period: "2026-11-01",
+    amount: "10.00",
+    days_late: 1,
+    state,
+  });
+  it("counts only locked unpaid firms", () => {
+    expect(overdueLockedCount([])).toBe(0);
+    expect(overdueLockedCount([row("overdue"), row("locked"), row("locked")])).toBe(2);
+    expect(overdueLockedCount([row("overdue")])).toBe(0);
   });
 });

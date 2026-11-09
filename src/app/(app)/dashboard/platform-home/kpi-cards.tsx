@@ -11,7 +11,13 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { firmTrend, formatKm, revenueProgress, type PlatformHome } from "@/modules/platform/home";
+import {
+  firmTrend,
+  formatKm,
+  overdueLockedCount,
+  revenueProgress,
+  type PlatformHome,
+} from "@/modules/platform/home";
 
 function Kpi({
   icon,
@@ -98,7 +104,7 @@ export function KpiCards({ data, showRevenue }: { data: PlatformHome; showRevenu
         {revenue ? (
           <span>{t("lateTotal", { amount: formatKm(revenue.overdue_total) })}</span>
         ) : null}
-        <span>{t("lateLocked", { count: data.firms.locked })}</span>
+        <span>{t("lateLocked", { count: overdueLockedCount(data.overdue) })}</span>
       </Kpi>
     </div>
   );

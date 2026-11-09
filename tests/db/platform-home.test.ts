@@ -65,13 +65,9 @@ const cents = (value: string) => Math.round(Number(value) * 100);
 const month = (monthsAgo: number) => localMonthDay(monthsAgo);
 
 async function home(db: Db): Promise<Home> {
-  const { data, error } = await (
-    db.rpc as unknown as (
-      name: string,
-    ) => Promise<{ data: unknown; error: { code: string } | null }>
-  )("platform_home");
+  const { data, error } = await db.rpc("platform_home");
   expect(error).toBeNull();
-  return data as Home;
+  return data as unknown as Home;
 }
 
 async function setArchived(archived: boolean) {
@@ -218,9 +214,7 @@ describe("platform_home", () => {
   });
 
   it("refuses a tenant admin", async () => {
-    const { error } = await (
-      fx.b.admin.rpc as unknown as (name: string) => Promise<{ error: { code: string } | null }>
-    )("platform_home");
+    const { error } = await fx.b.admin.rpc("platform_home");
     expect(error?.code).toBe("42501");
   });
 

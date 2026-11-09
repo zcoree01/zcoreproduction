@@ -74,6 +74,11 @@ export function stateSlices(
   return SLICE_KEYS.map((key) => ({ key, value: firms[key] })).filter((slice) => slice.value > 0);
 }
 
+/** Locked firms among the unpaid ones (same set as the "Kasne s uplatom" count). */
+export function overdueLockedCount(overdue: PlatformHome["overdue"]): number {
+  return overdue.filter((row) => row.state === "locked").length;
+}
+
 /** "4.350 KM" / "4.350,50 KM": thousands dots, decimal comma, ".00" dropped. */
 export function formatKm(amount: string): string {
   const negative = amount.startsWith("-");
