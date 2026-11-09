@@ -47,3 +47,6 @@ supabase/.branches
 
 # Brainstorming mockups (local only)
 .superpowers/
+
+# Claude Code worktrees
+.claude/worktrees/
