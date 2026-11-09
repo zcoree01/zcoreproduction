@@ -2625,6 +2625,148 @@ export type Database = {
         }
         Relationships: []
       }
+      problem_report_files: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          mime_type: string
+          organization_id: string
+          report_id: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          mime_type: string
+          organization_id: string
+          report_id: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          mime_type?: string
+          organization_id?: string
+          report_id?: string
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "problem_report_files_organization_id_report_id_fkey"
+            columns: ["organization_id", "report_id"]
+            isOneToOne: false
+            referencedRelation: "problem_reports"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      problem_report_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          from_zcore: boolean
+          id: string
+          organization_id: string
+          report_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          from_zcore?: boolean
+          id?: string
+          organization_id: string
+          report_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          from_zcore?: boolean
+          id?: string
+          organization_id?: string
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "problem_report_messages_organization_id_report_id_fkey"
+            columns: ["organization_id", "report_id"]
+            isOneToOne: false
+            referencedRelation: "problem_reports"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      problem_reports: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          idempotency_key: string
+          last_message_at: string | null
+          organization_id: string
+          page_path: string | null
+          resolved_at: string | null
+          status: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          idempotency_key: string
+          last_message_at?: string | null
+          organization_id: string
+          page_path?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          idempotency_key?: string
+          last_message_at?: string | null
+          organization_id?: string
+          page_path?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "problem_reports_organization_id_created_by_fkey"
+            columns: ["organization_id", "created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "problem_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_attachments: {
         Row: {
           archived_at: string | null
@@ -6624,6 +6766,26 @@ export type Database = {
           slug: string
         }[]
       }
+      platform_problem_report: { Args: { p_id: string }; Returns: Json }
+      platform_problem_reports: {
+        Args: { p_category?: string; p_org?: string; p_status?: string }
+        Returns: {
+          author_name: string
+          category: string
+          created_at: string
+          description: string
+          id: string
+          last_message_at: string
+          message_count: number
+          organization_id: string
+          organization_name: string
+          status: string
+        }[]
+      }
+      platform_reply_problem_report: {
+        Args: { p_body: string; p_id: string; p_status?: string }
+        Returns: string
+      }
       platform_request_support: {
         Args: { p_org_id: string; p_reason: string }
         Returns: string
@@ -6682,6 +6844,10 @@ export type Database = {
           p_paid_on: string
           p_period: string
         }
+        Returns: undefined
+      }
+      platform_set_problem_status: {
+        Args: { p_id: string; p_status: string }
         Returns: undefined
       }
       platform_set_trial_days: { Args: { p_days: number }; Returns: undefined }
@@ -6915,6 +7081,16 @@ export type Database = {
         }
         Returns: Json
       }
+      register_problem_report_file: {
+        Args: {
+          p_mime: string
+          p_org: string
+          p_path: string
+          p_report_id: string
+          p_size: number
+        }
+        Returns: string
+      }
       registration_attempt: {
         Args: { p_client_hash: string; p_kind: string; p_max: number }
         Returns: boolean
@@ -6926,6 +7102,10 @@ export type Database = {
       replace_order_drawings: {
         Args: { p_order_id: string; p_revision_id: string }
         Returns: undefined
+      }
+      reply_problem_report: {
+        Args: { p_body: string; p_org: string; p_report_id: string }
+        Returns: string
       }
       report_inventory: {
         Args: { p_from: string; p_org_id: string; p_to: string }
@@ -7242,6 +7422,17 @@ export type Database = {
       start_operation_work: {
         Args: { p_operation_id: string }
         Returns: undefined
+      }
+      submit_problem_report: {
+        Args: {
+          p_category: string
+          p_description: string
+          p_idempotency_key: string
+          p_org: string
+          p_page_path: string
+          p_user_agent: string
+        }
+        Returns: string
       }
       submit_stock_count: { Args: { p_count_id: string }; Returns: undefined }
       update_member: {

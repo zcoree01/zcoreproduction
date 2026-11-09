@@ -38,6 +38,7 @@ export const PERMISSION_KEYS = [
   "platform.payments.record",
   "platform.payments.cancel",
   "platform.lock",
+  "platform.reports.manage",
   "platform.settings.manage",
   "platform.organizations.archive",
   "platform.organizations.delete",

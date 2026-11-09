@@ -25,6 +25,7 @@ const PLATFORM_PERMISSIONS = [
   "platform.payments.record",
   "platform.payments.cancel",
   "platform.lock",
+  "platform.reports.manage",
   "platform.settings.manage",
   "platform.organizations.archive",
   "platform.organizations.delete",
@@ -38,6 +39,7 @@ const TECHNICIAN_PERMISSIONS = [
   "platform.directory.approve",
   "platform.payments.record",
   "platform.lock",
+  "platform.reports.manage",
 ];
 
 type Db = SupabaseClient<Database>;
