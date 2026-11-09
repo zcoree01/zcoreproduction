@@ -1,6 +1,6 @@
 # Zcore firma kao upravljačka firma: meni, uloge, početna, prijave problema, brisanje firmi — dizajn
 
-Datum: 2026-11-09 · Vlasnik proizvoda: Zcore (platformski admin) · Status: čeka odobrenje
+Datum: 2026-11-09 · Vlasnik proizvoda: Zcore (platformski admin) · Status: odobreno · dio 1 urađen (grana feat/zcore-organization)
 
 ## Zašto
 

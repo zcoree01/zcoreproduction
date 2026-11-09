@@ -678,3 +678,31 @@ The product owner chose the free variant ("logičnija mi je").
 - **Screens**: `/platform` list (package, monthly amount, state, last paid month, members; filters, search); `/platform/organizations/[id]` (lock with a reason / unlock, open until a day, package, grace days, auto-lock, modules by source with trials, support access, payments per month, history); `/platform/settings` (packages, grace / warning days, contact, trial days).
 
 **Consequences:** Locking is safe against direct API calls. A firm locked while a worker is mid-operation can finish it, ship it and clock out. Support accounts are locked too; the platform admin opens the firm temporarily when support must change something. No online payment, invoices are still issued outside the app.
+
+## D-050 — Zcore organization as the managing firm, part 1 (2026-11-09)
+
+**Context:** The product owner wants the `zcore` organization (`organizations.is_platform`) to be the firm through which Zcore manages every other firm: its own roles, granular platform permissions instead of one switch, a menu only Zcore sees, subscriptions paid in advance with a permanent payment record, and the ability to archive a firm and delete it for good after a waiting period. Design: `docs/superpowers/specs/2026-11-09-zcore-organization-design.md` (parts 2 and 3 — platform home, problem reports, speed and usage — are still to do).
+
+**Decision:**
+
+- **Roles and permissions** (`20261110170000`, `20261110171000`, `20261110172000`). The Zcore organization gets two system roles, `platform_admin` ("Administrator") and `platform_technician` ("Tehničar"), and 13 platform permissions. The Technician sees package prices but not revenue, cannot manage packages, cancel payments, change platform settings, archive or delete. Mapping of RPC to permission, checked by `private.require_platform_permission` in every RPC and again in every server action:
+  - `platform.read` (Admin, Technician): firm overview and detail.
+  - `platform.revenue.read` (Admin): revenue totals (used in part 2).
+  - `platform.modules.manage` (both): `platform_set_module`.
+  - `platform.packages.assign` (both): `platform_assign_package`.
+  - `platform.packages.manage` (Admin): `platform_save_package`, `platform_set_package_archived`.
+  - `platform.lock` (both): `platform_set_lock`, `platform_unlock_until`, `platform_set_org_billing`.
+  - `platform.settings.manage` (Admin): `platform_save_billing_settings`, `platform_set_trial_days`.
+  - `platform.support` (both): `platform_request_support`, `platform_begin_support`.
+  - `platform.directory.approve` (both): `decide_company_change`.
+  - `platform.payments.record` (both) / `platform.payments.cancel` (Admin): `platform_set_payment`.
+  - `platform.organizations.archive` (Admin): archive and restore.
+  - `platform.organizations.delete` (Admin): schedule and cancel deletion.
+- **`platform.manage` is kept for now** (ruling R1). The linked Supabase project is shared with production (`main`), whose pages and actions still check `platform.manage`, so it is granted to the Administrator only and dropped by a cleanup migration after the merge. New code never checks it and it is never offered to custom roles.
+- **Zcore menu and custom roles.** The Zcore organization gets its own menu (`platformOrg` flag on the navigation items). Custom roles in the Zcore organization may hold platform permissions, but never `platform.organizations.delete` and never `platform.manage`.
+- **Prepaid subscription changes D-049's due rule.** A month is now paid in advance: due date = `greatest(period + grace, prepaid_since + grace)`, where `prepaid_since` is the day of the migration (`20261110180000`), a transition date so existing firms are not locked at once. Payments are also written to `platform_payment_records`, a permanent table with `firm_id` and no `organization_id` and no foreign key, so it survives the purge of a firm. Cancelling a payment marks the record cancelled; it is never deleted.
+- **Archive** (`20261110190000`). An archived firm gets no new lock state (ruling R3: the live `/platform` badge has no such tone); "archived" comes from `organizations.archived_at`, and access is already cut by `private.user_org_ids`. Archived months are not billed, the kiosk refuses archived firms, and an open support session is ended (a pending request is cancelled). Restore returns the firm; the month of restoring is billed in full.
+- **Deletion** (`20261110190000`, `20261110200000`, `20261110210000`). The administrator types the exact firm name (after `trim()`, case sensitive, checked in the UI and in the RPC); that schedules deletion with `delete_after = now() + interval '30 days'` and the firm can still be restored in that time. Cancelling is refused with `not_cancellable` once `delete_after <= now()` (ruling R4), because files may already be gone. A daily cron (`vercel.json`, 03:00, route checks `Authorization: Bearer ${CRON_SECRET}`) purges due firms: first the files in Storage, then the rows of every table with `organization_id` in one RPC. What survives: the company directory entry, `platform_payment_records`, and an `organization.purged` audit row in the Zcore organization.
+- **Exception to rule 8 ("archive, don't delete").** Permanent deletion of a firm's data is a deliberate, product-owner-approved exception, limited to whole firms, gated by a dedicated permission, a typed name and a 30-day undo, and always leaving a purge audit row and the payment records.
+
+**Consequences:** Platform work can be split between an Administrator and a Technician, and the Zcore team can create their own roles. Until `platform.manage` is dropped the permission list has one leftover row. Nothing is ever purged unless `CRON_SECRET` is set in Vercel. The purge is one RPC, so a very large firm may hit the statement timeout. The platform-side banner wording is still postpaid. Each DB test run leaves one `organization.purged` audit row in the Zcore organization.
