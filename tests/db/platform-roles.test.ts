@@ -1,6 +1,15 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { ensureOrganization } from "@/modules/organizations/provision";
-import { setupFixture, type Fixture } from "./fixtures";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { nullableParam, numericParam } from "@/lib/supabase/numeric";
+import type { Database } from "@/lib/supabase/types";
+import {
+  ensureModuleEnabled,
+  ensureOrganization,
+  ensureUser,
+} from "@/modules/organizations/provision";
+import { SELLABLE_MODULES } from "@/modules/platform/modules";
+import { testTenantPassword } from "../shared/test-tenants";
+import { setupFixture, signIn, type Fixture } from "./fixtures";
 
 // Zcore organization roles (platform_admin = Administrator, platform_technician
 // = Tehničar) and the granular platform permissions.
@@ -31,8 +40,13 @@ const TECHNICIAN_PERMISSIONS = [
   "platform.lock",
 ];
 
+type Db = SupabaseClient<Database>;
+
 let fx: Fixture;
 let zcoreId = "";
+let admin: Db;
+let tech: Db;
+const memberIds: string[] = [];
 
 async function permissionsOf(roleKey: string) {
   const role = await fx.service
@@ -52,7 +66,55 @@ async function permissionsOf(roleKey: string) {
 
 beforeAll(async () => {
   fx = await setupFixture();
-  zcoreId = (await ensureOrganization(fx.service, { slug: "zcore", name: "Zcore" })).id;
+  const zcore = await ensureOrganization(fx.service, { slug: "zcore", name: "Zcore" });
+  zcoreId = zcore.id;
+  for (const [username, role] of [
+    ["db.platform.admin", "platform_admin"],
+    ["db.platform.tech", "platform_technician"],
+  ] as const) {
+    const id = await ensureUser(fx.service, zcore, {
+      username,
+      password: testTenantPassword(),
+      fullName: username,
+      role,
+    });
+    await fx.service.from("memberships").update({ archived_at: null }).eq("user_id", id);
+    memberIds.push(id);
+  }
+  admin = await signIn("db.platform.admin", "zcore");
+  tech = await signIn("db.platform.tech", "zcore");
+});
+
+async function cleanupB() {
+  const b = fx.b.org.id;
+  await fx.service.from("organization_packages").delete().eq("organization_id", b);
+  const packages = await fx.service.from("billing_packages").select("id").like("name", "DBR%");
+  const ids = (packages.data ?? []).map((row) => row.id);
+  if (ids.length > 0) {
+    await fx.service.from("organization_packages").delete().in("package_id", ids);
+    await fx.service.from("billing_package_modules").delete().in("package_id", ids);
+    await fx.service.from("billing_package_prices").delete().in("package_id", ids);
+    await fx.service.from("billing_packages").delete().in("id", ids);
+  }
+  await fx.service.from("organization_billing").delete().eq("organization_id", b);
+  for (const key of ["core", ...SELLABLE_MODULES]) {
+    await ensureModuleEnabled(fx.service, fx.b.org, key);
+  }
+  await fx.service
+    .from("org_modules")
+    .update({ enabled: true, active_until: null })
+    .eq("organization_id", b)
+    .in("module_key", ["core", ...SELLABLE_MODULES]);
+}
+
+afterAll(async () => {
+  await cleanupB();
+  for (const id of memberIds) {
+    await fx.service
+      .from("memberships")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("user_id", id);
+  }
 });
 
 describe("Zcore platform roles", () => {
@@ -102,5 +164,64 @@ describe("Zcore platform roles", () => {
       .is("archived_at", null);
     expect(error).toBeNull();
     expect((data ?? []).every((m) => m.roles.archived_at === null)).toBe(true);
+  });
+});
+
+describe("platform RPC permissions", () => {
+  it("lets the Tehničar change modules, assign a package, lock and unlock", async () => {
+    const created = await admin.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: `DBR ${crypto.randomUUID().slice(0, 8)}`,
+      p_monthly_price: numericParam("100"),
+      p_modules: ["production"],
+    });
+    expect(created.error).toBeNull();
+    try {
+      const b = fx.b.org.id;
+      const moduleSet = await tech.rpc("platform_set_module", {
+        p_org_id: b,
+        p_module: SELLABLE_MODULES[0]!,
+        p_enabled: true,
+        p_active_until: nullableParam<string>(null),
+      });
+      expect(moduleSet.error).toBeNull();
+      const assigned = await tech.rpc("platform_assign_package", {
+        p_org_id: b,
+        p_package_id: created.data!,
+      });
+      expect(assigned.error).toBeNull();
+      const locked = await tech.rpc("platform_set_lock", {
+        p_org_id: b,
+        p_locked: true,
+        p_reason: "DBR provjera",
+      });
+      expect(locked.error).toBeNull();
+      const unlocked = await tech.rpc("platform_set_lock", {
+        p_org_id: b,
+        p_locked: false,
+        p_reason: nullableParam<string>(null),
+      });
+      expect(unlocked.error).toBeNull();
+    } finally {
+      await cleanupB();
+    }
+  });
+
+  it("refuses the Tehničar packages, platform settings and trial days", async () => {
+    const pkg = await tech.rpc("platform_save_package", {
+      p_id: nullableParam<string>(null),
+      p_name: `DBR ${crypto.randomUUID().slice(0, 8)}`,
+      p_monthly_price: numericParam("100"),
+      p_modules: ["production"],
+    });
+    expect(pkg.error?.code).toBe("42501");
+    const settings = await tech.rpc("platform_save_billing_settings", {
+      p_grace_days: 5,
+      p_warning_days: 3,
+      p_contact: "DBR",
+    });
+    expect(settings.error?.code).toBe("42501");
+    const trial = await tech.rpc("platform_set_trial_days", { p_days: 14 });
+    expect(trial.error?.code).toBe("42501");
   });
 });
