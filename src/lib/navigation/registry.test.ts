@@ -146,8 +146,6 @@ describe("buildNavigation", () => {
       ["platform-organizations", "platform-requests", "platform-settings"],
     ]);
     expect(withPlatform([], ["platform.read"])).toBeUndefined();
-    // The old catch-all permission opens nothing any more.
-    expect(withPlatform(["platform"], ["platform.manage"])).toBeUndefined();
     expect(withPlatform(["platform"], [])).toBeUndefined();
   });
 

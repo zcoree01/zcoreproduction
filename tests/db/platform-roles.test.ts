@@ -149,11 +149,17 @@ describe("Zcore platform roles", () => {
     }
   });
 
-  it("keeps platform.manage only on the Administrator during the transition", async () => {
+  it("no longer has platform.manage (removed after the merge)", async () => {
     const admin = await permissionsOf("platform_admin");
     const technician = await permissionsOf("platform_technician");
-    expect(admin).toContain("platform.manage");
+    expect(admin).not.toContain("platform.manage");
     expect(technician).not.toContain("platform.manage");
+    const { data, error } = await fx.service
+      .from("permissions")
+      .select("key")
+      .eq("key", "platform.manage");
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
   });
 
   it("moves existing Zcore members to Administrator", async () => {

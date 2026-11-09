@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { isPermissionKey, permissionKeySchema, type PermissionKey } from "@/lib/auth/permissions";
 
-// Custom roles (D-046): name and permissions; platform.manage and
-// platform.organizations.delete are never offered.
+// Custom roles (D-046): name and permissions; platform.organizations.delete is
+// never offered (only the system Administrator deletes firms, D-050).
 
-const NEVER_CUSTOM: readonly string[] = ["platform.manage", "platform.organizations.delete"];
+const NEVER_CUSTOM: readonly string[] = ["platform.organizations.delete"];
 const PLATFORM_ORG_EXTRA: readonly string[] = [
   "users.read",
   "users.manage",

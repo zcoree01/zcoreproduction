@@ -8,7 +8,6 @@ const all = [
   { key: "users.manage", module: "core" },
   { key: "roles.manage", module: "core" },
   { key: "audit.read", module: "core" },
-  { key: "platform.manage", module: "platform" },
   { key: "platform.read", module: "platform" },
   { key: "platform.lock", module: "platform" },
   { key: "platform.organizations.delete", module: "platform" },
@@ -35,8 +34,6 @@ describe("customRolePermissionKeys", () => {
       "platform.lock",
     ]);
     expect(zcore).not.toContain("platform.organizations.delete");
-    expect(zcore).not.toContain("platform.manage");
-    expect(tenant).not.toContain("platform.manage");
   });
 
   it("offers the Zcore organization no production permissions", () => {
@@ -47,7 +44,7 @@ describe("customRolePermissionKeys", () => {
 });
 
 describe("roleSchema", () => {
-  it("never accepts platform.manage or platform.organizations.delete", () => {
+  it("never accepts platform.organizations.delete or an unknown key", () => {
     expect(roleSchema.safeParse({ name: "A", permissions: ["platform.read"] }).success).toBe(true);
     expect(roleSchema.safeParse({ name: "A", permissions: ["platform.manage"] }).success).toBe(
       false,

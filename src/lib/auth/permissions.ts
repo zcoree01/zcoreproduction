@@ -28,7 +28,6 @@ export const PERMISSION_KEYS = [
   "absences.manage",
   "absences.sensitive.read",
   "attendance.approve.managers",
-  "platform.manage",
   "platform.read",
   "platform.revenue.read",
   "platform.modules.manage",
