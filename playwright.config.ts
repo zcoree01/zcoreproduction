@@ -1,8 +1,11 @@
-import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+import { loadTestEnv } from "./scripts/lib/test-env.mts";
 
-// Test credentials (DEMO_PASSWORD, TEST_TENANT_PASSWORD) live in .env.local.
-if (existsSync(".env.local")) process.loadEnvFile(".env.local");
+// Runs against the local Docker Supabase (D-052): .env.local is the base
+// (DEMO_PASSWORD, TEST_TENANT_PASSWORD), .env.test.local points at the local DB.
+// The same env goes to the dev server, which never overrides process env.
+const testEnv = loadTestEnv();
+Object.assign(process.env, testEnv);
 
 const PORT = 3000;
 const baseURL = `http://localhost:${PORT}`;
@@ -31,7 +34,9 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: `${baseURL}/login`,
-    reuseExistingServer: !process.env.CI,
+    env: testEnv,
+    // Never reuse a running dev server: it may be connected to production.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

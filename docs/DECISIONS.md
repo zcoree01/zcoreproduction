@@ -737,3 +737,17 @@ The product owner chose the free variant ("logičnija mi je").
 - **Zcore bell** reads report messages with the service role, after a `platform.reports.manage` check in the server code.
 
 **Consequences:** Users have one place to ask for help and Zcore can answer and offer a session in the same thread. The service-role read in the Zcore bell is acceptable but returns full message bodies and does not filter archived firms; it could become an RPC. Known gaps are listed in `docs/STATUS.md`.
+
+## D-052 — Local Docker database for DB and e2e tests (2026-11-10)
+
+**Context:** `npm run test:db` and `npm run e2e` ran against the only Supabase project, which is production. The tests create and delete organizations, users and payments; a killed run left rows behind (e.g. platform-home payments). A second cloud project was rejected in favour of the free local Supabase stack in Docker.
+
+**Decision:**
+
+- `npm run db:start` (`supabase start`) builds the local database from `supabase/migrations/` and `supabase/seed.sql`; `npm run seed:demo:local` seeds the demo firm into it.
+- `.env.test.local` (gitignored) holds the local URL and keys and overrides `.env.local` for tests only. `scripts/lib/test-env.mts` merges both files for `vitest.db.config.mts` and `playwright.config.ts`, and **refuses any host other than `127.0.0.1` / `localhost`** unless `ALLOW_REMOTE_TEST_DB=1` is set.
+- Playwright passes the same env to its own `npm run dev` and never reuses a running dev server (`reuseExistingServer: false`), because a developer's server on port 3000 talks to production.
+- `supabase/roles.sql` (run by the CLI only locally, before the migrations; `db push` never sends it) recreates what the hosted platform adds on its own: `public.rls_auto_enable()` and the `ensure_rls` event trigger, copied from production. Migration `20261023160300` depends on that function.
+- `npm run dev`, `seed:demo`, `db:types` and `db push` still use the linked production project.
+
+**Consequences:** Tests no longer touch production data, and new migrations can be tried locally (`supabase db reset` on the local stack) before `db push`. Docker Desktop must be running for `test:db` and `e2e`. If the hosted platform adds more objects that migrations rely on, they must be mirrored in `roles.sql`.

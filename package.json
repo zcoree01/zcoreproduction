@@ -20,6 +20,10 @@
     "format:check": "prettier --check .",
     "test:db": "vitest run --config vitest.db.config.mts",
     "seed:demo": "tsx --env-file=.env.local scripts/seed-demo.ts",
+    "seed:demo:local": "tsx --env-file=.env.local --env-file=.env.test.local scripts/seed-demo.ts",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
     "platform:admin": "tsx --env-file=.env.local scripts/create-platform-admin.ts",
     "db:types": "supabase gen types typescript --linked > src/lib/supabase/types.ts"
   },
