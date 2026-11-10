@@ -143,7 +143,7 @@ describe("buildNavigation", () => {
       ).find(([section]) => section === "platform");
     expect(withPlatform(["platform"], ["platform.read", "platform.settings.manage"])).toEqual([
       "platform",
-      ["platform-organizations", "platform-requests", "platform-settings"],
+      ["platform-organizations", "platform-reports", "platform-requests", "platform-settings"],
     ]);
     expect(withPlatform([], ["platform.read"])).toBeUndefined();
     expect(withPlatform(["platform"], [])).toBeUndefined();
@@ -162,6 +162,7 @@ describe("buildNavigation", () => {
       "users",
       "roles",
       "platform-organizations",
+      "platform-reports",
       "platform-requests",
       "platform-settings",
     ]);
@@ -183,7 +184,12 @@ describe("buildNavigation", () => {
         permissions: new Set(technician),
       }),
     ).flatMap(([, list]) => list);
-    expect(items).toEqual(["dashboard", "platform-organizations", "platform-requests"]);
+    expect(items).toEqual([
+      "dashboard",
+      "platform-organizations",
+      "platform-reports",
+      "platform-requests",
+    ]);
   });
 
   it("shows platform settings with either settings or package management", () => {

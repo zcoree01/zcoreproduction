@@ -37,11 +37,13 @@ import {
 } from "@/modules/notifications/rules";
 import { pendingCloseRequestsAction } from "@/modules/production-reporting/actions";
 import type { PendingCloseRequest } from "@/modules/production-reporting/queries";
+import { zcoreReportNoticesAction } from "@/modules/platform/reports-actions";
+import type { ZcoreReportNotice } from "@/modules/platform/reports-queries";
 import { reportNoticesAction } from "@/modules/support/problem-reports/actions";
 import type { ReportNotice } from "@/modules/support/problem-reports/types";
 
 const POLL_MS = 30_000;
-const GROUPS = ["reports", "approvals", "attendance", "close"] as const;
+const GROUPS = ["zcore", "reports", "approvals", "attendance", "close"] as const;
 
 /**
  * Notification bell (D-038): requests to close an order with a shortage
@@ -61,6 +63,7 @@ export function CloseRequestBell({
   attendance,
   approvals: approver,
   reports: reporter,
+  zcoreReports: zcore,
 }: {
   initial: PendingCloseRequest[];
   initialAlerts: AttendanceAlert[];
@@ -71,6 +74,8 @@ export function CloseRequestBell({
   approvals: boolean;
   /** Replies from Zcore support and decisions on proposed sessions (every firm member). */
   reports: boolean;
+  /** New problem reports and user replies (Zcore organization, platform.reports.manage). */
+  zcoreReports: boolean;
 }) {
   const t = useTranslations("notifications");
   const tUnits = useTranslations("productUnits");
@@ -80,11 +85,20 @@ export function CloseRequestBell({
   const [alerts, setAlerts] = useState(initialAlerts);
   const [approvals, setApprovals] = useState(initialApprovals);
   const [notices, setNotices] = useState<ReportNotice[]>([]);
+  const [zcoreNotices, setZcoreNotices] = useState<ZcoreReportNotice[]>([]);
   const [state, setState] = useState(initialState);
   const shown = useRef(new Set<string>());
 
   const sources = useMemo<BellSource[]>(
     () => [
+      ...zcoreNotices.map((notice) => ({
+        key: notice.key,
+        group: "zcore" as const,
+        href: `/platform/reports/${notice.reportId}`,
+        title: t(`zcoreReports.${notice.kind}.title`),
+        detail: notice.detail,
+        toast: t(`zcoreReports.${notice.kind}.toast`),
+      })),
       ...notices.map((notice) => ({
         key: notice.key,
         group: "reports" as const,
@@ -139,7 +153,7 @@ export function CloseRequestBell({
         toast: t("newToast", { number: request.orderNumber }),
       })),
     ],
-    [notices, approvals, alerts, requests, t, tUnits],
+    [zcoreNotices, notices, approvals, alerts, requests, t, tUnits],
   );
   const items = useMemo(() => bellItems(sources, state), [sources, state]);
   const count = unreadCount(items);
@@ -173,7 +187,8 @@ export function CloseRequestBell({
   useEffect(() => {
     for (const item of itemsToAnnounce(items, shown.current)) {
       shown.current.add(item.key);
-      const calm = item.group === "approvals" || item.group === "reports";
+      const calm =
+        item.group === "approvals" || item.group === "reports" || item.group === "zcore";
       const show = calm ? toast.info : toast.warning;
       show(item.toast, {
         id: item.key,
@@ -192,7 +207,7 @@ export function CloseRequestBell({
     let active = true;
     const refresh = async () => {
       try {
-        const [list, alertList, approvalList, nextState, noticeList] = await Promise.all([
+        const [list, alertList, approvalList, nextState, noticeList, zcoreList] = await Promise.all([
           closes ? pendingCloseRequestsAction() : Promise.resolve([]),
           attendance ? pendingAttendanceAlertsAction() : Promise.resolve([]),
           approver
@@ -200,9 +215,11 @@ export function CloseRequestBell({
             : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
           notificationStateAction(),
           reporter ? reportNoticesAction() : Promise.resolve([]),
+          zcore ? zcoreReportNoticesAction() : Promise.resolve([]),
         ]);
         if (!active) return;
         setNotices(noticeList);
+        setZcoreNotices(zcoreList);
         setRequests(list);
         setAlerts(alertList);
         setApprovals(approvalList);
@@ -224,9 +241,10 @@ export function CloseRequestBell({
       window.removeEventListener("focus", refresh);
       window.removeEventListener(REPORT_NOTICES_CHANGED_EVENT, refresh);
     };
-  }, [pathname, closes, attendance, approver, reporter]);
+  }, [pathname, closes, attendance, approver, reporter, zcore]);
 
   const titles: Record<(typeof GROUPS)[number], string> = {
+    zcore: t("zcoreReportsTitle"),
     reports: t("reportsTitle"),
     approvals: t("approvalsTitle"),
     attendance: t("attendanceTitle"),

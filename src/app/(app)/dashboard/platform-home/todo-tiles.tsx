@@ -1,4 +1,4 @@
-import { HourglassIcon, InboxIcon, LifeBuoyIcon, Trash2Icon } from "lucide-react";
+import { GaugeIcon, HourglassIcon, InboxIcon, LifeBuoyIcon, MessageSquareWarningIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ComponentType } from "react";
@@ -6,7 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PlatformHome } from "@/modules/platform/home";
 
 type Tile = {
-  key: "directoryRequests" | "supportPending" | "trialsEnding" | "deletionsScheduled";
+  key:
+    | "directoryRequests"
+    | "supportPending"
+    | "trialsEnding"
+    | "deletionsScheduled"
+    | "problemReports"
+    | "slowOpen";
   icon: ComponentType<{ className?: string }>;
   href: string;
   value: number;
@@ -21,7 +27,24 @@ export function TodoTiles({ todo }: { todo: PlatformHome["todo"] }) {
       href: "/platform/requests",
       value: todo.directory_requests,
     },
-    { key: "supportPending", icon: LifeBuoyIcon, href: "/platform", value: todo.support_pending },
+    {
+      key: "problemReports",
+      icon: MessageSquareWarningIcon,
+      href: "/platform/reports",
+      value: todo.problem_reports_open,
+    },
+    {
+      key: "slowOpen",
+      icon: GaugeIcon,
+      href: "/platform/reports?category=slow",
+      value: todo.slow_open,
+    },
+    {
+      key: "supportPending",
+      icon: LifeBuoyIcon,
+      href: "/platform/reports?tab=support",
+      value: todo.support_pending,
+    },
     {
       key: "trialsEnding",
       icon: HourglassIcon,

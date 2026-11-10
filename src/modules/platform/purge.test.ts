@@ -121,6 +121,23 @@ function fakeClient(opts: {
 }
 
 describe("purgeDueOrganizations", () => {
+  it("covers the problem report screenshots bucket", async () => {
+    expect(actual.ORGANIZATION_BUCKETS).toContain("problem-report-files");
+    const fake = fakeClient({
+      due: ["org-a"],
+      files: {
+        "problem-report-files": {
+          "org-a": [{ name: "r1", id: null }],
+          "org-a/r1": [{ name: "f1", id: "x" }],
+        },
+      },
+    });
+    await actual.purgeDueOrganizations(fake.client, new Date("2026-12-10T03:00:00Z"));
+    expect(
+      fake.removed.filter((r) => r.bucket === "problem-report-files").flatMap((r) => r.paths),
+    ).toEqual(["org-a/r1/f1"]);
+  });
+
   it("removes the firm's files in every bucket (nested folders), then purges it", async () => {
     const many = Array.from({ length: 150 }, (_, i) => ({ name: `f${i}.pdf`, id: `id${i}` }));
     const fake = fakeClient({

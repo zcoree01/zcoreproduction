@@ -94,6 +94,7 @@ export function KpiCards({ data, showRevenue }: { data: PlatformHome; showRevenu
       </Kpi>
       <Kpi icon={<UsersIcon />} label={t("users")} value={data.users}>
         <span>{t("usersHint")}</span>
+        <span>{t("usersActive", { count: data.usage.active_7d })}</span>
       </Kpi>
       <Kpi
         icon={<ClockIcon />}

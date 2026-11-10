@@ -6,8 +6,10 @@ import { getPlatformHome } from "@/modules/platform/home-queries";
 import { FirmStates } from "./firm-states";
 import { KpiCards } from "./kpi-cards";
 import { OverdueTable } from "./overdue-table";
+import { ProblemsCard } from "./problems-card";
 import { RevenueChart } from "./revenue-chart";
 import { TodoTiles } from "./todo-tiles";
+import { UsageChart } from "./usage-chart";
 
 /** Zcore home: numbers across all firms. Revenue only with platform.revenue.read. */
 export async function PlatformHome({
@@ -38,6 +40,14 @@ export async function PlatformHome({
           </div>
           <div className="xl:col-span-5">
             <FirmStates firms={data.firms} />
+          </div>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-12">
+          <div className="xl:col-span-8">
+            <UsageChart usage={data.usage} />
+          </div>
+          <div className="xl:col-span-4">
+            <ProblemsCard problems={data.problems} />
           </div>
         </div>
         {revenue ? (

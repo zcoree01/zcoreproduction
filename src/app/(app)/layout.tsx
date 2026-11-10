@@ -67,7 +67,10 @@ async function AppShell({ children }: { children: ReactNode }) {
   if (inFirm) {
     await recordMemberActivityAfterResponse(member.organization.id);
   }
-  const bell = approver || attendanceManager || decider || inFirm;
+  // Zcore answers problem reports: new reports and replies of users go to its bell.
+  const zcoreReports =
+    access.modules.has("platform") && access.permissions.has("platform.reports.manage");
+  const bell = approver || attendanceManager || decider || inFirm || zcoreReports;
   const [pendingCloses, attendanceAlerts, approvals, notificationState] = await Promise.all([
     approver ? listPendingCloseRequests(member.organization.id) : Promise.resolve([]),
     attendanceManager ? listAttendanceAlerts(member.organization.id) : Promise.resolve([]),
@@ -141,6 +144,7 @@ async function AppShell({ children }: { children: ReactNode }) {
                   attendance={attendanceManager}
                   approvals={decider}
                   reports={inFirm}
+                  zcoreReports={zcoreReports}
                 />
               ) : null}
             </>

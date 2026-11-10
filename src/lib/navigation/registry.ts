@@ -37,6 +37,7 @@ export type NavLabelKey =
   | "companySettings"
   | "supportSettings"
   | "platformOrganizations"
+  | "platformReports"
   | "platformRequests"
   | "platformSettings"
   | "monthly"
@@ -401,6 +402,17 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     href: "/platform",
     label: "platformOrganizations",
     icon: "shield",
+    module: "platform",
+    permission: "platform.read",
+    platformOrg: true,
+    surface: "app",
+    section: "platform",
+  },
+  {
+    id: "platform-reports",
+    href: "/platform/reports",
+    label: "platformReports",
+    icon: "inbox",
     module: "platform",
     permission: "platform.read",
     platformOrg: true,

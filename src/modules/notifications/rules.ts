@@ -20,7 +20,7 @@ export type NotificationState = { read: string[]; dismissed: string[] };
 
 export type BellSource = {
   key: string;
-  group: "approvals" | "attendance" | "close" | "reports";
+  group: "approvals" | "attendance" | "close" | "reports" | "zcore";
   href: string;
   title: string;
   detail: string;

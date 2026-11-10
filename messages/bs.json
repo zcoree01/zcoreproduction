@@ -94,6 +94,7 @@
     "absences": "Odsustva i zahtjevi",
     "companySettings": "Podaci o firmi",
     "platformOrganizations": "Firme",
+    "platformReports": "Prijave",
     "platformRequests": "Zahtjevi za imenik",
     "platformSettings": "Postavke platforme",
     "supportSettings": "Zcore podrška",
@@ -2389,7 +2390,18 @@
     },
     "markAllRead": "Označi sve kao pročitano",
     "remove": "Ukloni obavještenje: {title}",
-    "unread": "nepročitano"
+    "unread": "nepročitano",
+    "zcoreReportsTitle": "Prijave problema",
+    "zcoreReports": {
+      "new": {
+        "title": "Nova prijava problema",
+        "toast": "Stigla je nova prijava problema."
+      },
+      "reply": {
+        "title": "Odgovor korisnika",
+        "toast": "Korisnik je odgovorio na prijavu."
+      }
+    }
   },
   "productionDay": {
     "title": "Pregled proizvodnje",
@@ -5639,7 +5651,8 @@
       "usersHint": "aktivni, bez naloga podrške",
       "late": "Kasne s uplatom",
       "lateTotal": "{amount} dugovanja",
-      "lateLocked": "{count} {count, plural, one {zaključana} few {zaključane} other {zaključanih}}"
+      "lateLocked": "{count} {count, plural, one {zaključana} few {zaključane} other {zaključanih}}",
+      "usersActive": "aktivni 7 dana: {count}"
     },
     "todo": {
       "title": "Za riješiti",
@@ -5647,7 +5660,9 @@
       "directoryRequests": "Zahtjevi za imenik",
       "supportPending": "Podrška na čekanju",
       "trialsEnding": "Probe ističu (7 dana)",
-      "deletionsScheduled": "Zakazane za brisanje"
+      "deletionsScheduled": "Zakazane za brisanje",
+      "problemReports": "Prijave problema",
+      "slowOpen": "Sporo radi"
     },
     "states": {
       "title": "Stanje firmi",
@@ -5673,6 +5688,20 @@
         "state": "Stanje"
       },
       "noPackage": "—"
+    },
+    "usageChart": {
+      "title": "Korištenje — aktivni korisnici po danu",
+      "alt": "Aktivni korisnici po danu, zadnjih 30 dana",
+      "day": "Dan",
+      "users": "Aktivni korisnici"
+    },
+    "problems": {
+      "title": "Prijave problema",
+      "open": "Otvorene",
+      "resolvedThisMonth": "Riješene ovaj mjesec",
+      "average": "Prosječno rješavanje",
+      "days": "{days} dana",
+      "openAll": "Sve prijave"
     }
   },
   "problemReports": {
@@ -5740,6 +5769,109 @@
       "not_found": "Prijava nije pronađena.",
       "upload_failed": "Slanje slike nije uspjelo.",
       "unexpected": "Akcija nije uspjela zbog greške. Pokušajte ponovo."
+    }
+  },
+  "platformReports": {
+    "title": "Prijave",
+    "description": "Prijave problema svih firmi i zahtjevi za pristup podrške.",
+    "deniedDescription": "Pregled prijava zahtijeva dozvolu za čitanje platforme.",
+    "errorTitle": "Prijave nije moguće učitati",
+    "tabs": {
+      "reports": "Prijave problema",
+      "support": "Pristup podrške"
+    },
+    "statuses": {
+      "new": "Nova",
+      "in_progress": "U obradi",
+      "waiting_user": "Čeka korisnika",
+      "resolved": "Riješena"
+    },
+    "filters": {
+      "status": "Stanje",
+      "category": "Kategorija",
+      "organization": "Firma",
+      "all": "Sva",
+      "allOrganizations": "Sve firme",
+      "apply": "Filtriraj",
+      "clear": "Poništi filtere"
+    },
+    "emptyTitle": "Nema prijava",
+    "emptyDescription": "Kad firme pošalju prijavu problema, pojavit će se ovdje.",
+    "emptyFilteredTitle": "Nema prijava za ovaj filter",
+    "emptyFilteredDescription": "Promijenite ili poništite filtere.",
+    "columns": {
+      "organization": "Firma",
+      "category": "Kategorija",
+      "description": "Opis",
+      "status": "Stanje",
+      "lastActivity": "Zadnja aktivnost"
+    },
+    "support": {
+      "emptyTitle": "Nema zahtjeva za pristup",
+      "emptyDescription": "Zahtjevi za pristup podrške firmama pojavljuju se ovdje.",
+      "columns": {
+        "organization": "Firma",
+        "requestedBy": "Tražio",
+        "reason": "Razlog",
+        "when": "Kada",
+        "window": "Termin",
+        "status": "Stanje",
+        "remaining": "Preostalo"
+      },
+      "window": "{start}, {duration}",
+      "remaining": "{minutes} min"
+    },
+    "detail": {
+      "back": "Sve prijave",
+      "description": "Prijava problema i razgovor s korisnikom.",
+      "status": "Stanje",
+      "noDescription": "Bez opisa.",
+      "screenshot": "Slika ekrana",
+      "screenshotUnavailable": "Slika nije dostupna.",
+      "conversation": "Razgovor",
+      "noMessages": "Još nema poruka.",
+      "fromZcore": "Zcore podrška ({name})",
+      "reply": "Odgovor korisniku",
+      "afterReply": "Nakon odgovora",
+      "keepStatus": "Zadrži stanje",
+      "sendReply": "Pošalji odgovor",
+      "replied": "Odgovor je poslan.",
+      "statusChanged": "Stanje je promijenjeno.",
+      "context": "Kontekst",
+      "organization": "Firma",
+      "author": "Korisnik",
+      "page": "Stranica",
+      "device": "Uređaj",
+      "time": "Vrijeme",
+      "openOrganization": "Otvori firmu",
+      "sessions": "Sesije podrške",
+      "noSessions": "Nema predloženih sesija.",
+      "errors": {
+        "invalid": "Provjerite unos.",
+        "denied": "Nemate dozvolu.",
+        "not_found": "Prijava nije pronađena.",
+        "support_open": "Za ovu firmu već postoji otvoren zahtjev za pristup.",
+        "unexpected": "Akcija nije uspjela zbog greške. Pokušajte ponovo."
+      }
+    },
+    "schedule": {
+      "button": "Zakaži sesiju",
+      "title": "Zakaži sesiju podrške",
+      "description": "Firma dobija prijedlog termina; odobrava ga administrator ili direktor firme.",
+      "date": "Datum",
+      "time": "Vrijeme",
+      "duration": "Trajanje",
+      "reason": "Razlog (vidi ga firma)",
+      "cancel": "Odustani",
+      "submit": "Pošalji prijedlog",
+      "done": "Termin je predložen firmi.",
+      "errors": {
+        "invalid": "Provjerite datum, vrijeme i razlog. Termin ne može biti u prošlosti.",
+        "denied": "Nemate dozvolu.",
+        "not_found": "Prijava nije pronađena.",
+        "support_open": "Za ovu firmu već postoji otvoren zahtjev za pristup.",
+        "unexpected": "Akcija nije uspjela zbog greške. Pokušajte ponovo."
+      }
     }
   }
 }
