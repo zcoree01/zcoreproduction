@@ -136,10 +136,10 @@ export function HelpButton({ size = "icon" }: { size?: "icon" | "icon-lg" }) {
             className="min-h-0 flex-1 px-4 pb-4"
           >
             <TabsList className="w-full" aria-label={t("button")}>
-              <TabsTrigger value="new" className="h-9 text-sm">
+              <TabsTrigger value="new" className="h-11 text-sm md:h-9">
                 {t("tabNew")}
               </TabsTrigger>
-              <TabsTrigger value="mine" className="h-9 text-sm">
+              <TabsTrigger value="mine" className="h-11 text-sm md:h-9">
                 {t("tabMine")}
                 {unread ? (
                   <span aria-hidden className="size-2 rounded-full bg-destructive" />

@@ -3,14 +3,15 @@ import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 import { toAuthEmail } from "@/lib/auth/username";
 import { ensureOrganization, ensureUser } from "../src/modules/organizations/provision";
-import { DEMO_ORG, demoPassword } from "../scripts/lib/demo-users";
 import { createAdminClient } from "../scripts/lib/admin-client";
-import { testTenantPassword } from "../tests/shared/test-tenants";
+import { TEST_TENANTS, testTenantPassword } from "../tests/shared/test-tenants";
 import { expectPath, login } from "./helpers";
+import { ensureFloorFixture, FLOOR_OPERATOR } from "./production-fixture";
 
 // Reporting a problem from the top bar (floor header and management app),
 // "Moje prijave", the Zcore reply and its notifications. Every report made
-// here carries RUN in its description and is removed afterwards.
+// here carries RUN in its description and is removed afterwards. Runs in the
+// permanent test tenants (A: admin, B: floor fixture operator), never the demo firm.
 
 const RUN = `e2e-prijava-${randomUUID().slice(0, 8)}`;
 const TECH = { username: "e2e.reports.tech", password: testTenantPassword() };
@@ -26,6 +27,7 @@ let techId = "";
 
 test.beforeAll(async () => {
   const service = createAdminClient();
+  await ensureFloorFixture();
   const zcore = await ensureOrganization(service, { slug: "zcore", name: "Zcore" });
   techId = await ensureUser(service, zcore, {
     username: TECH.username,
@@ -62,7 +64,11 @@ test.afterAll(async () => {
 test("a worker reports a problem from the floor and sees it in Moje prijave @mobile", async ({
   page,
 }) => {
-  await login(page, { username: "operater", password: demoPassword() }, DEMO_ORG.slug);
+  await login(
+    page,
+    { username: FLOOR_OPERATOR.username, password: testTenantPassword() },
+    TEST_TENANTS.b.slug,
+  );
   await expectPath(page, "/floor");
 
   await page.getByRole("button", { name: HELP }).click();
@@ -102,7 +108,7 @@ test("a worker reports a problem from the floor and sees it in Moje prijave @mob
 test("an admin reports with a screenshot and reads the Zcore reply", async ({ page }) => {
   test.slow();
   const service = createAdminClient();
-  await login(page, { username: "admin", password: demoPassword() }, DEMO_ORG.slug);
+  await login(page, { username: "admin", password: testTenantPassword() }, TEST_TENANTS.a.slug);
   await expectPath(page, "/dashboard");
 
   await page.getByRole("button", { name: HELP }).click();
@@ -117,6 +123,7 @@ test("an admin reports with a screenshot and reads the Zcore reply", async ({ pa
     .setInputFiles({ name: "ekran.png", mimeType: "image/png", buffer: PNG });
   await expect(sheet.getByText("ekran.png")).toBeVisible();
   await sheet.getByRole("button", { name: "Pošalji", exact: true }).click();
+  // The toast and "Moje prijave" do not wait for the screenshot upload.
   await expect(page.getByText("Prijava je poslana").first()).toBeVisible();
   await expect(sheet.getByTestId("my-report").filter({ hasText: RUN })).toBeVisible();
 

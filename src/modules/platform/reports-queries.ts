@@ -267,7 +267,8 @@ export async function listZcoreReportNotices(): Promise<ZcoreReportNotice[]> {
   const [reports, messages] = await Promise.all([
     service
       .from("problem_reports")
-      .select("id, category, description, created_at, organizations!inner(name, is_platform)")
+      .select("id, category, description, created_at, organizations!inner(name)")
+      .is("organizations.archived_at", null)
       .eq("status", "new")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
@@ -275,6 +276,7 @@ export async function listZcoreReportNotices(): Promise<ZcoreReportNotice[]> {
     service
       .from("problem_report_messages")
       .select("id, report_id, body, created_at, problem_reports!inner(organizations!inner(name))")
+      .is("problem_reports.organizations.archived_at", null)
       .eq("from_zcore", false)
       .gte("created_at", since)
       .order("created_at", { ascending: false })

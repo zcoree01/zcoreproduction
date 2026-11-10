@@ -34,6 +34,8 @@ import {
   type ProblemCategory,
 } from "@/modules/support/problem-reports/schemas";
 
+const UPLOAD_TIMEOUT_MS = 30_000;
+
 const ICONS: Record<ProblemCategory, LucideIcon> = {
   broken: TriangleAlertIcon,
   slow: TimerIcon,
@@ -100,7 +102,11 @@ export function ReportSheet({
   };
 
   /** Screenshot after the report exists; false when any step failed. */
-  const uploadFile = async (reportId: string, file: File): Promise<boolean> => {
+  const uploadFile = async (
+    reportId: string,
+    file: File,
+    signal: AbortSignal,
+  ): Promise<boolean> => {
     if (!isScreenshotType(file.type)) return false;
     try {
       const ticket = await prepareProblemReportUploadAction({
@@ -108,16 +114,36 @@ export function ReportSheet({
         contentType: file.type,
         size: file.size,
       });
-      if (!ticket.ok) return false;
+      if (signal.aborted || !ticket.ok) return false;
       const uploaded = await createClient()
         .storage.from(PROBLEM_REPORT_BUCKET)
         .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
-      if (uploaded.error) return false;
+      if (signal.aborted || uploaded.error) return false;
       const registered = await registerProblemReportFileAction(reportId, ticket.path);
-      return registered.ok;
+      return !signal.aborted && registered.ok;
     } catch {
       return false;
     }
+  };
+
+  /**
+   * The report already exists; the screenshot follows in the background so a
+   * slow network never keeps the sheet on "Šaljem…". After 30 s a late result
+   * is ignored. Never throws, also when the sheet is gone by then.
+   */
+  const uploadInBackground = (reportId: string, file: File) => {
+    const controller = new AbortController();
+    const timeout = new Promise<boolean>((resolve) => {
+      setTimeout(() => {
+        controller.abort();
+        resolve(false);
+      }, UPLOAD_TIMEOUT_MS);
+    });
+    void Promise.race([uploadFile(reportId, file, controller.signal), timeout])
+      .then((ok) => {
+        if (!ok) toast.warning(t("errors.fileFailed"));
+      })
+      .catch(() => toast.warning(t("errors.fileFailed")));
   };
 
   const send = async () => {
@@ -149,12 +175,12 @@ export function ReportSheet({
         toast.error(t(`errors.${result.error}`));
         return;
       }
-      const fileSent = draft.file ? await uploadFile(result.id, draft.file) : true;
       toast.success(t("sent"));
-      if (!fileSent) toast.warning(t("errors.fileFailed"));
+      const file = draft.file;
       onChange(newReportDraft());
       setErrors({});
       onSent();
+      if (file) uploadInBackground(result.id, file);
     } finally {
       setPending(false);
     }

@@ -22,11 +22,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { zonedLocalToUtc } from "@/lib/timezone";
 import { scheduleSupportSessionAction } from "@/modules/platform/reports-actions";
 
-const PLATFORM_TIMEZONE = "Europe/Sarajevo";
 const DURATIONS = [15, 30, 60, 120, 240, 480] as const;
 
 /** "Zakaži sesiju": Zcore proposes a window, the firm's admin approves it. */
-export function ScheduleSessionDialog({ reportId }: { reportId: string }) {
+export function ScheduleSessionDialog({ reportId, timezone }: { reportId: string; timezone: string }) {
   const t = useTranslations("platformReports.schedule");
   const tSupport = useTranslations("support");
   const router = useRouter();
@@ -45,7 +44,7 @@ export function ScheduleSessionDialog({ reportId }: { reportId: string }) {
       }
       const result = await scheduleSupportSessionAction({
         reportId,
-        start: zonedLocalToUtc(`${date}T${time}`, PLATFORM_TIMEZONE),
+        start: zonedLocalToUtc(`${date}T${time}`, timezone),
         minutes,
         reason,
       });
@@ -86,7 +85,7 @@ export function ScheduleSessionDialog({ reportId }: { reportId: string }) {
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="schedule-time">{t("time")}</FieldLabel>
+                <FieldLabel htmlFor="schedule-time">{t("time")} ({timezone})</FieldLabel>
                 <Input
                   id="schedule-time"
                   type="time"

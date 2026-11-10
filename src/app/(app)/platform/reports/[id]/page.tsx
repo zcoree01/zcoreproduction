@@ -55,6 +55,7 @@ async function PlatformReportContent({ params }: { params: Promise<{ id: string 
       <PageHeader title={report.organization.name} description={t("detail.description")} />
       <ReportDetail
         report={report}
+        timezone={member.organization.timezone}
         canManage={access.permissions.has("platform.reports.manage")}
         canSchedule={
           access.permissions.has("platform.reports.manage") &&

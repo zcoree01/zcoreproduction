@@ -27,10 +27,12 @@ export function ReportDetail({
   report,
   canManage,
   canSchedule,
+  timezone,
 }: {
   report: PlatformReportDetail;
   canManage: boolean;
   canSchedule: boolean;
+  timezone: string;
 }) {
   const t = useTranslations("platformReports.detail");
   const tCategories = useTranslations("problemReports.categories");
@@ -238,7 +240,7 @@ export function ReportDetail({
         <Card>
           <CardHeader className="flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">{t("sessions")}</CardTitle>
-            {canSchedule ? <ScheduleSessionDialog reportId={report.id} /> : null}
+            {canSchedule ? <ScheduleSessionDialog reportId={report.id} timezone={timezone} /> : null}
           </CardHeader>
           <CardContent>
             {report.sessions.length === 0 ? (

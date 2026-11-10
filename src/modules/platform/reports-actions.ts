@@ -5,6 +5,7 @@ import { dbErrorKind } from "@/lib/actions/result";
 import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { PLATFORM_SLUG } from "@/modules/support/schemas";
 import { listZcoreReportNotices, type ZcoreReportNotice } from "./reports-queries";
 import {
   platformReplySchema,
@@ -96,6 +97,8 @@ export async function scheduleSupportSessionAction(input: unknown): Promise<Resu
 /** Polled by the bell in the Zcore organization (platform.reports.manage). */
 export async function zcoreReportNoticesAction(): Promise<ZcoreReportNotice[]> {
   const member = await requireMember();
+  // The read below uses the service role: only ever for the Zcore organization.
+  if (member.organization.slug !== PLATFORM_SLUG) return [];
   if (!(await permitAction(member.organization.id, "platform.reports.manage"))) return [];
   return listZcoreReportNotices();
 }
