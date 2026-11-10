@@ -13,6 +13,11 @@ const localNetworkHosts = Object.values(networkInterfaces())
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  experimental: {
+    // The e2e dev server (playwright.config.ts) runs without the Turbopack
+    // disk cache: it grew by several GB per full run and filled the C: disk.
+    turbopackFileSystemCacheForDev: process.env.ZCORE_DEV_FS_CACHE !== "off",
+  },
   partialPrefetching: true,
   allowedDevOrigins: localNetworkHosts,
   // Delivery note PDFs (D-040): react-pdf runs as a plain Node package, and

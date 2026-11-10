@@ -34,7 +34,7 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: `${baseURL}/login`,
-    env: testEnv,
+    env: { ...testEnv, ZCORE_DEV_FS_CACHE: "off" },
     // Never reuse a running dev server: it may be connected to production.
     reuseExistingServer: false,
     timeout: 120_000,
