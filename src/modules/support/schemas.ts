@@ -19,8 +19,12 @@ export const decideSupportSchema = z
     approve: z.boolean(),
     minutes: z.union(SUPPORT_DURATIONS.map((m) => z.literal(m))).nullable(),
     note: z.string().trim().max(1000),
+    /** A proposed (scheduled) session keeps its own duration: no minutes are sent. */
+    scheduled: z.boolean().optional(),
   })
-  .refine((value) => !value.approve || value.minutes !== null, { path: ["minutes"] });
+  .refine((value) => !value.approve || value.scheduled === true || value.minutes !== null, {
+    path: ["minutes"],
+  });
 
 export const SUPPORT_STATUSES = [
   "pending",

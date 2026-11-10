@@ -55,6 +55,8 @@ test("Tehničar sees no revenue", async ({ page }) => {
   await login(page, TECH, "zcore");
   await expectPath(page, "/dashboard");
   await expect(page.getByText("Za riješiti", { exact: true })).toBeVisible();
+  // Zcore does not report problems to itself: no "?" button.
+  await expect(page.getByRole("button", { name: "Pomoć i prijava problema" })).toHaveCount(0);
   await expect(page.getByText("Prihod ovaj mjesec")).toHaveCount(0);
   await expect(page.getByText("Prihod po mjesecima")).toHaveCount(0);
 });

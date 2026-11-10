@@ -2372,6 +2372,21 @@
       "correction": "Ispravka prisustva",
       "interruption": "Prekid odsustva"
     },
+    "reportsTitle": "Podrška",
+    "reports": {
+      "message": {
+        "title": "Odgovor Zcore podrške",
+        "toast": "Stigao je odgovor Zcore podrške."
+      },
+      "approved": {
+        "title": "Sesija podrške je odobrena",
+        "toast": "Predloženi termin podrške je odobren."
+      },
+      "rejected": {
+        "title": "Sesija podrške je odbijena",
+        "toast": "Predloženi termin podrške je odbijen."
+      }
+    },
     "markAllRead": "Označi sve kao pročitano",
     "remove": "Ukloni obavještenje: {title}",
     "unread": "nepročitano"
@@ -3645,6 +3660,8 @@
     "approvedToast": "Pristup je odobren.",
     "rejectedToast": "Zahtjev je odbijen.",
     "endedToast": "Pristup podrške je završen.",
+    "scheduledWindow": "Zakazani termin: {start}, {minutes, plural, one {# minuta} few {# minute} other {# minuta}}. Termin se ne mijenja.",
+    "scheduledApprovedToast": "Termin je odobren.",
     "status": {
       "pending": "Čeka odobrenje",
       "approved": "Odobreno",
@@ -3670,6 +3687,7 @@
     "prompt": {
       "title": "Zcore podrška traži pristup",
       "description": "{name} iz Zcore-a traži privremeni pristup vašoj firmi da riješi problem. Odaberite koliko dugo smije ostati.",
+      "scheduledDescription": "{name} iz Zcore-a predlaže termin da riješi vaš prijavljeni problem. Možete ga odobriti bilo kada prije kraja termina; podrška ulazi tek od početka termina.",
       "later": "Kasnije",
       "approvedToast": "Pristup je odobren na {minutes, select, 30 {30 minuta} 60 {1 sat} 120 {2 sata} 240 {4 sata} 480 {8 sati} other {{minutes} minuta}}."
     }
@@ -5655,6 +5673,73 @@
         "state": "Stanje"
       },
       "noPackage": "—"
+    }
+  },
+  "problemReports": {
+    "button": "Pomoć i prijava problema",
+    "description": "Javite nam šta ne radi ili šta vam treba. Prijavu vidi samo Zcore podrška.",
+    "tabNew": "Prijavi problem",
+    "tabMine": "Moje prijave",
+    "categoryLabel": "O čemu se radi?",
+    "categories": {
+      "broken": "Nešto ne radi",
+      "slow": "Sporo radi",
+      "howto": "Ne znam kako da…",
+      "idea": "Prijedlog",
+      "billing": "Paket i plaćanje",
+      "other": "Ostalo"
+    },
+    "statuses": {
+      "new": "Nova",
+      "in_progress": "U obradi",
+      "waiting_user": "Čeka vas",
+      "resolved": "Riješena"
+    },
+    "descriptionLabel": "Opis",
+    "descriptionPlaceholder": "Šta ste radili i šta se desilo? (nije obavezno)",
+    "addScreenshot": "Dodaj sliku ekrana",
+    "screenshotInput": "Slika ekrana",
+    "removeScreenshot": "Ukloni sliku",
+    "context": "Uz prijavu se šalju stranica na kojoj ste, vaše ime, firma, vrijeme i vrsta uređaja.",
+    "send": "Pošalji",
+    "sending": "Slanje…",
+    "sent": "Prijava je poslana",
+    "back": "Nazad",
+    "loading": "Učitavanje…",
+    "retry": "Pokušaj ponovo",
+    "emptyTitle": "Nemate prijava",
+    "emptyDescription": "Kad pošaljete prijavu, ovdje pratite odgovor.",
+    "files": "{count, plural, one {# slika ekrana} few {# slike ekrana} other {# slika ekrana}}",
+    "fromZcore": "Zcore podrška",
+    "fromYou": "Vi",
+    "reply": "Vaš odgovor",
+    "sendReply": "Pošalji odgovor",
+    "session": {
+      "title": "Predložena sesija podrške",
+      "when": "{start}, {minutes, plural, one {# minuta} few {# minute} other {# minuta}}",
+      "pendingHint": "Termin odobrava administrator ili direktor vaše firme.",
+      "status": {
+        "pending": "Čeka odobrenje firme",
+        "approved": "Odobreno",
+        "active": "U toku",
+        "rejected": "Odbijeno",
+        "ended": "Završeno",
+        "cancelled": "Isteklo"
+      }
+    },
+    "errors": {
+      "category": "Izaberite o čemu se radi.",
+      "descriptionRequired": "Opis je obavezan za Ostalo",
+      "fileType": "Slika mora biti PNG, JPG ili WEBP.",
+      "fileSize": "Slika je veća od 10 MB.",
+      "fileFailed": "Prijava je poslana, ali slika nije dodana.",
+      "offline": "Nema veze. Vaš unos je sačuvan, pokušajte ponovo.",
+      "load": "Učitavanje nije uspjelo.",
+      "invalid": "Provjerite unos.",
+      "denied": "Nemate dozvolu.",
+      "not_found": "Prijava nije pronađena.",
+      "upload_failed": "Slanje slike nije uspjelo.",
+      "unexpected": "Akcija nije uspjela zbog greške. Pokušajte ponovo."
     }
   }
 }

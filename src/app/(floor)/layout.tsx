@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { Suspense, type ReactNode } from "react";
 import { BillingNoticeBanner } from "@/components/shared/billing-notice";
 import { ModeToggle } from "@/components/shared/mode-toggle";
+import { HelpButton } from "@/components/shared/problem-report/help-button";
 import { AppSplash } from "@/components/shared/app-splash";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { getMemberAccess } from "@/lib/auth/access";
 import { CHANGE_PASSWORD_PATH } from "@/lib/auth/route-guard";
 import { requireMember } from "@/lib/auth/session";
 import { getNavigation } from "@/lib/navigation/server";
+import { recordMemberActivityAfterResponse } from "@/modules/support/problem-reports/activity";
 import { BottomNav } from "./bottom-nav";
 
 // Shop-floor UI (mobile-first, large touch targets). Open to every member.
@@ -37,6 +39,10 @@ async function FloorShell({ children }: { children: ReactNode }) {
     getTranslations("profile"),
     getMemberAccess(member),
   ]);
+  // Problem reports and activity: every member of a firm, not Zcore itself and
+  // not the support account.
+  const inFirm = !access.modules.has("platform") && !member.isSupport;
+  if (inFirm) await recordMemberActivityAfterResponse(member.organization.id);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -47,6 +53,7 @@ async function FloorShell({ children }: { children: ReactNode }) {
         </div>
         <span className="truncate text-base font-semibold">{member.organization.name}</span>
         <div className="ml-auto flex items-center gap-1">
+          {inFirm ? <HelpButton size="icon-lg" /> : null}
           <ModeToggle size="icon-lg" />
           <Link
             href="/floor/profile"

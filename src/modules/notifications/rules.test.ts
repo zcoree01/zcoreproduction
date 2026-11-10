@@ -4,6 +4,7 @@ import {
   itemsToAnnounce,
   notificationKey,
   notificationKeysSchema,
+  sessionNotificationKey,
   unreadCount,
   type BellSource,
 } from "./rules";
@@ -56,5 +57,12 @@ describe("notification bell", () => {
     expect(notificationKeysSchema.safeParse([]).success).toBe(false);
     expect(notificationKeysSchema.safeParse(["close:1"]).success).toBe(false);
     expect(notificationKeysSchema.safeParse([`Close:${ID}`]).success).toBe(false);
+  });
+
+  it("keys report replies and session decisions", () => {
+    const keys = [notificationKey("report", ID), sessionNotificationKey(ID2, "approved")];
+    expect(keys).toEqual([`report:${ID}`, `session:${ID2}:approved`]);
+    expect(notificationKeysSchema.safeParse(keys).success).toBe(true);
+    expect(notificationKeysSchema.safeParse([`session:${ID2}:Approved`]).success).toBe(false);
   });
 });

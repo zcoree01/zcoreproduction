@@ -41,6 +41,28 @@ describe("support access", () => {
     ).toBe(true);
   });
 
+  it("approves a scheduled session without minutes", () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    expect(
+      decideSupportSchema.safeParse({
+        requestId: id,
+        approve: true,
+        minutes: null,
+        note: "",
+        scheduled: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      decideSupportSchema.safeParse({
+        requestId: id,
+        approve: true,
+        minutes: null,
+        note: "",
+        scheduled: false,
+      }).success,
+    ).toBe(false);
+  });
+
   it("signs in on the organization's subdomain in production and with ?org on dev hosts", () => {
     const base = { protocol: "https:", slug: "metal", tokenHash: "abc", rootDomain: "zcore.ba" };
     expect(supportEntryUrl({ ...base, host: "zcore.zcore.ba" })).toBe(

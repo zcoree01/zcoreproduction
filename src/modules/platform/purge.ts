@@ -13,6 +13,7 @@ export const ORGANIZATION_BUCKETS = [
   "stock-certificates",
   "organization-files",
   "absence-documents",
+  "problem-report-files",
 ] as const;
 
 const LIST_PAGE = 100;

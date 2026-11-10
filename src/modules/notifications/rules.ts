@@ -3,18 +3,24 @@ import { z } from "zod";
 // Bell items (D-038): derived from pending work, combined with the caller's
 // read / removed state. Pure and unit-tested.
 
-export const notificationKeySchema = z.string().regex(/^[a-z_]{1,30}:[0-9a-f-]{36}$/);
+export const notificationKeySchema = z
+  .string()
+  .regex(/^[a-z_]{1,30}:[0-9a-f-]{36}(:[a-z_]{1,30})?$/);
 export const notificationKeysSchema = z.array(notificationKeySchema).min(1).max(200);
 
-export type NotificationKind = "close" | "alert" | "approval";
+export type NotificationKind = "close" | "alert" | "approval" | "report";
 
 export const notificationKey = (kind: NotificationKind, id: string) => `${kind}:${id}`;
+
+/** Decision on a support session proposed from a report (R2): one item per decision. */
+export const sessionNotificationKey = (requestId: string, decision: "approved" | "rejected") =>
+  `session:${requestId}:${decision}`;
 
 export type NotificationState = { read: string[]; dismissed: string[] };
 
 export type BellSource = {
   key: string;
-  group: "approvals" | "attendance" | "close";
+  group: "approvals" | "attendance" | "close" | "reports";
   href: string;
   title: string;
   detail: string;

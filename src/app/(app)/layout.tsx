@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense, type CSSProperties, type ReactNode } from "react";
 import { AppSplash } from "@/components/shared/app-splash";
+import { HelpButton } from "@/components/shared/problem-report/help-button";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getMemberAccess } from "@/lib/auth/access";
@@ -15,6 +16,7 @@ import { listPendingRequests } from "@/modules/attendance/absence-queries";
 import { listAttendanceAlerts } from "@/modules/attendance/queries";
 import { getNotificationState } from "@/modules/notifications/queries";
 import { listPendingCloseRequests } from "@/modules/production-reporting/queries";
+import { recordMemberActivityAfterResponse } from "@/modules/support/problem-reports/activity";
 import { getCurrentSupportSession, listPendingSupportRequests } from "@/modules/support/queries";
 import { AppSidebar } from "./app-sidebar";
 import { CloseRequestBell } from "./close-request-bell";
@@ -59,7 +61,13 @@ async function AppShell({ children }: { children: ReactNode }) {
   const decider =
     access.modules.has("attendance") &&
     (access.permissions.has("absences.manage") || access.permissions.has("attendance.manage"));
-  const bell = approver || attendanceManager || decider;
+  // Problem reports: every member of a firm (not Zcore itself, not the support
+  // account); the member's activity is recorded after the response.
+  const inFirm = !access.modules.has("platform") && !member.isSupport;
+  if (inFirm) {
+    await recordMemberActivityAfterResponse(member.organization.id);
+  }
+  const bell = approver || attendanceManager || decider || inFirm;
   const [pendingCloses, attendanceAlerts, approvals, notificationState] = await Promise.all([
     approver ? listPendingCloseRequests(member.organization.id) : Promise.resolve([]),
     attendanceManager ? listAttendanceAlerts(member.organization.id) : Promise.resolve([]),
@@ -121,17 +129,21 @@ async function AppShell({ children }: { children: ReactNode }) {
           organizationName={member.organization.name}
           groups={groups}
           actions={
-            bell ? (
-              <CloseRequestBell
-                initial={pendingCloses}
-                initialAlerts={attendanceAlerts}
-                initialApprovals={approvals}
-                initialState={notificationState}
-                closes={approver}
-                attendance={attendanceManager}
-                approvals={decider}
-              />
-            ) : null
+            <>
+              {inFirm ? <HelpButton /> : null}
+              {bell ? (
+                <CloseRequestBell
+                  initial={pendingCloses}
+                  initialAlerts={attendanceAlerts}
+                  initialApprovals={approvals}
+                  initialState={notificationState}
+                  closes={approver}
+                  attendance={attendanceManager}
+                  approvals={decider}
+                  reports={inFirm}
+                />
+              ) : null}
+            </>
           }
         />
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>

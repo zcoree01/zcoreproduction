@@ -51,6 +51,8 @@ function SupportRequestItem({ request }: { request: SupportRequest }) {
     });
 
   const open = request.status === "approved" || request.status === "active";
+  // A session Zcore proposed from a report: fixed start and duration.
+  const scheduled = request.scheduledStart !== null && request.durationMinutes !== null;
 
   return (
     <li className="flex flex-col gap-3 rounded-lg border p-4">
@@ -68,6 +70,17 @@ function SupportRequestItem({ request }: { request: SupportRequest }) {
         <span className="text-muted-foreground">{t("reason")}: </span>
         {request.reason}
       </p>
+      {scheduled && request.scheduledStart ? (
+        <p className="text-sm" data-testid="support-scheduled">
+          {t("scheduledWindow", {
+            start: format.dateTime(new Date(request.scheduledStart), {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
+            minutes: request.durationMinutes ?? 0,
+          })}
+        </p>
+      ) : null}
       {open && request.approvedUntil ? (
         <p className="text-sm">
           {t("until", {
@@ -94,7 +107,7 @@ function SupportRequestItem({ request }: { request: SupportRequest }) {
                 onChange={(event) => setNote(event.target.value)}
               />
             </Field>
-          ) : (
+          ) : scheduled ? null : (
             <Field orientation="horizontal" className="w-auto">
               <FieldLabel htmlFor={`support-minutes-${request.id}`}>{t("duration")}</FieldLabel>
               <NativeSelect
@@ -152,8 +165,9 @@ function SupportRequestItem({ request }: { request: SupportRequest }) {
                         decideSupportAction({
                           requestId: request.id,
                           approve: true,
-                          minutes,
+                          minutes: scheduled ? null : minutes,
                           note: "",
+                          scheduled,
                         }),
                       t("approvedToast"),
                     )

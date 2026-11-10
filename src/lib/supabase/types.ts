@@ -6642,6 +6642,20 @@ export type Database = {
         Args: { p_dismiss: boolean; p_keys: string[]; p_org_id: string }
         Returns: undefined
       }
+      my_problem_report_sessions: {
+        Args: { p_org: string }
+        Returns: {
+          approved_until: string | null
+          created_at: string
+          decided_at: string | null
+          duration_minutes: number | null
+          id: string
+          problem_report_id: string
+          reason: string
+          scheduled_start: string | null
+          status: string
+        }[]
+      }
       move_tool: {
         Args: {
           p_from?: string

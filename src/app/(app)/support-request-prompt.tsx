@@ -1,7 +1,7 @@
 "use client";
 
 import { ShieldQuestionIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ const POLL_MS = 10_000;
 export function SupportRequestPrompt({ initial }: { initial: PendingSupportRequest[] }) {
   const t = useTranslations("support.prompt");
   const tSupport = useTranslations("support");
+  const format = useFormatter();
   const pathname = usePathname();
   const [requests, setRequests] = useState(initial);
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set());
@@ -57,6 +58,8 @@ export function SupportRequestPrompt({ initial }: { initial: PendingSupportReque
   }, [pathname]);
 
   const current = requests.find((request) => !dismissed.has(request.id)) ?? null;
+  // A session Zcore proposed from a report: fixed start and duration, no choice.
+  const scheduled = current?.scheduledStart != null && current.durationMinutes != null;
 
   const decide = (approve: boolean) => {
     if (!current) return;
@@ -64,11 +67,18 @@ export function SupportRequestPrompt({ initial }: { initial: PendingSupportReque
       const result = await decideSupportAction({
         requestId: current.id,
         approve,
-        minutes: approve ? minutes : null,
+        minutes: approve && !scheduled ? minutes : null,
         note: approve ? "" : note,
+        scheduled,
       });
       if (result.ok) {
-        toast.success(approve ? t("approvedToast", { minutes }) : tSupport("rejectedToast"));
+        toast.success(
+          approve
+            ? scheduled
+              ? tSupport("scheduledApprovedToast")
+              : t("approvedToast", { minutes })
+            : tSupport("rejectedToast"),
+        );
         setRequests((list) => list.filter((request) => request.id !== current.id));
         setRejecting(false);
         setNote("");
@@ -92,7 +102,9 @@ export function SupportRequestPrompt({ initial }: { initial: PendingSupportReque
           </AlertDialogMedia>
           <AlertDialogTitle>{t("title")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t("description", { name: current?.requesterName ?? "" })}
+            {t(scheduled ? "scheduledDescription" : "description", {
+              name: current?.requesterName ?? "",
+            })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex flex-col gap-4">
@@ -110,6 +122,19 @@ export function SupportRequestPrompt({ initial }: { initial: PendingSupportReque
                 onChange={(event) => setNote(event.target.value)}
               />
             </Field>
+          ) : current && scheduled ? (
+            <p
+              className="rounded-lg border bg-muted/40 p-3 text-sm"
+              data-testid="support-scheduled"
+            >
+              {tSupport("scheduledWindow", {
+                start: format.dateTime(new Date(current.scheduledStart ?? 0), {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }),
+                minutes: current.durationMinutes ?? 0,
+              })}
+            </p>
           ) : (
             <Field>
               <FieldLabel htmlFor="support-prompt-minutes">{tSupport("duration")}</FieldLabel>

@@ -63,7 +63,8 @@ export async function decideSupportAction(input: unknown): Promise<Result> {
     p_org_id: member.organization.id,
     p_request_id: parsed.data.requestId,
     p_approve: parsed.data.approve,
-    p_minutes: parsed.data.minutes ?? undefined,
+    // A scheduled session keeps its own window; the RPC ignores minutes for it.
+    p_minutes: parsed.data.scheduled ? undefined : (parsed.data.minutes ?? undefined),
     p_note: parsed.data.note || undefined,
   });
   if (error) return fail(error, "decideSupportAction");

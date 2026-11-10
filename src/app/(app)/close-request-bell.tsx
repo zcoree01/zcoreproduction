@@ -15,6 +15,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  OPEN_MY_REPORTS_EVENT,
+  REPORT_NOTICES_CHANGED_EVENT,
+} from "@/components/shared/problem-report/events";
 import { formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { pendingRequestsAction } from "@/modules/attendance/absence-actions";
@@ -33,9 +37,11 @@ import {
 } from "@/modules/notifications/rules";
 import { pendingCloseRequestsAction } from "@/modules/production-reporting/actions";
 import type { PendingCloseRequest } from "@/modules/production-reporting/queries";
+import { reportNoticesAction } from "@/modules/support/problem-reports/actions";
+import type { ReportNotice } from "@/modules/support/problem-reports/types";
 
 const POLL_MS = 30_000;
-const GROUPS = ["approvals", "attendance", "close"] as const;
+const GROUPS = ["reports", "approvals", "attendance", "close"] as const;
 
 /**
  * Notification bell (D-038): requests to close an order with a shortage
@@ -54,6 +60,7 @@ export function CloseRequestBell({
   closes,
   attendance,
   approvals: approver,
+  reports: reporter,
 }: {
   initial: PendingCloseRequest[];
   initialAlerts: AttendanceAlert[];
@@ -62,6 +69,8 @@ export function CloseRequestBell({
   closes: boolean;
   attendance: boolean;
   approvals: boolean;
+  /** Replies from Zcore support and decisions on proposed sessions (every firm member). */
+  reports: boolean;
 }) {
   const t = useTranslations("notifications");
   const tUnits = useTranslations("productUnits");
@@ -70,11 +79,20 @@ export function CloseRequestBell({
   const [requests, setRequests] = useState(initial);
   const [alerts, setAlerts] = useState(initialAlerts);
   const [approvals, setApprovals] = useState(initialApprovals);
+  const [notices, setNotices] = useState<ReportNotice[]>([]);
   const [state, setState] = useState(initialState);
   const shown = useRef(new Set<string>());
 
   const sources = useMemo<BellSource[]>(
     () => [
+      ...notices.map((notice) => ({
+        key: notice.key,
+        group: "reports" as const,
+        href: "#",
+        title: t(`reports.${notice.kind}.title`),
+        detail: notice.detail,
+        toast: t(`reports.${notice.kind}.toast`),
+      })),
       ...approvals.absences.map((item) => ({
         key: notificationKey("approval", item.id),
         group: "approvals" as const,
@@ -121,7 +139,7 @@ export function CloseRequestBell({
         toast: t("newToast", { number: request.orderNumber }),
       })),
     ],
-    [approvals, alerts, requests, t, tUnits],
+    [notices, approvals, alerts, requests, t, tUnits],
   );
   const items = useMemo(() => bellItems(sources, state), [sources, state]);
   const count = unreadCount(items);
@@ -133,13 +151,19 @@ export function CloseRequestBell({
       dismissed: dismiss ? [...new Set([...current.dismissed, ...keys])] : current.dismissed,
     }));
     // Best effort: on failure the item shows as unread again after a reload.
-    void markNotificationsAction(keys, dismiss).catch(() => undefined);
+    void markNotificationsAction(keys, dismiss)
+      .then(() => window.dispatchEvent(new Event(REPORT_NOTICES_CHANGED_EVENT)))
+      .catch(() => undefined);
   }, []);
 
   const open = useCallback(
     (item: BellItem) => {
       mark([item.key], false);
       toast.dismiss(item.key);
+      if (item.group === "reports") {
+        window.dispatchEvent(new Event(OPEN_MY_REPORTS_EVENT));
+        return;
+      }
       router.push(item.href);
     },
     [mark, router],
@@ -149,10 +173,11 @@ export function CloseRequestBell({
   useEffect(() => {
     for (const item of itemsToAnnounce(items, shown.current)) {
       shown.current.add(item.key);
-      const show = item.group === "approvals" ? toast.info : toast.warning;
+      const calm = item.group === "approvals" || item.group === "reports";
+      const show = calm ? toast.info : toast.warning;
       show(item.toast, {
         id: item.key,
-        description: item.group === "approvals" ? item.detail : undefined,
+        description: calm ? item.detail : undefined,
         // Long enough to read and act on; the item stays in the bell.
         duration: 10_000,
         closeButton: true,
@@ -167,15 +192,17 @@ export function CloseRequestBell({
     let active = true;
     const refresh = async () => {
       try {
-        const [list, alertList, approvalList, nextState] = await Promise.all([
+        const [list, alertList, approvalList, nextState, noticeList] = await Promise.all([
           closes ? pendingCloseRequestsAction() : Promise.resolve([]),
           attendance ? pendingAttendanceAlertsAction() : Promise.resolve([]),
           approver
             ? pendingRequestsAction()
             : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
           notificationStateAction(),
+          reporter ? reportNoticesAction() : Promise.resolve([]),
         ]);
         if (!active) return;
+        setNotices(noticeList);
         setRequests(list);
         setAlerts(alertList);
         setApprovals(approvalList);
@@ -190,14 +217,17 @@ export function CloseRequestBell({
     void refresh();
     const timer = window.setInterval(refresh, POLL_MS);
     window.addEventListener("focus", refresh);
+    window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, refresh);
     return () => {
       active = false;
       window.clearInterval(timer);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener(REPORT_NOTICES_CHANGED_EVENT, refresh);
     };
-  }, [pathname, closes, attendance, approver]);
+  }, [pathname, closes, attendance, approver, reporter]);
 
   const titles: Record<(typeof GROUPS)[number], string> = {
+    reports: t("reportsTitle"),
     approvals: t("approvalsTitle"),
     attendance: t("attendanceTitle"),
     close: t("closeTitle"),

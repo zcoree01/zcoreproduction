@@ -12,6 +12,8 @@ export type SupportRequest = {
   approvedUntil: string | null;
   decisionNote: string | null;
   createdAt: string;
+  /** Set for a session Zcore proposed from a problem report (the window is fixed). */
+  scheduledStart: string | null;
 };
 
 /** Requests to the organization (RLS: support.approve). */
@@ -20,7 +22,7 @@ export async function listSupportRequests(organizationId: string): Promise<Suppo
   const { data, error } = await supabase
     .from("support_access_requests")
     .select(
-      "id, organization_id, status, reason, requester_name, duration_minutes, approved_until, decision_note, created_at",
+      "id, organization_id, status, reason, requester_name, duration_minutes, approved_until, decision_note, created_at, scheduled_start",
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
@@ -36,6 +38,7 @@ export async function listSupportRequests(organizationId: string): Promise<Suppo
     approvedUntil: row.approved_until,
     decisionNote: row.decision_note,
     createdAt: row.created_at,
+    scheduledStart: row.scheduled_start,
   }));
 }
 
@@ -57,6 +60,7 @@ export async function listPlatformSupportRequests(): Promise<Map<string, Support
         approvedUntil: row.approved_until,
         decisionNote: row.decision_note,
         createdAt: row.created_at,
+        scheduledStart: row.scheduled_start,
       },
     ]),
   );
@@ -81,6 +85,9 @@ export type PendingSupportRequest = {
   requesterName: string;
   reason: string;
   createdAt: string;
+  /** Set for a proposed session: the fixed start and duration (no choice of minutes). */
+  scheduledStart: string | null;
+  durationMinutes: number | null;
 };
 
 /** Open requests the organization's approvers must answer (support.approve in the RPC). */
@@ -97,5 +104,7 @@ export async function listPendingSupportRequests(
     requesterName: row.requester_name,
     reason: row.reason,
     createdAt: row.created_at,
+    scheduledStart: row.scheduled_start ?? null,
+    durationMinutes: row.scheduled_start ? (row.duration_minutes ?? null) : null,
   }));
 }
