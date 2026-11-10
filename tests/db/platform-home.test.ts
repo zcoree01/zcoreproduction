@@ -30,6 +30,8 @@ type Home = {
     support_pending: number;
     trials_ending: number;
     deletions_scheduled: number;
+    problem_reports_open: number;
+    slow_open: number;
   };
   overdue: {
     organization_id: string;
@@ -46,6 +48,13 @@ type Home = {
     overdue_total: string;
     by_month: { period: string; paid: string }[];
   } | null;
+  usage: { active_7d: number; by_day: { day: string; users: number }[] };
+  problems: {
+    open: number;
+    slow_open: number;
+    resolved_this_month: number;
+    avg_resolution_days: string | null;
+  };
 };
 
 const SLUG = `dbt-reg-home-${crypto.randomUUID().slice(0, 8)}`;
@@ -270,5 +279,100 @@ describe("platform_home", () => {
     expect(cents(now.revenue!.overdue_total)).toBeGreaterThanOrEqual(10000);
     const lates = now.overdue.map((r) => r.days_late);
     expect(lates).toEqual([...lates].sort((a, b) => b - a));
+  });
+
+  it("counts active users of the last 7 days and returns 30 days", async () => {
+    const member = await fx.service
+      .from("profiles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("username", "clan")
+      .single();
+    const uid = member.data!.id;
+    const today = localToday();
+    const daysAgo = (n: number) =>
+      new Date(Date.parse(today) - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const ins = await fx.service.from("member_activity_days").insert([
+      { organization_id: orgId, user_id: uid, day: today },
+      { organization_id: orgId, user_id: uid, day: daysAgo(6) },
+      { organization_id: orgId, user_id: uid, day: daysAgo(7) },
+    ]);
+    expect(ins.error).toBeNull();
+    try {
+      const now = await home(admin);
+      // One more distinct user (today and 6 days ago are inside the 7 days; 7 is not).
+      expect(now.usage.active_7d - baseline.usage.active_7d).toBe(1);
+      expect(now.usage.by_day).toHaveLength(30);
+      expect(now.usage.by_day.at(-1)!.day).toBe(today);
+      expect(now.usage.by_day.at(0)!.day).toBe(daysAgo(29));
+      const at = (h: Home, day: string) => h.usage.by_day.find((d) => d.day === day)!.users;
+      expect(at(now, today) - at(baseline, today)).toBe(1);
+      expect(at(now, daysAgo(7)) - at(baseline, daysAgo(7))).toBe(1);
+      const days = now.usage.by_day.map((d) => d.day);
+      expect(new Set(days).size).toBe(30);
+      expect(days).toEqual([...days].sort());
+      expect((await home(tech)).usage.by_day).toHaveLength(30);
+    } finally {
+      await fx.service.from("member_activity_days").delete().eq("organization_id", orgId);
+    }
+  });
+
+  it("counts open and slow reports and the average resolution", async () => {
+    const author = await fx.service
+      .from("profiles")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("username", "clan")
+      .single();
+    const uid = author.data!.id;
+    const hour = 60 * 60 * 1000;
+    const now0 = Date.now();
+    const iso = (offsetHours: number) => new Date(now0 + offsetHours * hour).toISOString();
+    const make = (
+      category: string,
+      status: string,
+      createdHours: number,
+      resolvedHours: number | null,
+    ) => ({
+      organization_id: orgId,
+      created_by: uid,
+      category,
+      description: "t",
+      status,
+      idempotency_key: crypto.randomUUID(),
+      created_at: iso(createdHours),
+      resolved_at: resolvedHours === null ? null : iso(resolvedHours),
+    });
+    const base = await home(admin);
+    // Resolved reports: 1 day and 2 days from creation, both resolved 1 hour ago.
+    const inserted = await fx.service
+      .from("problem_reports")
+      .insert([
+        make("slow", "new", -5, null),
+        make("broken", "in_progress", -5, null),
+        make("slow", "waiting_user", -5, null),
+        make("slow", "resolved", -25, -1),
+        make("broken", "resolved", -49, -1),
+      ])
+      .select("id");
+    expect(inserted.error).toBeNull();
+    const ids = (inserted.data ?? []).map((r) => r.id);
+    try {
+      const now = await home(admin);
+      expect(now.problems.open - base.problems.open).toBe(3);
+      expect(now.problems.slow_open - base.problems.slow_open).toBe(2);
+      expect(now.todo.problem_reports_open).toBe(now.problems.open);
+      expect(now.todo.slow_open).toBe(now.problems.slow_open);
+      expect(now.problems.avg_resolution_days).toMatch(/^\d+\.\d$/);
+      // Within the first hour of a month the two resolved reports fall in the previous one.
+      const resolvedDelta = now.problems.resolved_this_month - base.problems.resolved_this_month;
+      expect([0, 2]).toContain(resolvedDelta);
+      if (base.problems.resolved_this_month === 0 && resolvedDelta === 2) {
+        expect(now.problems.avg_resolution_days).toBe("1.5");
+      }
+      expect((await home(tech)).problems.open).toBe(now.problems.open);
+    } finally {
+      await fx.service.from("problem_reports").delete().in("id", ids);
+    }
   });
 });

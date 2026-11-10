@@ -24,6 +24,8 @@ export const platformHomeSchema = z.object({
     support_pending: count,
     trials_ending: count,
     deletions_scheduled: count,
+    problem_reports_open: count,
+    slow_open: count,
   }),
   overdue: z.array(
     z.object({
@@ -44,6 +46,16 @@ export const platformHomeSchema = z.object({
       by_month: z.array(z.object({ period: z.string(), paid: money })),
     })
     .nullable(),
+  usage: z.object({
+    active_7d: count,
+    by_day: z.array(z.object({ day: z.string(), users: count })),
+  }),
+  problems: z.object({
+    open: count,
+    slow_open: count,
+    resolved_this_month: count,
+    avg_resolution_days: z.string().nullable(),
+  }),
 });
 
 export type PlatformHome = z.infer<typeof platformHomeSchema>;

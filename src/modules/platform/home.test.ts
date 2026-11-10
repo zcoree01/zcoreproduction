@@ -20,7 +20,11 @@ const example = {
     locked: 1,
   },
   users: 412,
-  todo: { directory_requests: 4, support_pending: 1, trials_ending: 2, deletions_scheduled: 1 },
+  todo: { directory_requests: 4, support_pending: 1, trials_ending: 2,
+    deletions_scheduled: 1,
+    problem_reports_open: 5,
+    slow_open: 2,
+  },
   overdue: [
     {
       organization_id: "6f1c2a52-0000-4000-8000-000000000001",
@@ -38,6 +42,8 @@ const example = {
     overdue_total: "1250.00",
     by_month: [{ period: "2025-12-01", paid: "300.00" }],
   },
+  usage: { active_7d: 286, by_day: [{ day: "2026-10-11", users: 120 }] },
+  problems: { open: 5, slow_open: 2, resolved_this_month: 12, avg_resolution_days: "1.4" },
 };
 
 describe("revenueProgress", () => {
@@ -76,6 +82,17 @@ describe("stateSlices", () => {
 });
 
 describe("platformHomeSchema", () => {
+  it("accepts usage, problems and the new todo counts", () => {
+    const parsed = platformHomeSchema.parse(example);
+    expect(parsed.usage.active_7d).toBe(286);
+    expect(parsed.problems.avg_resolution_days).toBe("1.4");
+    expect(parsed.todo.slow_open).toBe(2);
+    const none = platformHomeSchema.parse({
+      ...example,
+      problems: { ...example.problems, avg_resolution_days: null },
+    });
+    expect(none.problems.avg_resolution_days).toBeNull();
+  });
   it("accepts the RPC example", () => {
     expect(platformHomeSchema.parse(example).revenue?.paid).toBe("4350.00");
   });

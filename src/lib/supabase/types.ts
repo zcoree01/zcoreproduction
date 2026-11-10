@@ -2026,6 +2026,39 @@ export type Database = {
           },
         ]
       }
+      member_activity_days: {
+        Row: {
+          day: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          day: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          day?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_activity_days_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_activity_days_organization_id_user_id_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           archived_at: string | null
@@ -7073,6 +7106,7 @@ export type Database = {
         Args: { p_cost: number; p_days: number; p_operation_id: string }
         Returns: undefined
       }
+      record_member_activity: { Args: { p_org: string }; Returns: undefined }
       record_tool_change: {
         Args: {
           p_idempotency_key: string
