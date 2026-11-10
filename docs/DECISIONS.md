@@ -748,6 +748,7 @@ The product owner chose the free variant ("logičnija mi je").
 - `.env.test.local` (gitignored) holds the local URL and keys and overrides `.env.local` for tests only. `scripts/lib/test-env.mts` merges both files for `vitest.db.config.mts` and `playwright.config.ts`, and **refuses any host other than `127.0.0.1` / `localhost`** unless `ALLOW_REMOTE_TEST_DB=1` is set.
 - Playwright passes the same env to its own `npm run dev` and never reuses a running dev server (`reuseExistingServer: false`), because a developer's server on port 3000 talks to production.
 - `supabase/roles.sql` (run by the CLI only locally, before the migrations; `db push` never sends it) recreates what the hosted platform adds on its own: `public.rls_auto_enable()` and the `ensure_rls` event trigger, copied from production. Migration `20261023160300` depends on that function.
+- The e2e suite does not depend on `test:db` or on production-only data: `e2e/global-setup.ts` provisions the test tenants (shared `tests/shared/ensure-test-tenant.ts`) and checks that the demo firm is seeded; the demo seed matches the demo routing the tests expect.
 - `npm run dev`, `seed:demo`, `db:types` and `db push` still use the linked production project.
 
 **Consequences:** Tests no longer touch production data, and new migrations can be tried locally (`supabase db reset` on the local stack) before `db push`. Docker Desktop must be running for `test:db` and `e2e`. If the hosted platform adds more objects that migrations rely on, they must be mirrored in `roles.sql`.

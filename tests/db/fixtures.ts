@@ -1,14 +1,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { toAuthEmail } from "@/lib/auth/username";
 import type { Database } from "@/lib/supabase/types";
-import {
-  ensureModuleEnabled,
-  ensureOrganization,
-  ensureUser,
-  type ProvisionedOrganization,
-} from "@/modules/organizations/provision";
-import { SELLABLE_MODULES } from "@/modules/platform/modules";
+import type { ProvisionedOrganization } from "@/modules/organizations/provision";
 import { createAdminClient, readAdminEnv } from "../../scripts/lib/admin-client";
+import { ensureTestTenant } from "../shared/ensure-test-tenant";
 import { TEST_TENANTS, testTenantPassword } from "../shared/test-tenants";
 
 export type Tenant = {
@@ -48,20 +43,7 @@ async function setupTenant(
   slug: string,
   name: string,
 ): Promise<Tenant> {
-  const org = await ensureOrganization(service, { slug, name });
-  for (const key of SELLABLE_MODULES) await ensureModuleEnabled(service, org, key);
-  const adminId = await ensureUser(service, org, {
-    username: "admin",
-    password: testTenantPassword(),
-    fullName: `${name} Admin`,
-    role: "admin",
-  });
-  const operatorId = await ensureUser(service, org, {
-    username: "operater",
-    password: testTenantPassword(),
-    fullName: `${name} Operater`,
-    role: "operator",
-  });
+  const { org, adminId, operatorId } = await ensureTestTenant(service, slug, name);
   return {
     org,
     adminId,

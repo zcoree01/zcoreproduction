@@ -190,8 +190,12 @@ test("admin adds a user who sets their own password at the first sign-in", async
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
 
   await page.getByRole("searchbox", { name: /Pretraži/ }).fill(username);
-  await expect(page.getByRole("cell", { name: username, exact: true })).toBeVisible();
-  await expect(page.getByText("Privremena lozinka")).toBeVisible();
+  // The search is debounced: wait until it is applied, then look only at this
+  // user's row (other users of the test tenant may have a temporary password).
+  await expect(page).toHaveURL((url) => url.searchParams.get("q") === username);
+  const userRow = page.getByRole("row").filter({ hasText: username });
+  await expect(userRow.getByRole("cell", { name: username, exact: true })).toBeVisible();
+  await expect(userRow.getByText("Privremena lozinka")).toBeVisible();
 
   // Duplicate username: server error shown next to the field.
   await page.getByRole("button", { name: "Dodaj korisnika" }).click();

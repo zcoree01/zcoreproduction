@@ -12,6 +12,7 @@ const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   // Serial: a sign-in revokes the user's other sessions (one session per user,
   // D-013), and many tests sign in as the same demo users.
   fullyParallel: false,

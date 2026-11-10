@@ -38,13 +38,20 @@ const PRODUCT = {
   cutLength: "125",
   kerf: "2",
   netMass: "1.25",
-  // Final inspection is part of the routing itself (inspection plan "none").
+  // Inspection plan "between": a generated inspection (auto) follows every
+  // operation that is not followed by an inspection, laid out exactly as
+  // private.normalize_routing() would; the final inspection is a manual
+  // operation. The e2e tests rely on RZ → KT → GL (8 operations).
+  inspectionPlan: "between",
   operations: [
     { sequence: 1, code: "RZ", machine: "PILA-01", setupMin: "5", cycleS: "60" },
-    { sequence: 2, code: "TO", machine: "CNC-02", setupMin: "30", cycleS: "95" },
+    { sequence: 2, code: "KT", auto: true },
     { sequence: 3, code: "GL", machine: "CNC-01", setupMin: "20", cycleS: "140" },
-    { sequence: 4, code: "CI", external: "Cinkara Zenica" },
-    { sequence: 5, code: "KT", setupMin: "0", cycleS: "30" },
+    { sequence: 4, code: "KT", auto: true },
+    { sequence: 5, code: "TO", machine: "CNC-02", setupMin: "30", cycleS: "95" },
+    { sequence: 6, code: "KT", auto: true },
+    { sequence: 7, code: "CI", external: "Cinkara Zenica" },
+    { sequence: 8, code: "KT", setupMin: "0", cycleS: "30" },
   ],
 } as const;
 
@@ -163,6 +170,7 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
       name: PRODUCT.name,
       customer_id: customerId,
       product_type_id: productType.data.id,
+      inspection_plan: PRODUCT.inspectionPlan,
     })
     .select("id")
     .single()
@@ -199,6 +207,7 @@ export async function seedDemoProducts(admin: Admin, org: ProvisionedOrganizatio
         external_company: "external" in operation ? operation.external : null,
         setup_time_min: numericParam("setupMin" in operation ? operation.setupMin : null),
         cycle_time_s: numericParam("cycleS" in operation ? operation.cycleS : null),
+        auto_inspection: "auto" in operation,
       })),
     )
     .throwOnError();
