@@ -6642,20 +6642,6 @@ export type Database = {
         Args: { p_dismiss: boolean; p_keys: string[]; p_org_id: string }
         Returns: undefined
       }
-      my_problem_report_sessions: {
-        Args: { p_org: string }
-        Returns: {
-          approved_until: string | null
-          created_at: string
-          decided_at: string | null
-          duration_minutes: number | null
-          id: string
-          problem_report_id: string
-          reason: string
-          scheduled_start: string | null
-          status: string
-        }[]
-      }
       move_tool: {
         Args: {
           p_from?: string
@@ -6692,6 +6678,20 @@ export type Database = {
       my_pay_inputs: {
         Args: { p_from: string; p_org_id: string; p_to: string }
         Returns: Json
+      }
+      my_problem_report_sessions: {
+        Args: { p_org: string }
+        Returns: {
+          approved_until: string
+          created_at: string
+          decided_at: string
+          duration_minutes: number
+          id: string
+          problem_report_id: string
+          reason: string
+          scheduled_start: string
+          status: string
+        }[]
       }
       my_requests: { Args: { p_org_id: string; p_year: number }; Returns: Json }
       my_schedule: {
