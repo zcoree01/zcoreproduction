@@ -5447,9 +5447,11 @@ export type Database = {
           ended_by: string | null
           id: string
           organization_id: string
+          problem_report_id: string | null
           reason: string
           requested_by: string
           requester_name: string
+          scheduled_start: string | null
           started_at: string | null
           status: string
         }
@@ -5464,9 +5466,11 @@ export type Database = {
           ended_by?: string | null
           id?: string
           organization_id: string
+          problem_report_id?: string | null
           reason: string
           requested_by: string
           requester_name: string
+          scheduled_start?: string | null
           started_at?: string | null
           status?: string
         }
@@ -5481,9 +5485,11 @@ export type Database = {
           ended_by?: string | null
           id?: string
           organization_id?: string
+          problem_report_id?: string | null
           reason?: string
           requested_by?: string
           requester_name?: string
+          scheduled_start?: string | null
           started_at?: string | null
           status?: string
         }
@@ -5494,6 +5500,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_access_requests_report_fkey"
+            columns: ["organization_id", "problem_report_id"]
+            isOneToOne: false
+            referencedRelation: "problem_reports"
+            referencedColumns: ["organization_id", "id"]
           },
         ]
       }
@@ -6698,9 +6711,12 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: {
           created_at: string
+          duration_minutes: number
           id: string
+          problem_report_id: string
           reason: string
           requester_name: string
+          scheduled_start: string
         }[]
       }
       plan_operations: {
@@ -6815,6 +6831,15 @@ export type Database = {
         Args: { p_confirm_name: string; p_org_id: string }
         Returns: string
       }
+      platform_schedule_support_session: {
+        Args: {
+          p_minutes: number
+          p_reason: string
+          p_report_id: string
+          p_start: string
+        }
+        Returns: string
+      }
       platform_set_lock: {
         Args: { p_locked: boolean; p_org_id: string; p_reason: string }
         Returns: undefined
@@ -6860,8 +6885,10 @@ export type Database = {
           duration_minutes: number
           id: string
           organization_id: string
+          problem_report_id: string
           reason: string
           requester_name: string
+          scheduled_start: string
           status: string
         }[]
       }
