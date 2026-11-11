@@ -146,6 +146,12 @@ test("Tehničar answers a report and schedules a session that the firm's admin a
   await prompt.getByRole("button", { name: "Odobri pristup" }).click();
   await expect(org.getByText("Termin je odobren.").first()).toBeVisible();
 
+  // The reporter (here the same admin) gets the decision in the bell (D-051 R2).
+  await org.reload();
+  await org.getByTestId("notification-bell").click();
+  await expect(org.getByText("Sesija podrške je odobrena").first()).toBeVisible();
+  await org.keyboard.press("Escape");
+
   // Zcore sees the approval on the report and in the support list.
   await page.reload();
   await expect(page.getByTestId("report-sessions")).toContainText("Odobreno");
