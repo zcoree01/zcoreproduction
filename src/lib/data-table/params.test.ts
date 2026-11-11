@@ -14,6 +14,13 @@ describe("parseTableParams", () => {
     });
   });
 
+  it("accepts every offered page size and nothing above the largest", () => {
+    for (const size of [10, 25, 50, 100]) {
+      expect(parseTableParams({ pageSize: String(size) }).pageSize).toBe(size);
+    }
+    expect(parseTableParams({ pageSize: "200" }).pageSize).toBe(25);
+  });
+
   it("falls back instead of failing on hostile input", () => {
     expect(parseTableParams({ page: "-1", pageSize: "1000", q: "x".repeat(500) })).toEqual({
       page: 1,

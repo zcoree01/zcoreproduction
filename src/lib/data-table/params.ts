@@ -3,7 +3,7 @@ import { z } from "zod";
 // URL contract for server-paginated tables: ?page=1&pageSize=25&q=...&<filter>=...
 // Invalid values fall back to defaults instead of erroring (URLs are user input).
 
-export const PAGE_SIZES = [10, 25, 50] as const;
+export const PAGE_SIZES = [10, 25, 50, 100] as const;
 export const DEFAULT_PAGE_SIZE = 25;
 
 export type SearchParamsRecord = Record<string, string | string[] | undefined>;
