@@ -6268,6 +6268,10 @@ export type Database = {
         Args: { p_id: string; p_org_id: string }
         Returns: undefined
       }
+      assert_member_manageable: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: undefined
+      }
       assign_order_operation: {
         Args: {
           p_employee_ids: string[]
@@ -6297,10 +6301,6 @@ export type Database = {
           p_size: number
           p_type: string
         }
-        Returns: undefined
-      }
-      assert_member_manageable: {
-        Args: { p_org_id: string; p_user_id: string }
         Returns: undefined
       }
       attendance_board: {
