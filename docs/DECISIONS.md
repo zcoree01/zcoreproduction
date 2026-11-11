@@ -823,3 +823,11 @@ The product owner chose the free variant ("logičnija mi je").
 - Data stays protected as before: RLS and the definer RPCs check membership and permissions with the token; a replaced session's token stays valid at most until it expires (as before, between the revocation and its next proxy check).
 
 **Consequences:** One cross-region database call less on every request. Public pages and the kiosk are unchanged. A new route handler that returns data must use `getCurrentMember` / `requireMember`, not only the token.
+
+## D-058 — Vercel Schedules instead of Cron Jobs (2026-11-11)
+
+**Context:** Vercel marks the `crons` key of `vercel.json` as legacy and migrates Cron Jobs to Schedules. The daily purge (D-050) was the only Cron Job.
+
+**Decision:** `vercel.json` defines `schedules.purge-organizations` with the same path and time (`0 3 * * *`, UTC) and `"requestMethod": "GET"` (path schedules send `POST` by default; the route only handles `GET`). The `crons` key is removed in the same change: with both, the purge would run twice. Path schedules still send `Authorization: Bearer <CRON_SECRET>`, so the route is unchanged. `src/modules/platform/vercel-schedules.test.ts` fails if `crons` comes back, a schedule is not `GET`, or its route does not export `GET`.
+
+**Consequences:** After the deploy, the job is listed under Observability → Schedules (no longer the "Cron Jobs" tab). The first run after the deploy is the next 03:00 UTC.
