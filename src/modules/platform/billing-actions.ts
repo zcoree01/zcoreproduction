@@ -24,9 +24,20 @@ import {
 // Platform billing actions (D-049): each action checks its own platform permission here and in the RPC.
 
 export type BillingActionError =
-  "invalid" | "denied" | "not_found" | "unexpected" | "reason_required" | "module_requirement" | "not_billed"
-  | "already_archived" | "not_archived" | "deletion_scheduled" | "already_scheduled"
-  | "not_scheduled" | "name_mismatch" | "not_cancellable";
+  | "invalid"
+  | "denied"
+  | "not_found"
+  | "unexpected"
+  | "reason_required"
+  | "module_requirement"
+  | "not_billed"
+  | "already_archived"
+  | "not_archived"
+  | "deletion_scheduled"
+  | "already_scheduled"
+  | "not_scheduled"
+  | "name_mismatch"
+  | "not_cancellable";
 export type BillingActionResult = { ok: true } | { ok: false; error: BillingActionError };
 
 async function platformAllowed(permission: PermissionKey): Promise<boolean> {

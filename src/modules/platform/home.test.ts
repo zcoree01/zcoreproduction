@@ -20,7 +20,10 @@ const example = {
     locked: 1,
   },
   users: 412,
-  todo: { directory_requests: 4, support_pending: 1, trials_ending: 2,
+  todo: {
+    directory_requests: 4,
+    support_pending: 1,
+    trials_ending: 2,
     deletions_scheduled: 1,
     problem_reports_open: 5,
     slow_open: 2,
