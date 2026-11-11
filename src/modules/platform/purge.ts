@@ -64,10 +64,27 @@ export async function purgeDueOrganizations(
       if (error) throw new Error(error.message);
       if (data) result.purged.push(id);
     } catch (e) {
-      result.failed.push({ id, error: e instanceof Error ? e.message : String(e) });
+      const message = e instanceof Error ? e.message : String(e);
+      result.failed.push({ id, error: await recordFailure(service, id, message) });
     }
   }
   return result;
+}
+
+/**
+ * Leaves the failure where the Zcore team sees it (D-055). A failure to record
+ * is added to the message, so the cron log still shows both.
+ */
+async function recordFailure(
+  service: SupabaseClient<Database>,
+  id: string,
+  message: string,
+): Promise<string> {
+  const { error } = await service.rpc("record_purge_failure", {
+    p_org_id: id,
+    p_error: message,
+  });
+  return error ? `${message} (not recorded: ${error.message})` : message;
 }
 
 /** Removes every object under `<prefix>/` (folders nest), listing in pages. */

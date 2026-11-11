@@ -3435,7 +3435,8 @@
         "late": "Kasne s uplatom",
         "locked": "Zaključane",
         "trial": "Proba",
-        "archived": "Arhiva"
+        "archived": "Arhiva",
+        "purge_failed": "Brisanje nije uspjelo"
       },
       "search": "Traži firmu…",
       "searchLabel": "Pretraga firmi",
@@ -3600,6 +3601,10 @@
         "banner": "Arhivirana {date} · {reason}",
         "bannerNoReason": "Arhivirana {date}",
         "scheduledBanner": "Zakazana za brisanje {date}",
+        "purgeFailedBadge": "Brisanje nije uspjelo",
+        "purgeFailedTitle": "Trajno brisanje nije uspjelo",
+        "purgeFailedDescription": "Pokušano {attempts, plural, one {# put} few {# puta} other {# puta}}, prvi put {first}, zadnji put {last}. Brisanje se ponavlja svake noći. Firmu više nije moguće vratiti niti opozvati brisanje, a njeni fajlovi su možda već obrisani: javite grešku razvoju.",
+        "purgeFailedError": "Greška: {error}",
         "scheduledToast": "Zakazana za brisanje {date}",
         "delete": "Obriši firmu",
         "cancelDeletion": "Opozovi brisanje",
@@ -5666,7 +5671,8 @@
       "trialsEnding": "Probe ističu (7 dana)",
       "deletionsScheduled": "Zakazane za brisanje",
       "problemReports": "Prijave problema",
-      "slowOpen": "Sporo radi"
+      "slowOpen": "Sporo radi",
+      "purgeFailed": "Brisanje nije uspjelo"
     },
     "states": {
       "title": "Stanje firmi",

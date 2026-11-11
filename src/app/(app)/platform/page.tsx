@@ -23,6 +23,7 @@ import { firstParam, type SearchParamsRecord } from "@/lib/data-table/params";
 import { formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { listBillingOverview, type BillingOverviewRow } from "@/modules/platform/billing-queries";
+import { listPurgeFailures } from "@/modules/platform/purge-queries";
 import { OVERVIEW_FILTERS, overviewFilter, type OverviewFilter } from "@/modules/platform/schemas";
 import { BillingStateBadge } from "./billing-state-badge";
 import { SupportEndedNotice } from "./support-ended-notice";
@@ -35,14 +36,20 @@ export default function PlatformPage({ searchParams }: PageProps<"/platform">) {
   );
 }
 
-// Archived firms (also those scheduled for deletion) only show under "Arhiva".
-const matches: Record<OverviewFilter, (row: BillingOverviewRow) => boolean> = {
-  all: (row) => !row.archived,
-  late: (row) => !row.archived && (row.state === "warning" || row.state === "overdue"),
-  locked: (row) => !row.archived && row.state === "locked",
-  trial: (row) => !row.archived && row.state === "trial",
-  archived: (row) => row.archived,
-};
+// Archived firms (also those scheduled for deletion) only show under "Arhiva";
+// firms whose permanent deletion failed (D-055) also under their own filter.
+function filterMatchers(
+  purgeFailed: ReadonlySet<string>,
+): Record<OverviewFilter, (row: BillingOverviewRow) => boolean> {
+  return {
+    all: (row) => !row.archived,
+    late: (row) => !row.archived && (row.state === "warning" || row.state === "overdue"),
+    locked: (row) => !row.archived && row.state === "locked",
+    trial: (row) => !row.archived && row.state === "trial",
+    archived: (row) => row.archived,
+    purge_failed: (row) => purgeFailed.has(row.organizationId),
+  };
+}
 
 async function PlatformContent({ searchParams }: { searchParams: Promise<SearchParamsRecord> }) {
   const member = await requireMember();
@@ -60,7 +67,13 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
 
   const filter = overviewFilter(firstParam(params.filter));
   const query = (firstParam(params.q) ?? "").trim().toLowerCase();
-  const all = await listBillingOverview();
+  const [all, failures] = await Promise.all([listBillingOverview(), listPurgeFailures()]);
+  const purgeFailed = new Set(failures.map((failure) => failure.organizationId));
+  const matches = filterMatchers(purgeFailed);
+  // The "purge failed" filter only appears while there is such a firm.
+  const filters = OVERVIEW_FILTERS.filter(
+    (key) => key !== "purge_failed" || purgeFailed.size > 0 || filter === key,
+  );
   // Active organizations first, archived ones at the end.
   const sorted = [...all].sort((a, b) => Number(a.archived) - Number(b.archived));
   const rows = sorted.filter(
@@ -93,7 +106,7 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
-            {OVERVIEW_FILTERS.map((key) => (
+            {filters.map((key) => (
               <Link
                 key={key}
                 href={href(key)}
@@ -149,6 +162,11 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
                           {row.archived ? (
                             <Badge variant="secondary" className="ml-2">
                               {t("archived")}
+                            </Badge>
+                          ) : null}
+                          {purgeFailed.has(row.organizationId) ? (
+                            <Badge variant="destructive" className="ml-2">
+                              {tb("archive.purgeFailedBadge")}
                             </Badge>
                           ) : null}
                           {row.deleteAfter ? (

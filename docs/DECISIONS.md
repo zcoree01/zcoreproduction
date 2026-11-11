@@ -786,3 +786,15 @@ The product owner chose the free variant ("logičnija mi je").
 - **`checkPermission` uses `auth.getClaims()`**: the token's signature and expiry are verified locally (ES256 signing key). Still checked on every request: the session exists (`session_status` in the proxy) and the token itself (PostgREST, for the `has_permission` RPC that follows).
 
 **Consequences:** A navigation costs three sequential round trips (proxy, session context, page data) instead of four; a mutation about five instead of nine or ten, and it no longer waits behind polling. No migration. Open, in order of value: (1) rewrite `production_order_directory` so the list and its count do not run the schedule / progress functions for every order (migration); (2) a larger Supabase compute size (dashboard, paid); (3) the full translation file (256 kB) is sent with every hard load (79 kB compressed); (4) `session_status` in the proxy stays one round trip per request. `npm run dev` compiles pages on demand, so speed must be judged on Vercel or with `npm run build && npm start`.
+
+## D-055 — Visible "purge failed" state (2026-11-11)
+
+**Context:** Follow-up of D-050: a failed permanent deletion only wrote a log line and answered HTTP 500 to the cron. Such a firm fails every night and can be neither cancelled (`not_cancellable`) nor restored (`deletion_scheduled`), and its files may already be gone, so nobody would notice.
+
+**Decision:**
+
+- Table `organization_purge_failures` (one row per firm: first and last failure, attempts, last error up to 2000 characters; migration `20261111150000_purge_failures`). RLS on and no policies, no grants for `anon` / `authenticated`: written by the cron through `record_purge_failure` (service role only), read through `platform_purge_failures()` (`platform.read`). The first failure also writes `organization.purge_failed` to the Zcore audit log. The row disappears with the firm when a later purge succeeds.
+- `purgeDueOrganizations` records every failure; if recording fails too, the cron's error says `(not recorded: …)`.
+- Zcore sees it on the platform home (red "Brisanje nije uspjelo" tile, only while there is such a firm), as a filter and badge in the firm list (`/platform?filter=purge_failed`) and as a red strip on the firm page with attempts, dates and the error.
+
+**Consequences:** A stuck purge is visible the next morning. Fixing it still needs a developer (the cause is in the error); the firm stays archived and keeps being retried nightly.

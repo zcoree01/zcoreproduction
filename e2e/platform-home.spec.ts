@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { ensureOrganization, ensureUser } from "../src/modules/organizations/provision";
 import { createAdminClient } from "../scripts/lib/admin-client";
-import { testTenantPassword } from "../tests/shared/test-tenants";
+import { TEST_TENANTS, testTenantPassword } from "../tests/shared/test-tenants";
 import { expectPath, login } from "./helpers";
 
 // Zcore home page (/dashboard for the platform organization). The Zcore users
@@ -59,4 +59,39 @@ test("Tehničar sees no revenue", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Pomoć i prijava problema" })).toHaveCount(0);
   await expect(page.getByText("Prihod ovaj mjesec")).toHaveCount(0);
   await expect(page.getByText("Prihod po mjesecima")).toHaveCount(0);
+});
+
+test("a failed permanent deletion is shown on the home, the list and the firm page", async ({
+  page,
+}) => {
+  // The cron records failures with the service role (D-055); tenant B stands in.
+  const service = createAdminClient();
+  const firm = await service
+    .from("organizations")
+    .select("id, name")
+    .eq("slug", TEST_TENANTS.b.slug)
+    .single()
+    .throwOnError();
+  const error = `E2E rows left after purge: ${Date.now()}`;
+  await service
+    .rpc("record_purge_failure", { p_org_id: firm.data.id, p_error: error })
+    .throwOnError();
+  try {
+    await login(page, ADMIN, "zcore");
+    await expectPath(page, "/dashboard");
+    await page.getByTestId("todo-purgeFailed").click();
+    await expect(page).toHaveURL(/filter=purge_failed/);
+    const row = page.getByRole("row").filter({ hasText: firm.data.name });
+    await expect(row.getByText("Brisanje nije uspjelo")).toBeVisible();
+    await row.getByRole("link", { name: firm.data.name }).click();
+    const strip = page.getByTestId("purge-failed-strip");
+    await expect(strip).toContainText("Trajno brisanje nije uspjelo");
+    await expect(strip).toContainText(error);
+  } finally {
+    await service
+      .from("organization_purge_failures")
+      .delete()
+      .eq("organization_id", firm.data.id)
+      .throwOnError();
+  }
 });

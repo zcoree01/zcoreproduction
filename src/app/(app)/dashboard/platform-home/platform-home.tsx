@@ -3,6 +3,7 @@ import { ErrorState } from "@/components/shared/error-state";
 import { PageHeader } from "@/components/shared/page-header";
 import type { PlatformHome as PlatformHomeData } from "@/modules/platform/home";
 import { getPlatformHome } from "@/modules/platform/home-queries";
+import { listPurgeFailures } from "@/modules/platform/purge-queries";
 import { FirmStates } from "./firm-states";
 import { KpiCards } from "./kpi-cards";
 import { OverdueTable } from "./overdue-table";
@@ -21,8 +22,11 @@ export async function PlatformHome({
 }) {
   const t = await getTranslations("platformHome");
   let data: PlatformHomeData;
+  let purgeFailures: number;
   try {
-    data = await getPlatformHome();
+    const [home, failures] = await Promise.all([getPlatformHome(), listPurgeFailures()]);
+    data = home;
+    purgeFailures = failures.length;
   } catch (error) {
     console.error(error);
     return <ErrorState title={t("errorTitle")} />;
@@ -36,7 +40,7 @@ export async function PlatformHome({
         <KpiCards data={data} showRevenue={canSeeRevenue} />
         <div className="grid gap-4 xl:grid-cols-12">
           <div className="xl:col-span-7">
-            <TodoTiles todo={data.todo} />
+            <TodoTiles todo={data.todo} purgeFailures={purgeFailures} />
           </div>
           <div className="xl:col-span-5">
             <FirmStates firms={data.firms} />

@@ -2472,6 +2472,38 @@ export type Database = {
           },
         ]
       }
+      organization_purge_failures: {
+        Row: {
+          attempts: number
+          error: string
+          first_failed_at: string
+          last_failed_at: string
+          organization_id: string
+        }
+        Insert: {
+          attempts?: number
+          error: string
+          first_failed_at?: string
+          last_failed_at?: string
+          organization_id: string
+        }
+        Update: {
+          attempts?: number
+          error?: string
+          first_failed_at?: string
+          last_failed_at?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_purge_failures_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           archived_at: string | null
@@ -6853,6 +6885,19 @@ export type Database = {
           status: string
         }[]
       }
+      platform_purge_failures: {
+        Args: never
+        Returns: {
+          attempts: number
+          delete_after: string
+          error: string
+          first_failed_at: string
+          last_failed_at: string
+          name: string
+          organization_id: string
+          slug: string
+        }[]
+      }
       platform_reply_problem_report: {
         Args: { p_body: string; p_id: string; p_status?: string }
         Returns: string
@@ -7129,6 +7174,10 @@ export type Database = {
         Returns: undefined
       }
       record_member_activity: { Args: { p_org: string }; Returns: undefined }
+      record_purge_failure: {
+        Args: { p_error: string; p_org_id: string }
+        Returns: undefined
+      }
       record_tool_change: {
         Args: {
           p_idempotency_key: string

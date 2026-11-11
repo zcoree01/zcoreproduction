@@ -82,7 +82,14 @@ export const unlockUntilSchema = z.object({
   until: z.union([z.literal(""), z.iso.date()]).transform((value) => value || null),
 });
 
-export const OVERVIEW_FILTERS = ["all", "late", "locked", "trial", "archived"] as const;
+export const OVERVIEW_FILTERS = [
+  "all",
+  "late",
+  "locked",
+  "trial",
+  "archived",
+  "purge_failed",
+] as const;
 export type OverviewFilter = (typeof OVERVIEW_FILTERS)[number];
 
 export function overviewFilter(value: string | undefined): OverviewFilter {

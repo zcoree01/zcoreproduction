@@ -81,9 +81,11 @@ function fakeClient(opts: {
   files: Record<string, Record<string, Entry[]>>;
   rpcError?: Record<string, string>;
   listError?: string;
+  recordError?: string;
 }) {
   const removed: { bucket: string; paths: string[] }[] = [];
   const rpcCalls: string[] = [];
+  const recorded: { id: string; error: string }[] = [];
   const filters: unknown[][] = [];
   const query = {
     select: () => query,
@@ -110,14 +112,25 @@ function fakeClient(opts: {
         },
       }),
     },
-    rpc: async (fn: string, args: { p_org_id: string }) => {
+    rpc: async (fn: string, args: { p_org_id: string; p_error?: string }) => {
+      if (fn === "record_purge_failure") {
+        if (opts.recordError) return { data: null, error: { message: opts.recordError } };
+        recorded.push({ id: args.p_org_id, error: args.p_error ?? "" });
+        return { data: null, error: null };
+      }
       expect(fn).toBe("purge_organization");
       rpcCalls.push(args.p_org_id);
       const message = opts.rpcError?.[args.p_org_id];
       return message ? { data: null, error: { message } } : { data: true, error: null };
     },
   };
-  return { client: client as unknown as SupabaseClient<Database>, removed, rpcCalls, filters };
+  return {
+    client: client as unknown as SupabaseClient<Database>,
+    removed,
+    rpcCalls,
+    recorded,
+    filters,
+  };
 }
 
 describe("purgeDueOrganizations", () => {
@@ -191,6 +204,27 @@ describe("purgeDueOrganizations", () => {
       purged: ["org-b"],
       failed: [{ id: "org-a", error: "rows left after purge: 1" }],
     });
+  });
+
+  it("records every failure for the Zcore team (D-055)", async () => {
+    const fake = fakeClient({
+      due: ["org-a", "org-b"],
+      files: {},
+      rpcError: { "org-a": "rows left after purge: 1" },
+    });
+    await actual.purgeDueOrganizations(fake.client, new Date());
+    expect(fake.recorded).toEqual([{ id: "org-a", error: "rows left after purge: 1" }]);
+  });
+
+  it("still reports a failure whose recording failed", async () => {
+    const fake = fakeClient({
+      due: ["org-a"],
+      files: {},
+      rpcError: { "org-a": "boom" },
+      recordError: "db down",
+    });
+    const result = await actual.purgeDueOrganizations(fake.client, new Date());
+    expect(result.failed).toEqual([{ id: "org-a", error: "boom (not recorded: db down)" }]);
   });
 
   it("does not purge a firm whose files could not be listed", async () => {

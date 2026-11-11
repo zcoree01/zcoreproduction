@@ -7,7 +7,7 @@ import { ModuleDisabled } from "@/components/shared/module-disabled";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import { PermissionDenied } from "@/components/shared/permission-denied";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMemberAccess } from "@/lib/auth/access";
@@ -16,6 +16,7 @@ import { requireMember } from "@/lib/auth/session";
 import { zonedDate } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { getOrganizationBilling, listBillingPackages } from "@/modules/platform/billing-queries";
+import { listPurgeFailures } from "@/modules/platform/purge-queries";
 import { listPlatformSupportRequests } from "@/modules/support/queries";
 import { BillingStateBadge } from "../../billing-state-badge";
 import { SupportControl } from "../../support-control";
@@ -49,10 +50,11 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
   }
 
   const id = z.uuid().safeParse((await params).id);
-  const [billing, packages, support] = await Promise.all([
+  const [billing, packages, support, purgeFailures] = await Promise.all([
     id.success ? getOrganizationBilling(id.data) : Promise.resolve(null),
     listBillingPackages(),
     listPlatformSupportRequests(),
+    listPurgeFailures(),
   ]);
   const back = (
     <Link
@@ -135,6 +137,13 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
         }),
       })
     : null;
+  const purgeFailure = purgeFailures.find((f) => f.organizationId === organization.id);
+  const failedAt = (value: string) =>
+    format.dateTime(new Date(value), {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: timezone,
+    });
   const can = (key: PermissionKey) => access.permissions.has(key);
   const choices = packages.filter((p) => !p.archived || p.id === billing.package?.id);
 
@@ -145,6 +154,23 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
         {archivedStrip ? (
           <Alert data-testid="archived-strip">
             <AlertDescription>{archivedStrip}</AlertDescription>
+          </Alert>
+        ) : null}
+        {purgeFailure ? (
+          <Alert variant="destructive" data-testid="purge-failed-strip">
+            <AlertTitle>{tb("archive.purgeFailedTitle")}</AlertTitle>
+            <AlertDescription>
+              <p>
+                {tb("archive.purgeFailedDescription", {
+                  attempts: purgeFailure.attempts,
+                  first: failedAt(purgeFailure.firstFailedAt),
+                  last: failedAt(purgeFailure.lastFailedAt),
+                })}
+              </p>
+              <p className="font-mono text-xs break-all">
+                {tb("archive.purgeFailedError", { error: purgeFailure.error })}
+              </p>
+            </AlertDescription>
           </Alert>
         ) : null}
         {scheduledStrip ? (
