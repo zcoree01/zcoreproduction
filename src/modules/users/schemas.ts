@@ -25,7 +25,7 @@ export const CREATE_USER_FIELDS = ["username", "fullName", "roleId"] as const;
 export type CreateUserField = (typeof CREATE_USER_FIELDS)[number];
 
 export type CreateUserError =
-  "invalid" | "denied" | "username_taken" | "role_not_found" | "unexpected";
+  "invalid" | "denied" | "username_taken" | "role_not_found" | "role_above_caller" | "unexpected";
 
 /** Shown once to the administrator; the password is never stored readable. */
 export type TempCredentials = { username: string; password: string };
@@ -34,7 +34,8 @@ export type CreateUserResult =
   | ({ ok: true } & TempCredentials)
   | { ok: false; error: CreateUserError; fields: CreateUserField[] };
 
-export type ResetPasswordError = "invalid" | "denied" | "not_found" | "self" | "unexpected";
+export type ResetPasswordError =
+  "invalid" | "denied" | "not_found" | "self" | "role_above_caller" | "unexpected";
 
 export type ResetPasswordResult =
   ({ ok: true } & TempCredentials) | { ok: false; error: ResetPasswordError };
@@ -48,6 +49,13 @@ export const updateMemberSchema = z.object({
 export type UpdateMemberFormValues = z.input<typeof updateMemberSchema>;
 
 export type MemberError =
-  "invalid" | "denied" | "not_found" | "self" | "role_not_found" | "last_manager" | "unexpected";
+  | "invalid"
+  | "denied"
+  | "not_found"
+  | "self"
+  | "role_not_found"
+  | "role_above_caller"
+  | "last_manager"
+  | "unexpected";
 
 export type MemberResult = { ok: true } | { ok: false; error: MemberError };

@@ -8,6 +8,8 @@ export type CreateAuthUserResult =
 export interface CreateUserDeps {
   /** Role lookup as the acting user (RLS: only roles of their organization). */
   findRole(roleId: string): Promise<{ key: string } | null>;
+  /** May the acting member give this role (D-053: no permission they lack)? */
+  canAssignRole(roleId: string): Promise<boolean>;
   /** Which of `usernames` already exist in the organization (incl. deactivated users). */
   takenUsernames(usernames: string[]): Promise<Set<string>>;
   /** Temporary password the user must replace at the first sign-in. */
@@ -40,7 +42,7 @@ export type NewOrgUser = {
 
 export type CreateOrgUserResult =
   | { ok: true; userId: string; username: string; password: string }
-  | { ok: false; error: "username_taken" | "role_not_found" };
+  | { ok: false; error: "username_taken" | "role_not_found" | "role_above_caller" };
 
 // A generated name can be taken between the lookup and the insert.
 const MAX_ATTEMPTS = 5;
@@ -58,6 +60,7 @@ export async function createOrgUser(
 ): Promise<CreateOrgUserResult> {
   const role = await deps.findRole(input.roleId);
   if (!role) return { ok: false, error: "role_not_found" };
+  if (!(await deps.canAssignRole(input.roleId))) return { ok: false, error: "role_above_caller" };
 
   const candidates = input.username
     ? [input.username]

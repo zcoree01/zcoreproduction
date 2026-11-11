@@ -95,12 +95,19 @@ describe("tenant isolation: writes", () => {
   });
 
   it("admin A cannot deactivate tenant B's members", async () => {
-    const { data } = await fx.a.admin
+    // Memberships change only through the RPCs (D-053): no direct write grant.
+    const direct = await fx.a.admin
       .from("memberships")
       .update({ archived_at: new Date().toISOString() })
       .eq("user_id", fx.b.operatorId)
       .select("id");
-    expect(data).toEqual([]);
+    expect(direct.error?.code).toBe("42501");
+    const rpc = await fx.a.admin.rpc("set_member_active", {
+      p_org_id: fx.b.org.id,
+      p_user_id: fx.b.operatorId,
+      p_active: false,
+    });
+    expect(rpc.error?.code).toBe("42501");
   });
 
   it("admin A cannot give own member a role that belongs to tenant B", async () => {
@@ -112,13 +119,19 @@ describe("tenant isolation: writes", () => {
       .single();
     expect(roleB.error).toBeNull();
 
-    const { error } = await fx.a.admin
+    const direct = await fx.a.admin
       .from("memberships")
       .update({ role_id: roleB.data!.id })
       .eq("user_id", fx.a.operatorId)
       .select("id");
-    // Composite FK (organization_id, role_id) rejects a cross-tenant role.
-    expect(error?.code).toBe("23503");
+    expect(direct.error?.code).toBe("42501");
+    const { error } = await fx.a.admin.rpc("update_member", {
+      p_org_id: fx.a.org.id,
+      p_user_id: fx.a.operatorId,
+      p_full_name: "Test Tenant A Operater",
+      p_role_id: roleB.data!.id,
+    });
+    expect(error?.message).toBe("role_not_found");
   });
 
   it("admin A cannot create roles in tenant B", async () => {
@@ -191,22 +204,28 @@ describe("permissions", () => {
   });
 
   it("admin cannot change their own membership (no self-lockout)", async () => {
-    const { data } = await fx.a.admin
+    const direct = await fx.a.admin
       .from("memberships")
       .update({ archived_at: new Date().toISOString() })
       .eq("user_id", fx.a.adminId)
       .select("id");
-    expect(data).toEqual([]);
+    expect(direct.error?.code).toBe("42501");
+    const rpc = await fx.a.admin.rpc("set_member_active", {
+      p_org_id: fx.a.org.id,
+      p_user_id: fx.a.adminId,
+      p_active: false,
+    });
+    expect(rpc.error?.message).toBe("self");
   });
 
   it("permissions of system roles cannot be removed by tenants", async () => {
-    const { data } = await fx.a.admin
+    const { error } = await fx.a.admin
       .from("role_permissions")
       .delete()
       .eq("organization_id", fx.a.org.id)
       .eq("permission_key", "roles.manage")
       .select("role_id");
-    expect(data).toEqual([]);
+    expect(error?.code).toBe("42501");
   });
 
   it("the TypeScript permission list matches the database catalog", async () => {

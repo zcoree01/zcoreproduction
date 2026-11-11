@@ -752,3 +752,16 @@ The product owner chose the free variant ("logičnija mi je").
 - `npm run dev`, `seed:demo`, `db:types` and `db push` still use the linked production project.
 
 **Consequences:** Tests no longer touch production data, and new migrations can be tried locally (`supabase db reset` on the local stack) before `db push`. Docker Desktop must be running for `test:db` and `e2e`. If the hosted platform adds more objects that migrations rely on, they must be mirrored in `roles.sql`.
+
+## D-053 — No privilege escalation through user and role management (2026-11-11)
+
+**Context:** Follow-up of D-050: a custom role with `users.manage` could give someone (or, through a second account, itself) the Administrator role, which holds `platform.organizations.delete`, a permission never allowed in custom roles. The same hole existed in every firm: such a member could also reset an administrator's password and sign in as them, and a custom role with `roles.manage` could grant itself any permission. `memberships`, `roles` and `role_permissions` also had direct write grants for `authenticated`, which bypassed the RPC rules.
+
+**Decision:**
+
+- **Rule:** a member may assign, manage (edit, deactivate, reset the password of) and edit only roles whose every stored permission they hold themselves (`private.caller_holds_all`, `private.role_within_caller`, migration `20261111100000_no_privilege_escalation`). Error `role_above_caller` (42501) with its own Bosnian message.
+- **The system administrator roles (`admin`, `platform_admin`) are not limited.** The `admin` role lacks a few permissions of other system roles by design (`payroll.*`, `absences.sensitive.read`, `quality.inspect`, `machines.status.update`, `orders.material.update`) and must still assign HR, inspector and operator roles. Today only these two system roles hold `users.manage` / `roles.manage`, so the rule limits custom roles.
+- Checked in `private.managed_membership` (so `update_member`, `set_member_active` and the new `assert_member_manageable`), for the new role in `update_member`, for the old and the new permissions in `save_custom_role`, and in `archive_custom_role`. User creation and the password reset go through the Auth Admin API, so their server actions ask `can_assign_role` / `assert_member_manageable` first.
+- **Direct writes removed:** no `insert` / `update` / `delete` grants for `authenticated` on `memberships`, `roles`, `role_permissions` and their write policies are dropped; only the security-definer RPCs and the service role write them (no app code wrote them as the user).
+
+**Consequences:** A custom "user manager" role can hand out only roles within its own permissions and cannot touch administrators. Tests that probed direct writes now expect `42501`; the cross-tenant role and lock checks run through the RPCs. The role pickers still list every role; choosing one above the caller is refused with a message (hiding them is a possible UI follow-up).

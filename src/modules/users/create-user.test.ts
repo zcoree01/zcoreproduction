@@ -22,6 +22,7 @@ const GENERATED: NewOrgUser = {
 function deps(overrides: Partial<CreateUserDeps> = {}) {
   const value = {
     findRole: vi.fn<CreateUserDeps["findRole"]>(async () => ({ key: "operator" })),
+    canAssignRole: vi.fn<CreateUserDeps["canAssignRole"]>(async () => true),
     takenUsernames: vi.fn<CreateUserDeps["takenUsernames"]>(async () => new Set<string>()),
     generatePassword: vi.fn<CreateUserDeps["generatePassword"]>(() => "jabuka482"),
     createAuthUser: vi.fn<CreateUserDeps["createAuthUser"]>(async () => ({
@@ -101,6 +102,16 @@ describe("createOrgUser", () => {
       ok: false,
       error: "role_not_found",
     });
+    expect(d.createAuthUser).not.toHaveBeenCalled();
+  });
+
+  it("refuses a role with permissions the acting member does not hold (D-053)", async () => {
+    const d = deps({ canAssignRole: vi.fn(async () => false) });
+    await expect(createOrgUser(d, ORG, INPUT)).resolves.toEqual({
+      ok: false,
+      error: "role_above_caller",
+    });
+    expect(d.canAssignRole).toHaveBeenCalledWith(INPUT.roleId);
     expect(d.createAuthUser).not.toHaveBeenCalled();
   });
 

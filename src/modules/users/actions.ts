@@ -76,8 +76,23 @@ export async function resetUserPasswordAction(userId: unknown): Promise<ResetPas
   if (!parsed.success) return { ok: false, error: "invalid" };
   if (parsed.data === member.userId) return { ok: false, error: "self" };
 
-  // RLS: only users of the acting member's organization are visible.
   const supabase = await createClient();
+  // Same rules as editing the member (D-053): not oneself, not the support
+  // account, not a member whose role holds permissions the caller lacks.
+  const { error: manageError } = await supabase.rpc("assert_member_manageable", {
+    p_org_id: organizationId,
+    p_user_id: parsed.data,
+  });
+  if (manageError) {
+    const kind = memberError(manageError);
+    return {
+      ok: false,
+      error:
+        kind === "role_above_caller" || kind === "self" || kind === "not_found" ? kind : "denied",
+    };
+  }
+
+  // RLS: only users of the acting member's organization are visible.
   const { data: target, error: lookupError } = await supabase
     .from("profiles")
     .select("id, username, is_support")
@@ -129,6 +144,7 @@ function memberError(error: { code?: string; message?: string }): MemberError {
   if (error.message === "self") return "self";
   if (error.message === "last_manager") return "last_manager";
   if (error.message === "role_not_found") return "role_not_found";
+  if (error.message === "role_above_caller") return "role_above_caller";
   if (error.code === "42501") return "denied";
   if (error.code === "P0002") return "not_found";
   if (error.code === "22023") return "invalid";

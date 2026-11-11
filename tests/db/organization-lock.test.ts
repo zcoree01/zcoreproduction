@@ -270,20 +270,20 @@ describe("a locked organization", () => {
   });
 
   it("refuses changing a member's role", async () => {
-    // Writes the role the operator already has: refused while locked, harmless otherwise.
+    // Through the RPC the app uses (direct writes have no grant, D-053).
     const roles = await fx.service
       .from("roles")
       .select("id")
       .eq("organization_id", fx.b.org.id)
-      .eq("key", "operator")
+      .eq("key", "warehouse")
       .single()
       .throwOnError();
-    const changed = await fx.b.admin
-      .from("memberships")
-      .update({ role_id: roles.data.id })
-      .eq("organization_id", fx.b.org.id)
-      .eq("user_id", fx.b.operatorId)
-      .select("user_id");
+    const changed = await fx.b.admin.rpc("update_member", {
+      p_org_id: fx.b.org.id,
+      p_user_id: fx.b.operatorId,
+      p_full_name: "Test Tenant B Operater",
+      p_role_id: roles.data.id,
+    });
     expect(changed.error).toMatchObject(LOCKED);
   });
 

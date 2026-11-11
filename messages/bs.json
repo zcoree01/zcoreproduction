@@ -321,6 +321,7 @@
         "denied": "Nemate dozvolu za dodavanje korisnika.",
         "username_taken": "Korisničko ime je već zauzeto.",
         "role_not_found": "Odabrana uloga ne postoji.",
+        "role_above_caller": "Ne možete dodijeliti ulogu koja ima dozvole koje vi nemate.",
         "unexpected": "Korisnik nije dodan zbog greške. Pokušajte ponovo."
       },
       "fieldErrors": {
@@ -352,6 +353,7 @@
       "denied": "Samo administrator može resetovati lozinku.",
       "not_found": "Korisnik nije pronađen.",
       "self": "Svoju lozinku mijenjate u svom profilu.",
+      "role_above_caller": "Ne možete resetovati lozinku korisniku koji ima dozvole koje vi nemate.",
       "unexpected": "Lozinka nije resetovana zbog greške. Pokušajte ponovo."
     },
     "edit": {
@@ -373,6 +375,7 @@
       "not_found": "Korisnik više ne postoji.",
       "self": "Svoj nalog mijenjaš u „Moj profil“.",
       "role_not_found": "Uloga više ne postoji.",
+      "role_above_caller": "Ne možeš upravljati korisnikom ni dodijeliti ulogu s dozvolama koje sam nemaš.",
       "last_manager": "Firma mora imati bar jednog aktivnog korisnika koji upravlja korisnicima.",
       "unexpected": "Nije sačuvano. Pokušaj ponovo."
     }
@@ -5621,6 +5624,7 @@
       "name_taken": "Uloga s tim nazivom već postoji.",
       "system_role": "Sistemska uloga se ne može mijenjati.",
       "role_in_use": "Uloga ima aktivne korisnike.",
+      "role_above_caller": "Ne možete davati ni mijenjati dozvole koje sami nemate.",
       "unexpected": "Nije sačuvano. Pokušaj ponovo."
     }
   },

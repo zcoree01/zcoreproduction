@@ -31,6 +31,14 @@ export async function createUserWithTempPassword(
         if (error) throw error;
         return data;
       },
+      async canAssignRole(roleId) {
+        const { data, error } = await supabase.rpc("can_assign_role", {
+          p_org_id: organizationId,
+          p_role_id: roleId,
+        });
+        if (error) throw error;
+        return data;
+      },
       async takenUsernames(usernames) {
         const { data, error } = await supabase
           .from("profiles")

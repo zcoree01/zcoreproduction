@@ -6299,6 +6299,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      assert_member_manageable: {
+        Args: { p_org_id: string; p_user_id: string }
+        Returns: undefined
+      }
       attendance_board: {
         Args: { p_date: string; p_org_id: string }
         Returns: Json
@@ -6321,6 +6325,10 @@ export type Database = {
           shift_id: string
           work_date: string
         }[]
+      }
+      can_assign_role: {
+        Args: { p_org_id: string; p_role_id: string }
+        Returns: boolean
       }
       cancel_absence: {
         Args: { p_absence_id: string; p_note?: string }
