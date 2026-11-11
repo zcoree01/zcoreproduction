@@ -1,7 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { decideRoute, isCronPath, SESSION_REPLACED_PARAM } from "@/lib/auth/route-guard";
+import {
+  decideRoute,
+  isCronPath,
+  needsSessionStatus,
+  SESSION_REPLACED_PARAM,
+} from "@/lib/auth/route-guard";
 import { slugFromAuthEmail } from "@/lib/auth/username";
 import { getPublicEnv } from "@/lib/env";
 import type { Database } from "@/lib/supabase/types";
@@ -21,9 +26,11 @@ import {
  *    server code in TENANT_HEADER (always overwritten, never client-supplied).
  * 2. Refreshes the Supabase session cookies.
  * 3. Redirects to /login unless the session belongs to this tenant.
- * 4. Signs out a session that was replaced by a sign-in on another device
- *    (one active session per user, D-013).
- * 5. Keeps users with a temporary password on /change-password (D-022).
+ * 4. On /login only: signs out a session that was replaced by a sign-in on
+ *    another device (one active session per user, D-013) and sends users
+ *    with a temporary password to /change-password (D-022). On every other
+ *    path requireMember enforces these next to the database (D-057), so the
+ *    proxy makes no database request there.
  *
  * This is a coarse gate only. Pages, server actions and RLS re-check
  * membership and permissions on every request.
@@ -93,11 +100,13 @@ export async function proxy(request: NextRequest) {
   const email = typeof data?.claims.email === "string" ? data.claims.email : null;
   const signedInHere = tenant.slug !== null && slugFromAuthEmail(email) === tenant.slug;
 
-  const status = signedInHere ? await sessionStatus(supabase) : null;
+  const path = request.nextUrl.pathname;
+  const status = signedInHere && needsSessionStatus(path) ? await sessionStatus(supabase) : null;
   const decision = decideRoute({
-    path: request.nextUrl.pathname,
+    path,
     signedInHere,
-    sessionActive: status?.active ?? false,
+    // Not asked: decided by requireMember when the page or action runs.
+    sessionActive: status?.active ?? signedInHere,
     mustChangePassword: status?.mustChangePassword ?? false,
     supportEnded: status?.supportEnded ?? false,
   });

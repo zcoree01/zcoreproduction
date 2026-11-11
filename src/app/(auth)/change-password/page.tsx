@@ -32,7 +32,7 @@ export default async function ChangePasswordPage() {
 }
 
 async function ChangePasswordCard() {
-  const member = await requireMember();
+  const member = await requireMember({ temporaryPassword: true });
   if (!member.mustChangePassword) redirect(homePathFor(member.role.key));
   const t = await getTranslations();
 

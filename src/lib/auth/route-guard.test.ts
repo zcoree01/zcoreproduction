@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideRoute, isCronPath } from "./route-guard";
+import { decideRoute, isCronPath, needsSessionStatus } from "./route-guard";
 
 describe("decideRoute", () => {
   it("lets an active session through and keeps it off /login", () => {
@@ -112,6 +112,23 @@ describe("decideRoute", () => {
         supportEnded: true,
       }),
     ).toEqual({ action: "next" });
+  });
+});
+
+describe("needsSessionStatus", () => {
+  it("asks the database only on /login; requireMember enforces the rest", () => {
+    expect(needsSessionStatus("/login")).toBe(true);
+    for (const path of ["/", "/orders", "/floor", "/change-password", "/api/notifications"]) {
+      expect(needsSessionStatus(path)).toBe(false);
+    }
+  });
+
+  it("a replaced session reaches /login, where it is signed out", () => {
+    // Other paths: the proxy lets the token through, requireMember redirects to /login.
+    expect(decideRoute({ path: "/login", signedInHere: true, sessionActive: false })).toEqual({
+      action: "sign_out",
+      to: "/login",
+    });
   });
 });
 

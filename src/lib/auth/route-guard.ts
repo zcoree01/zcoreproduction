@@ -36,6 +36,18 @@ export function isCronPath(path: string): boolean {
   return path.startsWith(CRON_PATH_PREFIX) && path.length > CRON_PATH_PREFIX.length;
 }
 
+/**
+ * Whether the proxy must ask the database for the state of the session
+ * (session_status) before deciding. Only on /login, where it signs a replaced
+ * session out and sends a signed-in user on. Everywhere else the proxy only
+ * verifies the token and requireMember enforces the same policies next to the
+ * database (D-057): on Vercel the proxy runs near the visitor, not near the
+ * database, and that request cost ~100 ms on every navigation and action.
+ */
+export function needsSessionStatus(path: string): boolean {
+  return path === "/login";
+}
+
 /** ?session=replaced on /login: explain why the user was signed out. */
 export const SESSION_REPLACED_PARAM = { name: "session", value: "replaced" } as const;
 

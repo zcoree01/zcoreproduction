@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
 import { z } from "zod";
+import { CHANGE_PASSWORD_PATH, SUPPORT_EXIT_PATH } from "@/lib/auth/route-guard";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 import { getTenantSlug } from "@/lib/tenant/server";
@@ -33,6 +34,11 @@ export type SessionContext = {
   grants: MemberGrants;
   /** Raw my_billing_notice answer; undefined when it was not read with the membership. */
   billing: unknown;
+  /**
+   * The token's session still exists (one session per user, D-013) and, for a
+   * support account, the approved time has not ended (D-028).
+   */
+  session: { active: boolean; supportEnded: boolean };
 };
 
 const organizationIdClaim = z.uuid();
@@ -41,8 +47,9 @@ const organizationIdClaim = z.uuid();
  * Active membership of the signed-in user in the organization `tenantSlug`,
  * with the organization's modules, the role's permissions and the billing
  * notice: everything a page needs to decide what to show, in one round trip
- * (D-054). Null when not signed in, deactivated, or signed in to a different
- * tenant. Reads go through RLS, so this can never return another tenant's data.
+ * (D-054), together with the state of the session (D-057). Null when not
+ * signed in, deactivated, or signed in to a different tenant. Reads go through
+ * RLS, so this can never return another tenant's data.
  */
 export async function loadSessionContext(
   supabase: SupabaseClient<Database>,
@@ -55,7 +62,7 @@ export async function loadSessionContext(
   // only) just lets the billing notice start early; the membership row decides.
   const claimedOrg = organizationIdClaim.safeParse(auth.claims.app_metadata?.organization_id);
 
-  const [membership, billing] = await Promise.all([
+  const [membership, billing, status] = await Promise.all([
     supabase
       .from("memberships")
       .select(
@@ -73,6 +80,7 @@ export async function loadSessionContext(
     claimedOrg.success
       ? supabase.rpc("my_billing_notice", { p_org_id: claimedOrg.data })
       : Promise.resolve(null),
+    supabase.rpc("session_status").maybeSingle(),
   ]);
   const { data, error } = membership;
   if (error) throw error;
@@ -111,7 +119,24 @@ export async function loadSessionContext(
       billing && !billing.error && claimedOrg.data === data.organization.id
         ? billing.data
         : undefined,
+    session: sessionState(status),
   };
+}
+
+/**
+ * Fails open on infrastructure errors: this enforces the single-session and
+ * support-time policies, not authentication (the token, the membership and RLS
+ * are checked independently).
+ */
+function sessionState(status: {
+  data: { active: boolean; support_ended: boolean } | null;
+  error: unknown;
+}): SessionContext["session"] {
+  if (status.error || !status.data) {
+    console.error("session_status failed", status.error);
+    return { active: true, supportEnded: false };
+  }
+  return { active: status.data.active, supportEnded: status.data.support_ended };
 }
 
 export async function loadMember(
@@ -131,12 +156,32 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   return loadSessionContext(await createClient(), tenantSlug);
 });
 
+/**
+ * The signed-in member, or null: not signed in, or the session was replaced by
+ * a sign-in on another device, or the approved support time has ended.
+ */
 export async function getCurrentMember(): Promise<CurrentMember | null> {
-  return (await getSessionContext())?.member ?? null;
+  const context = await getSessionContext();
+  if (!context || !context.session.active || context.session.supportEnded) return null;
+  return context.member;
 }
 
-export async function requireMember(): Promise<CurrentMember> {
-  const member = await getCurrentMember();
-  if (!member) redirect("/login");
-  return member;
+/**
+ * The signed-in member; everyone else is redirected (pages, server actions).
+ * This is where the session policies are enforced for every request that
+ * reads or writes data (D-057): the proxy runs far from the database, so it
+ * only verifies the token.
+ * - support time ended: to /support/exit (back to the Zcore session);
+ * - session replaced on another device: to /login, where the proxy signs this
+ *   device out and shows why;
+ * - temporary password (D-022): to /change-password, unless the caller is that
+ *   screen itself (`temporaryPassword: true`).
+ */
+export async function requireMember({ temporaryPassword = false } = {}): Promise<CurrentMember> {
+  const context = await getSessionContext();
+  if (!context) redirect("/login");
+  if (context.session.supportEnded) redirect(SUPPORT_EXIT_PATH);
+  if (!context.session.active) redirect("/login");
+  if (context.member.mustChangePassword && !temporaryPassword) redirect(CHANGE_PASSWORD_PATH);
+  return context.member;
 }

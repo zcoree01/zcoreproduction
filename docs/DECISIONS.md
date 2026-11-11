@@ -811,3 +811,15 @@ The product owner chose the free variant ("logičnija mi je").
 - Verified before applying: old and new view rows are identical on the local database and, with a read-only query, on all 180 production orders (orders without operations, partial progress, due warnings, an approved shortage).
 
 **Consequences:** One scan of the view with 11 orders dropped from ~6.7 ms to under 1 ms locally; the cost per order is now that of a hash aggregate, so a single order read through the view (order detail) costs the same few milliseconds as the list. Page size 100 was added to the server-paginated tables (the size itself hardly changes the speed). Still loaded whole: material stock, tools, finished goods, delivery notes (latest 100); their balances are summed in the app, so paging them needs the sums in the database.
+
+## D-057 — Session check next to the database, not in the proxy (2026-11-11)
+
+**Context:** Measured after D-054 / D-056: every request from a browser in Bosnia runs the proxy in Vercel's `fra1` (Frankfurt) and the page in `dub1` (Dublin, next to the database). The proxy asked the database `session_status` on every navigation, action and poll: Supabase logs show those calls entering at its Frankfurt edge and taking ~100 ms (p50 95 ms), against ~20 ms for calls from `dub1`. A request with one database query through the proxy took 190–310 ms end to end, against ~50 ms for a static file.
+
+**Decision:**
+
+- The proxy only verifies the token (signature, expiry, tenant) and refreshes the cookies. It asks `session_status` only on `/login` (`needsSessionStatus`), where it signs a replaced session out with the notice and sends signed-in users on.
+- `loadSessionContext` reads `session_status` in parallel with the membership (no extra round trip). **`requireMember` enforces the session policies** for every page and server action: support time ended → `/support/exit`; session replaced on another device → `/login` (signed out there with the notice); temporary password → `/change-password` (the change-password page and action pass `temporaryPassword: true`). `getCurrentMember` returns null for an ended or replaced session (route handlers answer 401).
+- Data stays protected as before: RLS and the definer RPCs check membership and permissions with the token; a replaced session's token stays valid at most until it expires (as before, between the revocation and its next proxy check).
+
+**Consequences:** One cross-region database call less on every request. Public pages and the kiosk are unchanged. A new route handler that returns data must use `getCurrentMember` / `requireMember`, not only the token.

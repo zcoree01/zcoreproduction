@@ -80,7 +80,7 @@ async function finishPasswordChange(member: CurrentMember, forced: boolean) {
  * set; otherwise the current password is required (changeOwnPasswordAction).
  */
 export async function changeInitialPasswordAction(input: unknown): Promise<PasswordResult> {
-  const member = await requireMember();
+  const member = await requireMember({ temporaryPassword: true });
   if (!member.mustChangePassword) return fail("denied");
 
   const parsed = initialPasswordSchema(member.username).safeParse(input);
