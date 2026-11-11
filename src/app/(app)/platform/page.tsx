@@ -24,7 +24,10 @@ import { formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { listBillingOverview, type BillingOverviewRow } from "@/modules/platform/billing-queries";
 import { listPurgeFailures } from "@/modules/platform/purge-queries";
+import { listPlatformOrganizations } from "@/modules/platform/queries";
 import { OVERVIEW_FILTERS, overviewFilter, type OverviewFilter } from "@/modules/platform/schemas";
+import { trialsEndingIds } from "@/modules/platform/trials";
+import { PLATFORM_SLUG } from "@/modules/support/schemas";
 import { BillingStateBadge } from "./billing-state-badge";
 import { SupportEndedNotice } from "./support-ended-notice";
 
@@ -38,14 +41,17 @@ export default function PlatformPage({ searchParams }: PageProps<"/platform">) {
 
 // Archived firms (also those scheduled for deletion) only show under "Arhiva";
 // firms whose permanent deletion failed (D-055) also under their own filter.
+// "trial_ending" uses the rule of the "Probe ističu" tile on the platform home.
 function filterMatchers(
   purgeFailed: ReadonlySet<string>,
+  trialEnding: ReadonlySet<string>,
 ): Record<OverviewFilter, (row: BillingOverviewRow) => boolean> {
   return {
     all: (row) => !row.archived,
     late: (row) => !row.archived && (row.state === "warning" || row.state === "overdue"),
     locked: (row) => !row.archived && row.state === "locked",
     trial: (row) => !row.archived && row.state === "trial",
+    trial_ending: (row) => !row.archived && trialEnding.has(row.organizationId),
     archived: (row) => row.archived,
     purge_failed: (row) => purgeFailed.has(row.organizationId),
   };
@@ -67,9 +73,18 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
 
   const filter = overviewFilter(firstParam(params.filter));
   const query = (firstParam(params.q) ?? "").trim().toLowerCase();
-  const [all, failures] = await Promise.all([listBillingOverview(), listPurgeFailures()]);
+  const [all, failures, organizations] = await Promise.all([
+    listBillingOverview(),
+    listPurgeFailures(),
+    listPlatformOrganizations(),
+  ]);
   const purgeFailed = new Set(failures.map((failure) => failure.organizationId));
-  const matches = filterMatchers(purgeFailed);
+  const trialEnding = trialsEndingIds(
+    organizations.filter((org) => org.slug !== PLATFORM_SLUG),
+    new Date(),
+    member.organization.timezone,
+  );
+  const matches = filterMatchers(purgeFailed, trialEnding);
   // The "purge failed" filter only appears while there is such a firm.
   const filters = OVERVIEW_FILTERS.filter(
     (key) => key !== "purge_failed" || purgeFailed.size > 0 || filter === key,

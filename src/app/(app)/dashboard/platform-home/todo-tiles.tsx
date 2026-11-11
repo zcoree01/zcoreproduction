@@ -80,7 +80,7 @@ export function TodoTiles({
     {
       key: "trialsEnding",
       icon: HourglassIcon,
-      href: "/platform?filter=trial",
+      href: "/platform?filter=trial_ending",
       value: todo.trials_ending,
     },
     {

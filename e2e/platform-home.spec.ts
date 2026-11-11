@@ -95,3 +95,49 @@ test("a failed permanent deletion is shown on the home, the list and the firm pa
       .throwOnError();
   }
 });
+
+test("the trials tile and the list filter it opens show the same firms", async ({ page }) => {
+  // Tenant B gets one module trial ending in 3 days for this test only.
+  const service = createAdminClient();
+  const firm = await service
+    .from("organizations")
+    .select("id, name")
+    .eq("slug", TEST_TENANTS.b.slug)
+    .single()
+    .throwOnError();
+  const trial = await service
+    .from("org_modules")
+    .select("module_key, active_until")
+    .eq("organization_id", firm.data.id)
+    .eq("enabled", true)
+    // A sellable module: core and platform never have a trial end.
+    .not("module_key", "in", "(core,platform)")
+    .order("module_key")
+    .limit(1)
+    .single()
+    .throwOnError();
+  const restore = trial.data.active_until;
+  const setUntil = (value: string | null) =>
+    service
+      .from("org_modules")
+      .update({ active_until: value })
+      .eq("organization_id", firm.data.id)
+      .eq("module_key", trial.data.module_key)
+      .throwOnError();
+  await setUntil(new Date(Date.now() + 3 * 86_400_000).toISOString());
+  try {
+    await login(page, ADMIN, "zcore");
+    await expectPath(page, "/dashboard");
+    const tile = page.getByTestId("todo-trialsEnding");
+    const count = (await tile.locator("span.text-2xl").textContent())?.trim() ?? "";
+    expect(Number(count)).toBeGreaterThanOrEqual(1);
+    await tile.click();
+    await expect(page).toHaveURL(/filter=trial_ending/);
+    await expect(
+      page.getByRole("link", { name: `Probe ističu (7 dana) (${count})` }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: firm.data.name, exact: true })).toBeVisible();
+  } finally {
+    await setUntil(restore);
+  }
+});

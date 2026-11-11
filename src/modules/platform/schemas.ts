@@ -87,6 +87,7 @@ export const OVERVIEW_FILTERS = [
   "late",
   "locked",
   "trial",
+  "trial_ending",
   "archived",
   "purge_failed",
 ] as const;

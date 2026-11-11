@@ -3435,6 +3435,7 @@
         "late": "Kasne s uplatom",
         "locked": "Zaključane",
         "trial": "Proba",
+        "trial_ending": "Probe ističu (7 dana)",
         "archived": "Arhiva",
         "purge_failed": "Brisanje nije uspjelo"
       },
