@@ -11,6 +11,7 @@ import {
   listStockLocations,
 } from "@/modules/inventory/queries";
 import { CountList } from "./count-list";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 export default function CountsPage() {
   return (
@@ -33,7 +34,7 @@ async function CountsContent() {
     return <PermissionDenied description={t("deniedDescription")} />;
   }
 
-  const canMove = access.permissions.has("inventory.move");
+  const canMove = canMoveStockFreely(access);
   const [counts, locations, items] = await Promise.all([
     listStockCounts(organizationId),
     canMove ? listStockLocations(organizationId) : Promise.resolve([]),

@@ -17,6 +17,7 @@ import {
 } from "@/modules/inventory/queries";
 import { listMaterialOptions } from "@/modules/materials/queries";
 import { StockItemDetailView } from "./stock-item-detail";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 export default function StockItemPage({ params }: PageProps<"/inventory/[id]">) {
   return (
@@ -59,7 +60,7 @@ async function StockItemContent({ params }: { params: Promise<{ id: string }> })
   }
 
   const canManage = access.permissions.has("inventory.items.manage");
-  const canMove = access.permissions.has("inventory.move");
+  const canMove = canMoveStockFreely(access);
   const canApprove = access.permissions.has("inventory.adjust.approve");
   const [materials, locations, reservations] = await Promise.all([
     canManage ? listMaterialOptions(organizationId) : Promise.resolve([]),

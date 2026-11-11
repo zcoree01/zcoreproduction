@@ -7567,6 +7567,13 @@ export type Database = {
         Returns: string
       }
       submit_stock_count: { Args: { p_count_id: string }; Returns: undefined }
+      tenant_table_gaps: {
+        Args: never
+        Returns: {
+          missing: string
+          table_name: string
+        }[]
+      }
       update_member: {
         Args: {
           p_full_name: string

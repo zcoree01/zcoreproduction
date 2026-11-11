@@ -20,11 +20,14 @@ export function LotScreen({
   item,
   balances,
   locations,
+  canTransfer,
 }: {
   lot: LotView;
   item: StockItemRow;
   balances: StockBalanceRow[];
   locations: StockLocation[];
+  /** False while the firm is locked: transfers are refused (D-059). */
+  canTransfer: boolean;
 }) {
   const t = useTranslations("floorWarehouse.lot");
   const format = useStockFormat();
@@ -66,10 +69,12 @@ export function LotScreen({
                 </span>
                 <span className="text-sm text-muted-foreground">{b.location}</span>
               </span>
-              <Button size="lg" variant="outline" onClick={() => setMoving(b)}>
-                <ArrowRightLeftIcon />
-                {t("transfer")}
-              </Button>
+              {canTransfer ? (
+                <Button size="lg" variant="outline" onClick={() => setMoving(b)}>
+                  <ArrowRightLeftIcon />
+                  {t("transfer")}
+                </Button>
+              ) : null}
             </li>
           ))}
         </ul>

@@ -13,6 +13,7 @@ import { requireMember } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { getStockCount, listStockItemOptions } from "@/modules/inventory/queries";
 import { CountEntry } from "../count-entry";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 export default function CountPage({ params }: PageProps<"/inventory/counts/[id]">) {
   return (
@@ -51,7 +52,7 @@ async function CountContent({ params }: { params: Promise<{ id: string }> }) {
       </>
     );
   }
-  const canMove = access.permissions.has("inventory.move");
+  const canMove = canMoveStockFreely(access);
   const items =
     canMove && count.status === "open" ? await listStockItemOptions(organizationId) : [];
 

@@ -5,6 +5,7 @@ import { PageSuspense } from "@/components/shared/page-suspense";
 import { getLot, getStockItemDetail, listStockLocations } from "@/modules/inventory/queries";
 import { warehouseAccess } from "../../guard";
 import { LotScreen } from "./lot-screen";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 export default function WarehouseLotPage({ params }: PageProps<"/floor/warehouse/lot/[id]">) {
   return (
@@ -32,6 +33,7 @@ async function WarehouseLotContent({ params }: { params: Promise<{ id: string }>
       item={detail.item}
       balances={detail.balances.filter((b) => b.lotId === lot.lotId)}
       locations={locations}
+      canTransfer={canMoveStockFreely(guard.access)}
     />
   );
 }

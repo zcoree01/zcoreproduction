@@ -8,6 +8,7 @@ import { requireMember } from "@/lib/auth/session";
 import { listStockItems, listStockLocations } from "@/modules/inventory/queries";
 import { listMaterialOptions } from "@/modules/materials/queries";
 import { StockTable } from "./stock-table";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 export default function InventoryPage() {
   return (
@@ -42,7 +43,7 @@ async function InventoryContent() {
         materials={materials}
         locations={locations}
         canManage={canManage}
-        canMove={access.permissions.has("inventory.move")}
+        canMove={canMoveStockFreely(access)}
       />
     </>
   );

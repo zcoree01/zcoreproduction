@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { listStockCounts } from "@/modules/inventory/queries";
 import { warehouseAccess } from "./guard";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 export default function FloorWarehousePage() {
   return (
@@ -37,20 +38,25 @@ async function FloorWarehouseContent() {
           <ScanLineIcon className="size-6" />
           {t("scan")}
         </Link>
-        <Link
-          href="/inventory/receipts/new"
-          className={cn(buttonVariants({ size: "lg", variant: "outline" }), TILE)}
-        >
-          <PackagePlusIcon className="size-6" />
-          {t("receipt")}
-        </Link>
-        <Link
-          href="/floor/warehouse/counts"
-          className={cn(buttonVariants({ size: "lg", variant: "outline" }), TILE)}
-        >
-          <ClipboardListIcon className="size-6" />
-          {t("counts")}
-        </Link>
+        {/* Receipts and counts are refused while the firm is locked (D-059). */}
+        {canMoveStockFreely(guard.access) ? (
+          <>
+            <Link
+              href="/inventory/receipts/new"
+              className={cn(buttonVariants({ size: "lg", variant: "outline" }), TILE)}
+            >
+              <PackagePlusIcon className="size-6" />
+              {t("receipt")}
+            </Link>
+            <Link
+              href="/floor/warehouse/counts"
+              className={cn(buttonVariants({ size: "lg", variant: "outline" }), TILE)}
+            >
+              <ClipboardListIcon className="size-6" />
+              {t("counts")}
+            </Link>
+          </>
+        ) : null}
       </div>
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">{t("openCounts")}</h2>

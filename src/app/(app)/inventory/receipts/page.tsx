@@ -20,6 +20,7 @@ import { requireMember } from "@/lib/auth/session";
 import { divideDecimal, formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
 import { listReceipts } from "@/modules/inventory/queries";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 const LIMIT = 50;
 
@@ -45,7 +46,7 @@ async function ReceiptsContent() {
   }
 
   const receipts = await listReceipts(member.organization.id);
-  const newButton = access.permissions.has("inventory.move") ? (
+  const newButton = canMoveStockFreely(access) ? (
     <Link href="/inventory/receipts/new" className={cn(buttonVariants())}>
       <PlusIcon />
       {t("receipts.new")}

@@ -831,3 +831,14 @@ The product owner chose the free variant ("logičnija mi je").
 **Decision:** `vercel.json` defines `schedules.purge-organizations` with the same path and time (`0 3 * * *`, UTC) and `"requestMethod": "GET"` (path schedules send `POST` by default; the route only handles `GET`). The `crons` key is removed in the same change: with both, the purge would run twice. Path schedules still send `Authorization: Bearer <CRON_SECRET>`, so the route is unchanged. `src/modules/platform/vercel-schedules.test.ts` fails if `crons` comes back, a schedule is not `GET`, or its route does not export `GET`.
 
 **Consequences:** After the deploy, the job is listed under Observability → Schedules (no longer the "Cron Jobs" tab). The first run after the deploy is the next 03:00 UTC.
+
+## D-059 — Lock follow-ups: tenant table guard, stock buttons (2026-11-11)
+
+**Context:** Deferred items of D-049: nothing enforced that a new tenant table gets `lock_guard`, and on a locked firm the receipt / transfer / count buttons stayed visible (members keep `inventory.move` for issues on orders) and failed with "denied".
+
+**Decision:**
+
+- `public.tenant_table_gaps()` (service role only, migration `20261111160000_tenant_table_gaps`) lists every public table with `organization_id` that lacks row level security or the `lock_guard` trigger; `tests/db/tenant-tables.test.ts` expects it to be empty.
+- `canMoveStockFreely(access)` (`src/modules/platform/lock-rules.ts`) = `inventory.move` and not locked. It gates the stock documents that are not tied to an order: "Novi prijem" and its page, transfers, corrections and lot files on the stock item, counts, and on the floor the receipt / count tiles and the lot transfer. Issues and returns on orders and scanning stay.
+
+**Consequences:** A tenant table added without the guard fails `test:db`. Still outside the lock (D-049): company change requests, directory entries and Storage uploads (database-only gaps; their buttons are not reachable on a locked firm except the directory proposal); the floor count screens stay reachable through the open-count list and refuse on save.

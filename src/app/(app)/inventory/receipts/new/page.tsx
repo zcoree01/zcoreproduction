@@ -18,6 +18,7 @@ import {
   listStockLocations,
 } from "@/modules/inventory/queries";
 import { ReceiptForm } from "./receipt-form";
+import { canMoveStockFreely } from "@/modules/platform/lock-rules";
 
 export default function NewReceiptPage() {
   return (
@@ -33,7 +34,7 @@ async function NewReceiptContent() {
   const [t, access] = await Promise.all([getTranslations("inventory"), getMemberAccess(member)]);
 
   if (!access.modules.has("inventory")) return <ModuleDisabled />;
-  if (!access.permissions.has("inventory.move")) {
+  if (!canMoveStockFreely(access)) {
     return <PermissionDenied description={t("receiptForm.deniedDescription")} />;
   }
 

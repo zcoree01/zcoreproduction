@@ -17,3 +17,16 @@ const LOCKED_KEEPS: ReadonlySet<string> = new Set([
 export function lockedPermissions(permissions: ReadonlySet<string>): Set<string> {
   return new Set([...permissions].filter((key) => key.endsWith(".read") || LOCKED_KEEPS.has(key)));
 }
+
+/**
+ * Stock documents that are not tied to a production order: receipts,
+ * transfers, corrections, counts and lot files (D-059). inventory.move stays
+ * while locked for issues and returns on orders, but lock_guard refuses these,
+ * so their buttons are hidden instead of failing with "denied".
+ */
+export function canMoveStockFreely(access: {
+  permissions: ReadonlySet<string>;
+  locked: boolean;
+}): boolean {
+  return access.permissions.has("inventory.move") && !access.locked;
+}

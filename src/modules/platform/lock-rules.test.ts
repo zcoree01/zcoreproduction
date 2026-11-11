@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lockedPermissions } from "./lock-rules";
+import { canMoveStockFreely, lockedPermissions } from "./lock-rules";
 
 describe("lockedPermissions (D-049)", () => {
   it("keeps read permissions and the work-in-progress ones", () => {
@@ -42,5 +42,16 @@ describe("lockedPermissions (D-049)", () => {
       "support.approve",
     ];
     expect(lockedPermissions(new Set(keys))).toEqual(new Set(keys));
+  });
+});
+
+describe("canMoveStockFreely (D-059)", () => {
+  it("needs inventory.move and an unlocked organization", () => {
+    const move = new Set(["inventory.move"]);
+    expect(canMoveStockFreely({ permissions: move, locked: false })).toBe(true);
+    // Locked: issuing to an order stays (inventory.move is kept), receipts,
+    // transfers, corrections and counts are refused by lock_guard.
+    expect(canMoveStockFreely({ permissions: move, locked: true })).toBe(false);
+    expect(canMoveStockFreely({ permissions: new Set(), locked: false })).toBe(false);
   });
 });
