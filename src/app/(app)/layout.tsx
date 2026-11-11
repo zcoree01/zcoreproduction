@@ -12,12 +12,9 @@ import { CHANGE_PASSWORD_PATH } from "@/lib/auth/route-guard";
 import { isSystemRoleKey } from "@/lib/auth/roles";
 import { requireMember } from "@/lib/auth/session";
 import { getNavigation } from "@/lib/navigation/server";
-import { listPendingRequests } from "@/modules/attendance/absence-queries";
-import { listAttendanceAlerts } from "@/modules/attendance/queries";
-import { getNotificationState } from "@/modules/notifications/queries";
-import { listPendingCloseRequests } from "@/modules/production-reporting/queries";
 import { recordMemberActivityAfterResponse } from "@/modules/support/problem-reports/activity";
-import { getCurrentSupportSession, listPendingSupportRequests } from "@/modules/support/queries";
+import { notificationScopes } from "@/modules/notifications/feed";
+import { getCurrentSupportSession } from "@/modules/support/queries";
 import { AppSidebar } from "./app-sidebar";
 import { CloseRequestBell } from "./close-request-bell";
 import { SiteHeader } from "./site-header";
@@ -51,48 +48,20 @@ async function AppShell({ children }: { children: ReactNode }) {
     cookies(),
     getMemberAccess(member),
   ]);
-  // Notification bell: requests to close with a shortage (approvers),
-  // attendance alerts (attendance.manage) and requests to decide (leave,
-  // sick leave, corrections).
-  const approver =
-    access.modules.has("production") && access.permissions.has("orders.close.approve");
-  const attendanceManager =
-    access.modules.has("attendance") && access.permissions.has("attendance.manage");
-  const decider =
-    access.modules.has("attendance") &&
-    (access.permissions.has("absences.manage") || access.permissions.has("attendance.manage"));
   // Problem reports: every member of a firm (not Zcore itself, not the support
   // account); the member's activity is recorded after the response.
   const inFirm = !access.modules.has("platform") && !member.isSupport;
-  if (inFirm) {
-    await recordMemberActivityAfterResponse(member.organization.id);
-  }
-  // Zcore answers problem reports: new reports and replies of users go to its bell.
-  const zcoreReports =
-    access.modules.has("platform") && access.permissions.has("platform.reports.manage");
-  const bell = approver || attendanceManager || decider || inFirm || zcoreReports;
-  const [pendingCloses, attendanceAlerts, approvals, notificationState] = await Promise.all([
-    approver ? listPendingCloseRequests(member.organization.id) : Promise.resolve([]),
-    attendanceManager ? listAttendanceAlerts(member.organization.id) : Promise.resolve([]),
-    decider
-      ? listPendingRequests(member.organization.id)
-      : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
-    bell
-      ? getNotificationState(member.organization.id)
-      : Promise.resolve({ read: [], dismissed: [] }),
-  ]);
+  // The bell, the "?" button and the support prompt load their items
+  // themselves after the page (/api/notifications, D-054), so the shell and
+  // the page behind it do not wait for them.
+  const scopes = notificationScopes(member, access);
+  const bell =
+    scopes.closes || scopes.attendance || scopes.approvals || scopes.reports || scopes.zcoreReports;
   // Zcore support account: banner with the end of the approved time.
-  const supportSession = member.isSupport
-    ? await getCurrentSupportSession(member.organization.id)
-    : null;
-  // Admins / directors answer Zcore support requests in a dialog (D-028).
-  const supportApprover =
-    !member.isSupport &&
-    !access.modules.has("platform") &&
-    access.permissions.has("support.approve");
-  const pendingSupport = supportApprover
-    ? await listPendingSupportRequests(member.organization.id)
-    : [];
+  const [supportSession] = await Promise.all([
+    member.isSupport ? getCurrentSupportSession(member.organization.id) : null,
+    inFirm ? recordMemberActivityAfterResponse(member.organization.id) : null,
+  ]);
   const roleLabel = isSystemRoleKey(member.role.key)
     ? t(`roles.${member.role.key}`)
     : member.role.name;
@@ -119,7 +88,7 @@ async function AppShell({ children }: { children: ReactNode }) {
         }}
       />
       <SidebarInset>
-        {supportApprover ? <SupportRequestPrompt initial={pendingSupport} /> : null}
+        {scopes.support ? <SupportRequestPrompt /> : null}
         <BillingNoticeBanner notice={access.notice} timezone={member.organization.timezone} />
         {supportSession ? (
           <SupportBanner
@@ -134,19 +103,7 @@ async function AppShell({ children }: { children: ReactNode }) {
           actions={
             <>
               {inFirm ? <HelpButton /> : null}
-              {bell ? (
-                <CloseRequestBell
-                  initial={pendingCloses}
-                  initialAlerts={attendanceAlerts}
-                  initialApprovals={approvals}
-                  initialState={notificationState}
-                  closes={approver}
-                  attendance={attendanceManager}
-                  approvals={decider}
-                  reports={inFirm}
-                  zcoreReports={zcoreReports}
-                />
-              ) : null}
+              {bell ? <CloseRequestBell /> : null}
             </>
           }
         />

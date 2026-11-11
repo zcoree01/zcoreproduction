@@ -16,8 +16,11 @@ function fakeClient(options: {
   const rpc = vi.fn(async () => options.rpc ?? { data: true, error: null });
   const client: PermissionClient = {
     auth: {
-      getUser: async () => ({
-        data: { user: options.user === undefined ? { id: USER_ID } : options.user },
+      getClaims: async () => ({
+        data:
+          options.user === null
+            ? null
+            : { claims: { sub: options.user === undefined ? USER_ID : options.user.id } },
         error: null,
       }),
     },

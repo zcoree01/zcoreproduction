@@ -7,7 +7,6 @@ import { permitAction } from "@/lib/auth/require-permission";
 import { requireMember } from "@/lib/auth/session";
 import { nullableParam } from "@/lib/supabase/numeric";
 import { createClient } from "@/lib/supabase/server";
-import { listAttendanceAlerts, type AttendanceAlert } from "./queries";
 import {
   attendanceRulesSchema,
   CLOCK_ERRORS,
@@ -202,11 +201,4 @@ export async function resolveAlertAction(
   }
   revalidateAttendance();
   return { ok: true };
-}
-
-/** For the notification bell (polled); empty without attendance.manage. */
-export async function pendingAttendanceAlertsAction(): Promise<AttendanceAlert[]> {
-  const member = await requireMember();
-  if (!(await permitAction(member.organization.id, "attendance.manage"))) return [];
-  return listAttendanceAlerts(member.organization.id);
 }

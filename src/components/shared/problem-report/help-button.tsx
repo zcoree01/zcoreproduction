@@ -12,9 +12,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { markNotificationsAction, notificationStateAction } from "@/modules/notifications/actions";
+import { markNotificationsAction } from "@/modules/notifications/actions";
+import { fetchNotificationFeed } from "@/modules/notifications/feed-client";
 import type { NotificationState } from "@/modules/notifications/rules";
-import { reportNoticesAction } from "@/modules/support/problem-reports/actions";
 import type { ReportNotice } from "@/modules/support/problem-reports/types";
 import { OPEN_MY_REPORTS_EVENT, REPORT_NOTICES_CHANGED_EVENT } from "./events";
 import { MyReports } from "./my-reports";
@@ -47,34 +47,30 @@ export function HelpButton({ size = "icon" }: { size?: "icon" | "icon-lg" }) {
 
   useEffect(() => {
     let active = true;
-    const refresh = async () => {
-      try {
-        const [nextNotices, nextState] = await Promise.all([
-          reportNoticesAction(),
-          notificationStateAction(),
-        ]);
-        if (!active) return;
-        setNotices(nextNotices);
-        setState(nextState);
-      } catch {
-        // Offline or signed out: keep what is shown; the next poll retries.
-      }
+    const refresh = async (fresh: boolean) => {
+      const feed = await fetchNotificationFeed({ fresh });
+      // Offline or signed out: keep what is shown; the next poll retries.
+      if (!active || !feed) return;
+      setNotices(feed.notices);
+      setState(feed.state);
     };
+    const poll = () => void refresh(false);
+    const changed = () => void refresh(true);
     const openMine = () => {
       setTab("mine");
       setOpen(true);
       setRefreshKey((key) => key + 1);
     };
-    void refresh();
-    const timer = window.setInterval(refresh, POLL_MS);
-    window.addEventListener("focus", refresh);
-    window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, refresh);
+    poll();
+    const timer = window.setInterval(poll, POLL_MS);
+    window.addEventListener("focus", poll);
+    window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);
     window.addEventListener(OPEN_MY_REPORTS_EVENT, openMine);
     return () => {
       active = false;
       window.clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener(REPORT_NOTICES_CHANGED_EVENT, refresh);
+      window.removeEventListener("focus", poll);
+      window.removeEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);
       window.removeEventListener(OPEN_MY_REPORTS_EVENT, openMine);
     };
   }, []);

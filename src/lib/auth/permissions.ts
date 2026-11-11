@@ -86,7 +86,7 @@ export class PermissionDeniedError extends Error {
 // The subset of the Supabase client that permission checks need.
 export interface PermissionClient {
   auth: {
-    getUser(): Promise<{ data: { user: { id: string } | null }; error: unknown }>;
+    getClaims(): Promise<{ data: { claims: { sub?: string } } | null; error: unknown }>;
   };
   rpc(
     fn: "has_permission",
@@ -107,10 +107,12 @@ export async function checkPermission(
   const orgId = z.uuid().parse(organizationId);
   const key = permissionKeySchema.parse(permission);
 
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-  if (!user) throw new UnauthenticatedError();
+  // Verifies the token's signature and expiry without a request to the Auth
+  // server (D-054). The proxy checks on every request that the session still
+  // exists, and the database verifies the same token for the check below.
+  const { data: auth } = await client.auth.getClaims();
+  const userId = auth?.claims.sub;
+  if (!userId) throw new UnauthenticatedError();
 
   const { data, error } = await client.rpc("has_permission", {
     p_org_id: orgId,
@@ -119,5 +121,5 @@ export async function checkPermission(
   if (error) throw new Error(`Permission check failed: ${error.message}`);
   if (data !== true) throw new PermissionDeniedError(orgId, key);
 
-  return { userId: user.id };
+  return { userId };
 }

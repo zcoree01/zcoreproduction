@@ -765,3 +765,24 @@ The product owner chose the free variant ("logičnija mi je").
 - **Direct writes removed:** no `insert` / `update` / `delete` grants for `authenticated` on `memberships`, `roles`, `role_permissions` and their write policies are dropped; only the security-definer RPCs and the service role write them (no app code wrote them as the user).
 
 **Consequences:** A custom "user manager" role can hand out only roles within its own permissions and cannot touch administrators. Tests that probed direct writes now expect `42501`; the cross-tenant role and lock checks run through the RPCs. The role pickers still list every role; choosing one above the caller is refused with a message (hiding them is a possible UI follow-up).
+
+## D-054 — Speed, round 2: fewer round trips, no polling in the action queue (2026-11-11)
+
+**Context:** Product owner (2026-11-10): data still loads too slowly, above all after a status change; asked whether the Vercel and Supabase regions differ. Measured on production (`test-tenant-a.zcore.ba`, Playwright, read-only):
+
+- **Regions are already the same city:** Vercel functions `dub1` (Dublin), Supabase `eu-west-1` (Ireland). Nothing to change.
+- A sidebar click showed the skeleton after ~20 ms and the data after 420–550 ms.
+- **The browser sent about three server-action POSTs per second for a while after every navigation** (270–400 ms each). The bell called up to six server actions and the "?" button two more on every navigation, on focus and every 30 s; the support prompt one every 10 s. Next.js runs server actions of one tab **one at a time**, so a real action (a status change) waited behind them, up to ~2 s.
+- Every permission check (`checkPermission`) called `auth.getUser()`, a request to the Auth server, before the `has_permission` RPC.
+- A page read the membership (one round trip) and then modules + permissions + billing notice (a second one). The management shell then read the bell lists and the support requests in two more sequential rounds before the page behind it could start; this repeats when a server action re-renders the page.
+- Database: `production_order_directory` takes ~95 ms for 25 rows and another ~95 ms for the exact count at 146 orders (the per-row functions run for every order, also for the count), so it grows with the number of orders. Compute is the smallest size (shared CPU): the first call on a fresh connection costs 70–230 ms.
+
+**Decision:**
+
+- **`GET /api/notifications`** (`src/modules/notifications/feed.ts`) returns everything the bell, the "?" button and the support prompt show, read in parallel. `fetchNotificationFeed` (browser) shares one request between components asking at the same time; `fresh` waits for a request started after the call (after marking as read). The polled server actions are deleted. **Polling must not use server actions**; use a route handler.
+- `notificationScopes(member, access)` decides the groups for both the layout and the feed. The Zcore list (service role) is still re-checked with `has_permission` and limited to the Zcore organization.
+- The shell no longer loads the bell lists or the support requests: the components load them after the page. The badge appears a moment after the page instead of with it.
+- **`loadSessionContext`** reads the membership with the organization's modules and the role's permissions embedded, in parallel with `my_billing_notice` (organization id from the token's `app_metadata`, written by the server only; the membership row still decides, and a mismatch falls back to a separate call). `getMemberAccess` costs no query for the signed-in member.
+- **`checkPermission` uses `auth.getClaims()`**: the token's signature and expiry are verified locally (ES256 signing key). Still checked on every request: the session exists (`session_status` in the proxy) and the token itself (PostgREST, for the `has_permission` RPC that follows).
+
+**Consequences:** A navigation costs three sequential round trips (proxy, session context, page data) instead of four; a mutation about five instead of nine or ten, and it no longer waits behind polling. No migration. Open, in order of value: (1) rewrite `production_order_directory` so the list and its count do not run the schedule / progress functions for every order (migration); (2) a larger Supabase compute size (dashboard, paid); (3) the full translation file (256 kB) is sent with every hard load (79 kB compressed); (4) `session_status` in the proxy stays one round trip per request. `npm run dev` compiles pages on demand, so speed must be judged on Vercel or with `npm run build && npm start`.

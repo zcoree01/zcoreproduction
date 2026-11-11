@@ -11,7 +11,6 @@ import { toAuthEmail } from "@/lib/auth/username";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requestHost, ROOT_DOMAIN } from "@/lib/tenant/resolve";
-import { listPendingSupportRequests, type PendingSupportRequest } from "./queries";
 import {
   decideSupportSchema,
   requestSupportSchema,
@@ -211,15 +210,4 @@ export async function endSupportAction(requestId: unknown): Promise<Result> {
   revalidatePath("/settings/support");
   revalidatePath("/platform");
   return { ok: true };
-}
-
-/** Polled by the approval prompt of admins / directors (D-028). */
-export async function pendingSupportRequestsAction(): Promise<PendingSupportRequest[]> {
-  const member = await requireMember();
-  try {
-    return await listPendingSupportRequests(member.organization.id);
-  } catch (error) {
-    console.error("pendingSupportRequestsAction failed", error);
-    return [];
-  }
 }

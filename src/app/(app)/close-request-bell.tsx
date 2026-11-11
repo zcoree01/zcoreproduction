@@ -21,11 +21,10 @@ import {
 } from "@/components/shared/problem-report/events";
 import { formatDecimal } from "@/lib/decimal";
 import { cn } from "@/lib/utils";
-import { pendingRequestsAction } from "@/modules/attendance/absence-actions";
 import type { PendingRequests } from "@/modules/attendance/absence-queries";
-import { pendingAttendanceAlertsAction } from "@/modules/attendance/actions";
 import type { AttendanceAlert } from "@/modules/attendance/queries";
-import { markNotificationsAction, notificationStateAction } from "@/modules/notifications/actions";
+import { markNotificationsAction } from "@/modules/notifications/actions";
+import { fetchNotificationFeed } from "@/modules/notifications/feed-client";
 import {
   bellItems,
   itemsToAnnounce,
@@ -35,58 +34,35 @@ import {
   type BellSource,
   type NotificationState,
 } from "@/modules/notifications/rules";
-import { pendingCloseRequestsAction } from "@/modules/production-reporting/actions";
 import type { PendingCloseRequest } from "@/modules/production-reporting/queries";
-import { zcoreReportNoticesAction } from "@/modules/platform/reports-actions";
 import type { ZcoreReportNotice } from "@/modules/platform/reports-queries";
-import { reportNoticesAction } from "@/modules/support/problem-reports/actions";
 import type { ReportNotice } from "@/modules/support/problem-reports/types";
 
 const POLL_MS = 30_000;
 const GROUPS = ["zcore", "reports", "approvals", "attendance", "close"] as const;
+const NO_APPROVALS: PendingRequests = { absences: [], interruptions: [], corrections: [] };
 
 /**
  * Notification bell (D-038): requests to close an order with a shortage
  * (approvers), attendance alerts (attendance.manage) and leave / sick-leave /
- * correction requests waiting for the caller's decision. Refreshed every
- * 30 s, on navigation and when the window gets focus. A new unread item pops
+ * correction requests waiting for the caller's decision. Loaded after the
+ * page (one request, /api/notifications), then refreshed every 30 s, on
+ * navigation and when the window gets focus. A new unread item pops
  * up for 10 s with "Otvori" and ✕; in the bell every item opens on click and has ✕,
  * and "Označi sve kao pročitano" clears the counter. Read / removed is kept
  * per user; the pending work itself stays until it is decided.
  */
-export function CloseRequestBell({
-  initial,
-  initialAlerts,
-  initialApprovals,
-  initialState,
-  closes,
-  attendance,
-  approvals: approver,
-  reports: reporter,
-  zcoreReports: zcore,
-}: {
-  initial: PendingCloseRequest[];
-  initialAlerts: AttendanceAlert[];
-  initialApprovals: PendingRequests;
-  initialState: NotificationState;
-  closes: boolean;
-  attendance: boolean;
-  approvals: boolean;
-  /** Replies from Zcore support and decisions on proposed sessions (every firm member). */
-  reports: boolean;
-  /** New problem reports and user replies (Zcore organization, platform.reports.manage). */
-  zcoreReports: boolean;
-}) {
+export function CloseRequestBell() {
   const t = useTranslations("notifications");
   const tUnits = useTranslations("productUnits");
   const pathname = usePathname();
   const router = useRouter();
-  const [requests, setRequests] = useState(initial);
-  const [alerts, setAlerts] = useState(initialAlerts);
-  const [approvals, setApprovals] = useState(initialApprovals);
+  const [requests, setRequests] = useState<PendingCloseRequest[]>([]);
+  const [alerts, setAlerts] = useState<AttendanceAlert[]>([]);
+  const [approvals, setApprovals] = useState<PendingRequests>(NO_APPROVALS);
   const [notices, setNotices] = useState<ReportNotice[]>([]);
   const [zcoreNotices, setZcoreNotices] = useState<ZcoreReportNotice[]>([]);
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState<NotificationState>({ read: [], dismissed: [] });
   const shown = useRef(new Set<string>());
 
   const sources = useMemo<BellSource[]>(
@@ -187,8 +163,7 @@ export function CloseRequestBell({
   useEffect(() => {
     for (const item of itemsToAnnounce(items, shown.current)) {
       shown.current.add(item.key);
-      const calm =
-        item.group === "approvals" || item.group === "reports" || item.group === "zcore";
+      const calm = item.group === "approvals" || item.group === "reports" || item.group === "zcore";
       const show = calm ? toast.info : toast.warning;
       show(item.toast, {
         id: item.key,
@@ -205,43 +180,34 @@ export function CloseRequestBell({
 
   useEffect(() => {
     let active = true;
-    const refresh = async () => {
-      try {
-        const [list, alertList, approvalList, nextState, noticeList, zcoreList] = await Promise.all([
-          closes ? pendingCloseRequestsAction() : Promise.resolve([]),
-          attendance ? pendingAttendanceAlertsAction() : Promise.resolve([]),
-          approver
-            ? pendingRequestsAction()
-            : Promise.resolve({ absences: [], interruptions: [], corrections: [] }),
-          notificationStateAction(),
-          reporter ? reportNoticesAction() : Promise.resolve([]),
-          zcore ? zcoreReportNoticesAction() : Promise.resolve([]),
-        ]);
-        if (!active) return;
-        setNotices(noticeList);
-        setZcoreNotices(zcoreList);
-        setRequests(list);
-        setAlerts(alertList);
-        setApprovals(approvalList);
-        setState((current) => ({
-          read: [...new Set([...current.read, ...nextState.read])],
-          dismissed: [...new Set([...current.dismissed, ...nextState.dismissed])],
-        }));
-      } catch {
-        // Offline or signed out: keep the last list; the next poll retries.
-      }
+    // What the member may see is decided by the server (notificationScopes).
+    const refresh = async (fresh: boolean) => {
+      const feed = await fetchNotificationFeed({ fresh });
+      // Offline or signed out: keep the last list; the next poll retries.
+      if (!active || !feed) return;
+      setNotices(feed.notices);
+      setZcoreNotices(feed.zcoreNotices);
+      setRequests(feed.closes);
+      setAlerts(feed.alerts);
+      setApprovals(feed.approvals);
+      setState((current) => ({
+        read: [...new Set([...current.read, ...feed.state.read])],
+        dismissed: [...new Set([...current.dismissed, ...feed.state.dismissed])],
+      }));
     };
-    void refresh();
-    const timer = window.setInterval(refresh, POLL_MS);
-    window.addEventListener("focus", refresh);
-    window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, refresh);
+    const poll = () => void refresh(false);
+    const changed = () => void refresh(true);
+    poll();
+    const timer = window.setInterval(poll, POLL_MS);
+    window.addEventListener("focus", poll);
+    window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);
     return () => {
       active = false;
       window.clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener(REPORT_NOTICES_CHANGED_EVENT, refresh);
+      window.removeEventListener("focus", poll);
+      window.removeEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);
     };
-  }, [pathname, closes, attendance, approver, reporter, zcore]);
+  }, [pathname]);
 
   const titles: Record<(typeof GROUPS)[number], string> = {
     zcore: t("zcoreReportsTitle"),

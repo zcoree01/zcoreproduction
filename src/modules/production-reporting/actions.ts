@@ -8,7 +8,6 @@ import { requireMember } from "@/lib/auth/session";
 import { zonedLocalToUtc } from "@/lib/timezone";
 import { nullableParam, numericParam } from "@/lib/supabase/numeric";
 import { createClient } from "@/lib/supabase/server";
-import { listPendingCloseRequests, type PendingCloseRequest } from "./queries";
 import {
   closeDecisionSchema,
   closeRequestSchema,
@@ -206,13 +205,6 @@ export async function voidReportAction(
   if (error) return mapError(error, "void report");
   revalidateWorkScreens();
   return { ok: true };
-}
-
-/** For the approvers' notification bell (polled); empty without orders.close.approve. */
-export async function pendingCloseRequestsAction(): Promise<PendingCloseRequest[]> {
-  const member = await requireMember();
-  if (!(await permitAction(member.organization.id, "orders.close.approve"))) return [];
-  return listPendingCloseRequests(member.organization.id);
 }
 
 /** Downtime entered with a duration (floor: ended now; managers may give the start). */

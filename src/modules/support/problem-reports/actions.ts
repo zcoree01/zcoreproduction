@@ -5,7 +5,7 @@ import { z } from "zod";
 import { dbErrorKind } from "@/lib/actions/result";
 import { requireMember } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { getMyReportThread, listMyProblemReports, listReportNotices } from "./queries";
+import { getMyReportThread, listMyProblemReports } from "./queries";
 import {
   isReportFileStoragePath,
   PROBLEM_REPORT_BUCKET,
@@ -15,7 +15,7 @@ import {
   reportFileStoragePath,
   type ProblemReportError,
 } from "./schemas";
-import type { MyProblemReport, ReportNotice, ReportThread } from "./types";
+import type { MyProblemReport, ReportThread } from "./types";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: ProblemReportError };
 
@@ -133,10 +133,4 @@ export async function getProblemReportThreadAction(
   const parsed = z.uuid().safeParse(reportId);
   if (!parsed.success) return null;
   return getMyReportThread(member.organization.id, parsed.data);
-}
-
-/** Polled by the "?" button (dot) and the bell: reply / decision items with the read state. */
-export async function reportNoticesAction(): Promise<ReportNotice[]> {
-  const member = await requireMember();
-  return listReportNotices(member.organization.id);
 }

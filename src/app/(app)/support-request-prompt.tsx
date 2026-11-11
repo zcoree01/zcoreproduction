@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { decideSupportAction, pendingSupportRequestsAction } from "@/modules/support/actions";
+import { fetchNotificationFeed } from "@/modules/notifications/feed-client";
+import { decideSupportAction } from "@/modules/support/actions";
 import type { PendingSupportRequest } from "@/modules/support/queries";
 import { SUPPORT_DURATIONS } from "@/modules/support/schemas";
 
@@ -30,12 +31,12 @@ const POLL_MS = 10_000;
  * to approve it for a chosen time or reject it. "Kasnije" hides it until the
  * page is opened again; the request stays in Postavke → Zcore podrška.
  */
-export function SupportRequestPrompt({ initial }: { initial: PendingSupportRequest[] }) {
+export function SupportRequestPrompt() {
   const t = useTranslations("support.prompt");
   const tSupport = useTranslations("support");
   const format = useFormatter();
   const pathname = usePathname();
-  const [requests, setRequests] = useState(initial);
+  const [requests, setRequests] = useState<PendingSupportRequest[]>([]);
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(() => new Set());
   const [minutes, setMinutes] = useState<(typeof SUPPORT_DURATIONS)[number]>(60);
   const [rejecting, setRejecting] = useState(false);
@@ -45,9 +46,10 @@ export function SupportRequestPrompt({ initial }: { initial: PendingSupportReque
   useEffect(() => {
     let active = true;
     const refresh = async () => {
-      const list = await pendingSupportRequestsAction();
-      if (active) setRequests(list);
+      const feed = await fetchNotificationFeed();
+      if (active && feed) setRequests(feed.supportRequests);
     };
+    void refresh();
     const timer = window.setInterval(refresh, POLL_MS);
     window.addEventListener("focus", refresh);
     return () => {

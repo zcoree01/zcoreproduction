@@ -9,7 +9,6 @@ import { requireMember } from "@/lib/auth/session";
 import { nullableParam, numericParam } from "@/lib/supabase/numeric";
 import { createClient } from "@/lib/supabase/server";
 import { zonedLocalToUtc } from "@/lib/timezone";
-import { listPendingRequests, type PendingRequests } from "./absence-queries";
 import {
   ABSENCE_DOCUMENT_TYPES,
   absenceDocumentSchema,
@@ -426,15 +425,4 @@ export async function saveLeaveRulesAction(input: unknown): Promise<RequestActio
   revalidatePath("/settings/shifts");
   revalidateRequests();
   return { ok: true };
-}
-
-/** For the notification bell (polled): requests the caller may decide. */
-export async function pendingRequestsAction(): Promise<PendingRequests> {
-  const member = await requireMember();
-  const [absences, attendance] = await Promise.all([
-    permitAction(member.organization.id, "absences.manage"),
-    permitAction(member.organization.id, "attendance.manage"),
-  ]);
-  if (!absences && !attendance) return { absences: [], interruptions: [], corrections: [] };
-  return listPendingRequests(member.organization.id);
 }
