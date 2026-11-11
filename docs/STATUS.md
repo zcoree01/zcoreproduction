@@ -252,7 +252,7 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 - Firm "Jabl" was archived on 2026-11-09 and is scheduled for permanent deletion on 2026-12-09 (the daily purge cron will remove it on or after that date). The deletion is intentional: the owner confirmed on 2026-11-09 that the archive and deletion are wanted.
 - Zcore home: the "Probe ističu (7 dana)" tile counts firms whose module trial ends within 7 days, but links to `/platform?filter=trial`, which lists firms in billing state trial (no package), so the list can differ from the count (follow-up: a matching filter). Days late and trials ending use the platform timezone. `tests/db/platform-home.test.ts` writes rows to the production `platform_payment_records` during a run (removed in `afterAll`; a killed run leaves them; fixed by the planned local Docker test DB).
 - Zcore organization part 3 (D-051): no e2e test for the firm admin's scheduled-session approval UI (R1) and the reporter's session-decision notice (R2); only DB and unit tests cover them. Deferred minors: storage policies, `register_problem_report_file` and the files select are untested; a replay with a different org returns the existing report id; the purge of a firm with reports is untested (the generic purge handles the foreign keys); `begin_support` with an unknown id runs expiry for all firms (rolled back); the reject audit row has null minutes; the `pending_support_requests` poll now writes expiry; the session notice infers "approved" from `decided_at` + `approved_until`, so a later cancelled / ended session still says approved; the Zcore bell reads report messages with the service role (full body; could become an RPC; archived firms are filtered and the Zcore org is required since the final review); the inbox icon is shared. **Follow-ups that need a migration (final review):** cap files per report (about 5) and require the storage object to exist in `register_problem_report_file`; `platform_begin_support` with an unknown id runs expiry for all firms (rolled back); `platform_home.support_pending` can count expired scheduled requests until the next expiry; open-report counts on the platform home / reports list include archived firms.
-- Speed (D-054): the order list (`production_order_directory`) runs its schedule and progress functions for every order, also for the exact count (~190 ms at 146 orders, grows with the number of orders): needs a migration. Supabase compute is the smallest size. The full translation file is sent with every hard load.
+- Speed (D-054, D-056): migration `20261111110000_order_directory_set_based` is applied locally only; it needs `npx supabase db push` (the code works with and without it). Supabase compute is the smallest size. The full translation file is sent with every hard load. Material stock, tools, finished goods and delivery notes load whole (no paging).
 
 ## Next step
 
@@ -275,6 +275,12 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 11. **Reports follow-ups:** shift performance done (D-045); tool prices for tool cost, labour / overhead rates in the order cost, saved report views.
 
 ## Log
+
+### 2026-11-11 — Order list per organization (D-056)
+
+- Migration `20261111110000_order_directory_set_based` (local only, not pushed to production): the order directory computes schedule, progress, good quantity and completion for all orders of the organization at once; index on `production_reports (operation_id)`. Old and new rows identical on local data and on the 180 production orders (read-only comparison).
+- Page size 100 in the server-paginated tables.
+- Checks: `npm run check` (564 unit tests), `test:db` 35 files / 359 tests, e2e orders / reporting / dashboard / production / planning / inventory-orders 19 tests (one failed once because another test run signed in as the same user at the same time; passed on the rerun).
 
 ### 2026-11-11 — Speed, round 2 (D-054)
 

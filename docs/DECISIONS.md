@@ -798,3 +798,16 @@ The product owner chose the free variant ("logičnija mi je").
 - Zcore sees it on the platform home (red "Brisanje nije uspjelo" tile, only while there is such a firm), as a filter and badge in the firm list (`/platform?filter=purge_failed`) and as a red strip on the firm page with attempts, dates and the error.
 
 **Consequences:** A stuck purge is visible the next morning. Fixing it still needs a developer (the cause is in the error); the firm stays archived and keeps being retried nightly.
+
+## D-056 — Order list computed per organization, not per order (2026-11-11)
+
+**Context:** Open item 1 of D-054. `production_order_directory` called `private.order_schedule`, `order_progress`, `order_good_quantity` and `order_completion_allowed` plus three subqueries for every order (~0.6 ms per order), and PostgREST's exact count ran them again: ~95 ms for a page of 25 and ~95 ms for the count at 146 orders, growing with the number of orders. Rewriting the six helpers in PL/pgSQL (cached plans) was measured first and gave only 30 %. Reports of one operation were looked up by `operation_id` alone, while the only index started with `organization_id` (a sequential scan per operation).
+
+**Decision:** Migration `20261111110000_order_directory_set_based`:
+
+- `private.order_directory_facts(p_org_id)` (definer, like the helpers) computes the same facts for all orders of an organization in a few aggregates. The view joins it once per organization the caller can read orders of (`select distinct organization_id from production_orders`, under RLS) and keeps its columns, types and row visibility (RLS on `production_orders`).
+- The per-order helpers stay for single orders (status changes, close requests, reports, floor). **A rule changed in one of them must be changed in `order_directory_facts` as well.**
+- Index `production_reports (operation_id) where voided_at is null`.
+- Verified before applying: old and new view rows are identical on the local database and, with a read-only query, on all 180 production orders (orders without operations, partial progress, due warnings, an approved shortage).
+
+**Consequences:** One scan of the view with 11 orders dropped from ~6.7 ms to under 1 ms locally; the cost per order is now that of a hash aggregate, so a single order read through the view (order detail) costs the same few milliseconds as the list. Page size 100 was added to the server-paginated tables (the size itself hardly changes the speed). Still loaded whole: material stock, tools, finished goods, delivery notes (latest 100); their balances are summed in the app, so paging them needs the sums in the database.
