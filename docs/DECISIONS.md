@@ -842,3 +842,14 @@ The product owner chose the free variant ("logičnija mi je").
 - `canMoveStockFreely(access)` (`src/modules/platform/lock-rules.ts`) = `inventory.move` and not locked. It gates the stock documents that are not tied to an order: "Novi prijem" and its page, transfers, corrections and lot files on the stock item, counts, and on the floor the receipt / count tiles and the lot transfer. Issues and returns on orders and scanning stay.
 
 **Consequences:** A tenant table added without the guard fails `test:db`. Still outside the lock (D-049): company change requests, directory entries and Storage uploads (database-only gaps; their buttons are not reachable on a locked firm except the directory proposal); the floor count screens stay reachable through the open-count list and refuse on save.
+
+## D-060 — Directory and Storage under the lock; lock_guard stops only members (2026-11-12)
+
+**Context:** Deferred items of D-049 / D-059: the shared company directory (`companies`, `company_bank_accounts`, `company_change_requests` have no `organization_id`, so no `lock_guard`) and Storage uploads stayed writable for a locked firm. While testing this, an older bug showed up: when an unlocked firm changed its own directory entry, `companies_sync_customers` also updates the customer rows of every firm using that company, and `lock_guard` refused the change if one of those firms was locked.
+
+**Decision:**
+
+- Migration `20261112100000_directory_storage_lock`: trigger `directory_lock_guard` on the three directory tables refuses writes (`organization_locked`) by an authenticated member whose own organization is locked (`private.actor_org_locked()`; service role and platform admin skipped, as in `lock_guard`). The upload policies of `product-files`, `absence-documents`, `stock-certificates` and `organization-files` also require the organization in the path to be unlocked (`private.storage_org_locked`). `problem-report-files` stays open (a locked firm can report a problem, D-051).
+- Migration `20261112110000_lock_guard_members_only`: `lock_guard` treats an organization as locked only for its members (and never for the platform admin). Writes the database makes for another firm (the directory sync) go through; a member of the locked firm is stopped as before. Cached per transaction and organization as before.
+
+**Consequences:** A locked firm can no longer change the directory or upload files outside problem reports. Its lock no longer blocks other firms. `tests/db/directory-lock.test.ts` covers the refusals, the unlocked firm, the sync onto a locked firm and unlocking.
