@@ -854,6 +854,14 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** A locked firm can no longer change the directory or upload files outside problem reports. Its lock no longer blocks other firms. `tests/db/directory-lock.test.ts` covers the refusals, the unlocked firm, the sync onto a locked firm and unlocking.
 
+## D-061 — Zcore bell through an RPC (2026-11-12)
+
+**Context:** Follow-up of D-051: the Zcore bell read new problem reports and user replies with the service-role client, after a `platform.reports.manage` check in the server code. It returned full message bodies.
+
+**Decision:** `public.platform_report_notices()` (migration `20261112120000_platform_report_notices`) checks `platform.reports.manage` itself (`private.require_platform_permission`), skips archived firms and returns reports still `new` and member replies of the last 14 days (at most 50, newest first) with `kind`, `notice_key`, `report_id`, `at` and a `detail` of at most 200 characters (firm name, then description or reply). `listZcoreReportNotices()` calls it with the member's client; the bell keeps its keys and read state.
+
+**Consequences:** No service-role read left in the notification feed. The bell shows at most 200 characters of a reply (it showed a snippet anyway).
+
 ## D-062 — Caches: client 30 s, server cache for picker lists, Realtime notifications (2026-11-12)
 
 **Context:** Product owner (2026-11-11): keep data in a cache so the app loads faster and asks the database less. Measured on production: the queries themselves are fast once warm (`production_day` ~10 ms, `attendance_board` ~1 ms, stock views < 5 ms), but the first call of a function on a fresh PostgREST connection costs ~300 ms (catalog and plan caches per connection; PostgREST renews its connections), so fewer database calls is what helps. The notification components polled every 30 s (support prompt 10 s) for every signed-in user.

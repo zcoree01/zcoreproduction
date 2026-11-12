@@ -6903,6 +6903,16 @@ export type Database = {
         Args: { p_body: string; p_id: string; p_status?: string }
         Returns: string
       }
+      platform_report_notices: {
+        Args: never
+        Returns: {
+          at: string
+          detail: string
+          kind: string
+          notice_key: string
+          report_id: string
+        }[]
+      }
       platform_request_support: {
         Args: { p_org_id: string; p_reason: string }
         Returns: string

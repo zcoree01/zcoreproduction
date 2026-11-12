@@ -243,6 +243,21 @@ describe("problem reports", () => {
     expect(refused.error?.code).toBe("42501");
   });
 
+  it("gives the Zcore bell new reports through platform_report_notices (D-061)", async () => {
+    const long = "Dugačak opis problema. ".repeat(30);
+    const { data: id, error } = await submit(fx.a.admin, fx.a.org.id, { description: long });
+    expect(error).toBeNull();
+    const notices = await tech.rpc("platform_report_notices");
+    expect(notices.error).toBeNull();
+    const row = notices.data?.find((n) => n.notice_key === `report:${id}`);
+    expect(row).toMatchObject({ kind: "new", report_id: id });
+    // Firm name, then the description cut to what the bell shows.
+    expect(row?.detail).toContain(" · Dugačak opis problema.");
+    expect(row!.detail.length).toBeLessThanOrEqual(200);
+    const denied = await fx.a.admin.rpc("platform_report_notices");
+    expect(denied.error?.code).toBe("42501");
+  });
+
   it("refuses a Zcore member the tenant submit RPC", async () => {
     const zcore = await fx.service.from("organizations").select("id").eq("slug", "zcore").single();
     const result = await submit(tech, zcore.data!.id);

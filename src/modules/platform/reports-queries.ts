@@ -252,56 +252,23 @@ export type ZcoreReportNotice = {
   at: string;
 };
 
-const NOTICE_LIMIT = 50;
-const NOTICE_DAYS = 14;
+const noticeKindSchema = z.enum(["new", "reply"]);
 
 /**
- * Bell candidates for Zcore: reports still marked new and replies of firm
- * members from the last 14 days. Zcore cannot read those tables through RLS
- * (they are the reporter's own), so the service-role client reads them; the
- * caller must have checked platform.reports.manage first.
+ * Bell candidates for Zcore (D-061): reports still marked new and replies of
+ * firm members from the last 14 days, at most 50, each detail cut to 200
+ * characters. public.platform_report_notices() checks platform.reports.manage
+ * and skips archived firms.
  */
 export async function listZcoreReportNotices(): Promise<ZcoreReportNotice[]> {
-  const service = createAdminClient();
-  const since = new Date(Date.now() - NOTICE_DAYS * 86_400_000).toISOString();
-  const [reports, messages] = await Promise.all([
-    service
-      .from("problem_reports")
-      .select("id, category, description, created_at, organizations!inner(name)")
-      .is("organizations.archived_at", null)
-      .eq("status", "new")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(NOTICE_LIMIT),
-    service
-      .from("problem_report_messages")
-      .select("id, report_id, body, created_at, problem_reports!inner(organizations!inner(name))")
-      .is("problem_reports.organizations.archived_at", null)
-      .eq("from_zcore", false)
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(NOTICE_LIMIT),
-  ]);
-  if (reports.error) throw reports.error;
-  if (messages.error) throw messages.error;
-  const notices: ZcoreReportNotice[] = [];
-  for (const row of reports.data) {
-    notices.push({
-      kind: "new",
-      key: `report:${row.id}`,
-      reportId: row.id,
-      detail: `${row.organizations.name} · ${row.description ?? row.category}`,
-      at: row.created_at,
-    });
-  }
-  for (const row of messages.data) {
-    notices.push({
-      kind: "reply",
-      key: `report:${row.id}`,
-      reportId: row.report_id,
-      detail: `${row.problem_reports.organizations.name} · ${row.body}`,
-      at: row.created_at,
-    });
-  }
-  return notices.sort((a, b) => b.at.localeCompare(a.at)).slice(0, NOTICE_LIMIT);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("platform_report_notices");
+  if (error) throw error;
+  return data.map((row) => ({
+    kind: noticeKindSchema.parse(row.kind),
+    key: row.notice_key,
+    reportId: row.report_id,
+    detail: row.detail,
+    at: row.at,
+  }));
 }
