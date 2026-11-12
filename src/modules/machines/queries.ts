@@ -4,6 +4,11 @@ import { pageRange, toSearchPattern } from "@/lib/data-table/params";
 import { createClient } from "@/lib/supabase/server";
 import type { MachineListParams } from "./list-params";
 import { machineStatusSchema, type MachineStatus } from "./schemas";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife, cacheTag } from "next/cache";
+import { ORG_CACHE_LIFE, orgCacheVersion, orgCacheTag } from "@/lib/cache/org-cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
 
 export type MachineRow = {
   id: string;
@@ -126,7 +131,27 @@ export type MachineOption = { id: string; code: string; name: string };
 
 /** Current (non-archived) machines, for assigning employees. */
 export async function listMachineOptions(organizationId: string): Promise<MachineOption[]> {
-  const supabase = await createClient();
+  const version = await orgCacheVersion(organizationId, ["machines.read"], ["machines"]);
+  if (version !== null) return cachedListMachineOptions(organizationId, version);
+  return loadListMachineOptions(await createClient(), organizationId);
+}
+
+async function cachedListMachineOptions(
+  organizationId: string,
+  version: string,
+): Promise<MachineOption[]> {
+  "use cache: remote";
+  // `version` is part of the cache key only (org_cache_versions).
+  void version;
+  cacheTag(orgCacheTag(organizationId, "machines"));
+  cacheLife(ORG_CACHE_LIFE);
+  return loadListMachineOptions(createAdminClient(), organizationId);
+}
+
+async function loadListMachineOptions(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<MachineOption[]> {
   const { data, error } = await supabase
     .from("machines")
     .select("id, code, name")

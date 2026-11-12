@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { REPORT_NOTICES_CHANGED_EVENT } from "@/components/shared/problem-report/events";
 import { fetchNotificationFeed } from "@/modules/notifications/feed-client";
 import { decideSupportAction } from "@/modules/support/actions";
 import type { PendingSupportRequest } from "@/modules/support/queries";
@@ -45,17 +46,27 @@ export function SupportRequestPrompt() {
 
   useEffect(() => {
     let active = true;
-    const refresh = async () => {
-      const feed = await fetchNotificationFeed();
+    // first: shared with the other header components; poll: skipped while
+    // Realtime is connected; fresh: after a change.
+    const refresh = async (mode: "first" | "poll" | "fresh") => {
+      const feed = await fetchNotificationFeed({
+        fresh: mode === "fresh",
+        poll: mode === "poll",
+      });
       if (active && feed) setRequests(feed.supportRequests);
     };
-    void refresh();
-    const timer = window.setInterval(refresh, POLL_MS);
-    window.addEventListener("focus", refresh);
+    const poll = () => void refresh("poll");
+    const changed = () => void refresh("fresh");
+    void refresh("first");
+    const timer = window.setInterval(poll, POLL_MS);
+    window.addEventListener("focus", poll);
+    // Realtime (NotificationLive) announces a new request at once.
+    window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);
     return () => {
       active = false;
       window.clearInterval(timer);
-      window.removeEventListener("focus", refresh);
+      window.removeEventListener("focus", poll);
+      window.removeEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);
     };
   }, [pathname]);
 

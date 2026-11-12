@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
     // The e2e dev server (playwright.config.ts) runs without the Turbopack
     // disk cache: it grew by several GB per full run and filled the C: disk.
     turbopackFileSystemCacheForDev: process.env.ZCORE_DEV_FS_CACHE !== "off",
+    // Client cache (D-062): a page visited in the last 30 s opens at once from
+    // the browser's memory. A server action that revalidates (every change in
+    // this browser) clears it, so own changes are always shown; changes by
+    // other users appear within 30 s, or at once with a reload.
+    staleTimes: { dynamic: 30 },
   },
   partialPrefetching: true,
   allowedDevOrigins: localNetworkHosts,

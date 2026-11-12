@@ -2,6 +2,11 @@ import "server-only";
 import { pageRange, toSearchPattern } from "@/lib/data-table/params";
 import { createClient } from "@/lib/supabase/server";
 import type { CustomerListParams } from "./list-params";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife, cacheTag } from "next/cache";
+import { ORG_CACHE_LIFE, orgCacheVersion, orgCacheTag } from "@/lib/cache/org-cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
 
 export type CustomerRow = {
   id: string;
@@ -117,7 +122,31 @@ export type CustomerOption = { id: string; name: string; number: number };
 
 /** Active customers for selects. */
 export async function listCustomerOptions(organizationId: string): Promise<CustomerOption[]> {
-  const supabase = await createClient();
+  const version = await orgCacheVersion(
+    organizationId,
+    ["customers.read", "products.read"],
+    ["customers"],
+  );
+  if (version !== null) return cachedListCustomerOptions(organizationId, version);
+  return loadListCustomerOptions(await createClient(), organizationId);
+}
+
+async function cachedListCustomerOptions(
+  organizationId: string,
+  version: string,
+): Promise<CustomerOption[]> {
+  "use cache: remote";
+  // `version` is part of the cache key only (org_cache_versions).
+  void version;
+  cacheTag(orgCacheTag(organizationId, "customers"));
+  cacheLife(ORG_CACHE_LIFE);
+  return loadListCustomerOptions(createAdminClient(), organizationId);
+}
+
+async function loadListCustomerOptions(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<CustomerOption[]> {
   const { data, error } = await supabase
     .from("customers")
     .select("id, name, customer_number")

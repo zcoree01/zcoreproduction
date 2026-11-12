@@ -44,6 +44,7 @@ import {
   type ProductError,
   type ProductField,
 } from "./schemas";
+import { expireOrgCache } from "@/lib/cache/org-cache";
 
 const failProduct = actionFail<ProductField, ProductError>;
 const failOperation = actionFail<OperationField, OperationError>;
@@ -649,6 +650,7 @@ export async function saveOperationTypeAction(
   if (error) return mapOperationTypeError(error);
   if (!data) return failOperationType("not_found");
 
+  expireOrgCache(organizationId, "operation_types");
   revalidatePath("/settings/operation-types");
   revalidateProductScreens();
   return { ok: true, id: data.id };
@@ -675,6 +677,7 @@ export async function setOperationTypeArchivedAction(
   if (error) return mapOperationTypeError(error);
   if (data.length === 0) return failOperationType("not_found");
 
+  expireOrgCache(organizationId, "operation_types");
   revalidatePath("/settings/operation-types");
   revalidateProductScreens();
   return { ok: true, id: parsed.data.id };

@@ -15,12 +15,14 @@ import {
   type CustomerField,
   type CustomerSaveResult,
 } from "./schemas";
+import { expireOrgCache } from "@/lib/cache/org-cache";
 
 type CustomerFailure = Extract<CustomerActionResult, { ok: false }>;
 const fail = (...args: Parameters<typeof actionFail<CustomerField, CustomerError>>) =>
   actionFail<CustomerField, CustomerError>(...args) as CustomerFailure;
 
-function revalidateCustomerScreens() {
+function revalidateCustomerScreens(organizationId: string) {
+  expireOrgCache(organizationId, "customers");
   revalidatePath("/customers", "layout");
   revalidatePath("/products", "layout");
   revalidatePath("/orders", "layout");
@@ -92,7 +94,7 @@ export async function saveCustomerAction(
   }
   const saved = savedCustomerSchema.parse(data);
 
-  revalidateCustomerScreens();
+  revalidateCustomerScreens(organizationId);
   return {
     ok: true,
     id: saved.id,
@@ -129,6 +131,6 @@ export async function setCustomerArchivedAction(
   if (error) return mapWriteError(error);
   if (data.length === 0) return fail("not_found");
 
-  revalidateCustomerScreens();
+  revalidateCustomerScreens(organizationId);
   return { ok: true, id: parsed.data.id };
 }

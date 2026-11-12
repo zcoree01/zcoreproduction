@@ -39,6 +39,17 @@ export type SessionContext = {
    * support account, the approved time has not ended (D-028).
    */
   session: { active: boolean; supportEnded: boolean };
+  /**
+   * Neither the organization nor the user's profile is archived: the
+   * conditions of private.user_org_ids besides the membership and support
+   * time. RLS gives such a member no data; the server cache must not either.
+   */
+  active: boolean;
+  /**
+   * Versions of the organization's cached lists (org_cache_versions, D-062);
+   * null when they could not be read with the membership: no server cache then.
+   */
+  cacheVersions: Record<string, number> | null;
 };
 
 const organizationIdClaim = z.uuid();
@@ -62,17 +73,17 @@ export async function loadSessionContext(
   // only) just lets the billing notice start early; the membership row decides.
   const claimedOrg = organizationIdClaim.safeParse(auth.claims.app_metadata?.organization_id);
 
-  const [membership, billing, status] = await Promise.all([
+  const [membership, billing, status, versions] = await Promise.all([
     supabase
       .from("memberships")
       .select(
         `user_id,
-         organization:organizations!memberships_organization_id_fkey (id, slug, name, timezone,
+         organization:organizations!memberships_organization_id_fkey (id, slug, name, timezone, archived_at,
            modules:org_modules!org_modules_organization_id_fkey (module_key, enabled, active_until)),
          role:roles!memberships_organization_id_role_id_fkey (id, key, name, archived_at,
            grants:role_permissions!role_permissions_organization_id_role_id_fkey (permission_key,
              permission:permissions!role_permissions_permission_key_fkey (module_key))),
-         profile:profiles!memberships_organization_id_user_id_fkey (username, full_name, must_change_password, preferences, is_support)`,
+         profile:profiles!memberships_organization_id_user_id_fkey (username, full_name, must_change_password, preferences, is_support, archived_at)`,
       )
       .eq("user_id", userId)
       .is("archived_at", null)
@@ -81,6 +92,9 @@ export async function loadSessionContext(
       ? supabase.rpc("my_billing_notice", { p_org_id: claimedOrg.data })
       : Promise.resolve(null),
     supabase.rpc("session_status").maybeSingle(),
+    claimedOrg.success
+      ? supabase.rpc("org_cache_versions", { p_org_id: claimedOrg.data })
+      : Promise.resolve(null),
   ]);
   const { data, error } = membership;
   if (error) throw error;
@@ -120,7 +134,17 @@ export async function loadSessionContext(
         ? billing.data
         : undefined,
     session: sessionState(status),
+    active: data.organization.archived_at === null && data.profile.archived_at === null,
+    cacheVersions:
+      versions && !versions.error && claimedOrg.data === data.organization.id
+        ? cacheVersionsFrom(versions.data)
+        : null,
   };
+}
+
+function cacheVersionsFrom(value: unknown): Record<string, number> | null {
+  const parsed = z.record(z.string(), z.number()).safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 /**

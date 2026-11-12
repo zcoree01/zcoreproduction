@@ -2,6 +2,11 @@ import "server-only";
 import { decimalFromDb } from "@/lib/decimal";
 import { createClient } from "@/lib/supabase/server";
 import type { MaterialOption } from "./schemas";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife, cacheTag } from "next/cache";
+import { ORG_CACHE_LIFE, orgCacheVersion, orgCacheTag } from "@/lib/cache/org-cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
 
 export type MaterialGroup = {
   id: string;
@@ -46,7 +51,27 @@ export async function listMaterialGroups(organizationId: string): Promise<Materi
 
 /** Active designations with group name and effective density, for the material picker. */
 export async function listMaterialOptions(organizationId: string): Promise<MaterialOption[]> {
-  const supabase = await createClient();
+  const version = await orgCacheVersion(organizationId, "member", ["materials"]);
+  if (version !== null) return cachedListMaterialOptions(organizationId, version);
+  return loadListMaterialOptions(await createClient(), organizationId);
+}
+
+async function cachedListMaterialOptions(
+  organizationId: string,
+  version: string,
+): Promise<MaterialOption[]> {
+  "use cache: remote";
+  // `version` is part of the cache key only (org_cache_versions).
+  void version;
+  cacheTag(orgCacheTag(organizationId, "materials"));
+  cacheLife(ORG_CACHE_LIFE);
+  return loadListMaterialOptions(createAdminClient(), organizationId);
+}
+
+async function loadListMaterialOptions(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<MaterialOption[]> {
   const { data, error } = await supabase
     .from("materials")
     .select(

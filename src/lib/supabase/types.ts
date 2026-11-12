@@ -6761,6 +6761,7 @@ export type Database = {
         Args: { p_operation_id: string }
         Returns: Json
       }
+      org_cache_versions: { Args: { p_org_id: string }; Returns: Json }
       organization_profile: { Args: { p_org_id: string }; Returns: Json }
       pause_operation_work: {
         Args: { p_notes?: string; p_operation_id: string; p_reason_id: string }

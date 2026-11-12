@@ -21,6 +21,11 @@ import {
   type InspectionPlan,
   type ProductUnit,
 } from "./schemas";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife, cacheTag } from "next/cache";
+import { ORG_CACHE_LIFE, orgCacheVersion, orgCacheTag } from "@/lib/cache/org-cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
 
 type Ref = { id: string; name: string };
 
@@ -419,7 +424,29 @@ export async function listOperationTypes(
   organizationId: string,
   options: { includeArchived?: boolean } = {},
 ): Promise<OperationType[]> {
-  const supabase = await createClient();
+  const version = await orgCacheVersion(organizationId, "member", ["operation_types"]);
+  if (version !== null) return cachedListOperationTypes(organizationId, options, version);
+  return loadListOperationTypes(await createClient(), organizationId, options);
+}
+
+async function cachedListOperationTypes(
+  organizationId: string,
+  options: { includeArchived?: boolean },
+  version: string,
+): Promise<OperationType[]> {
+  "use cache: remote";
+  // `version` is part of the cache key only (org_cache_versions).
+  void version;
+  cacheTag(orgCacheTag(organizationId, "operation_types"));
+  cacheLife(ORG_CACHE_LIFE);
+  return loadListOperationTypes(createAdminClient(), organizationId, options);
+}
+
+async function loadListOperationTypes(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+  options: { includeArchived?: boolean },
+): Promise<OperationType[]> {
   let query = supabase
     .from("operation_types")
     .select("id, name, code, is_external, is_inspection, is_cutting, archived_at")

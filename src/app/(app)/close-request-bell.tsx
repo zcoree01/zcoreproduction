@@ -181,8 +181,13 @@ export function CloseRequestBell() {
   useEffect(() => {
     let active = true;
     // What the member may see is decided by the server (notificationScopes).
-    const refresh = async (fresh: boolean) => {
-      const feed = await fetchNotificationFeed({ fresh });
+    // first: shared with the other header components; poll: skipped while
+    // Realtime is connected; fresh: after a change.
+    const refresh = async (mode: "first" | "poll" | "fresh") => {
+      const feed = await fetchNotificationFeed({
+        fresh: mode === "fresh",
+        poll: mode === "poll",
+      });
       // Offline or signed out: keep the last list; the next poll retries.
       if (!active || !feed) return;
       setNotices(feed.notices);
@@ -195,9 +200,9 @@ export function CloseRequestBell() {
         dismissed: [...new Set([...current.dismissed, ...feed.state.dismissed])],
       }));
     };
-    const poll = () => void refresh(false);
-    const changed = () => void refresh(true);
-    poll();
+    const poll = () => void refresh("poll");
+    const changed = () => void refresh("fresh");
+    void refresh("first");
     const timer = window.setInterval(poll, POLL_MS);
     window.addEventListener("focus", poll);
     window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);

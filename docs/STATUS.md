@@ -279,6 +279,12 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ## Log
 
+### 2026-11-12 — Caches and Realtime (D-062)
+
+- Client cache 30 s; server cache for seven picker lists keyed by per-list versions bumped by triggers, behind an RLS-equivalent gate; Realtime for the notification feed. Migrations `20261112200000_notification_realtime` and `20261112210000_org_cache_versions` are local only: they need `npx supabase db push` before the code is deployed (the session reads `org_cache_versions`; without it the server cache stays off, nothing breaks).
+- Checks: `npm run check` (581 unit tests), `test:db` 37 files / 368 tests, e2e full run 77 of 79 (the stock count test caught a stale cached list, fixed with the versions; products failed once and passed 3 of 3), then 21 targeted e2e tests and a new Realtime e2e test (an alert pops up within seconds).
+- Measured: the slow RPCs are fast when warm; the cost is the first call on a fresh connection.
+
 ### 2026-11-11 — Session check next to the database (D-057)
 
 - The proxy (Vercel `fra1`) no longer calls `session_status` except on `/login`; `requireMember` enforces single session, support end and temporary password with the membership read in `dub1`. Migration of D-056 applied to production (by the other session, with the owner's OK).

@@ -70,6 +70,7 @@ import {
   type StockItemField,
   type TransferField,
 } from "./schemas";
+import { expireOrgCache } from "@/lib/cache/org-cache";
 
 // Material warehouse actions (D-031). Every mutation checks its permission
 // here; stock changes only through the database functions, which check it
@@ -180,6 +181,7 @@ export async function saveStockItemAction(
   }
   if (!data) return fail("not_found");
 
+  expireOrgCache(organizationId, "stock_items");
   revalidateInventory();
   return { ok: true, id: data.id };
 }
@@ -211,6 +213,7 @@ export async function setStockItemArchivedAction(
   }
   if (!data) return fail("not_found");
 
+  expireOrgCache(organizationId, "stock_items");
   revalidateInventory();
   return { ok: true, id: data.id };
 }
@@ -264,6 +267,7 @@ export async function saveLocationAction(
   }
   if (!data) return fail("not_found");
 
+  expireOrgCache(organizationId, "stock_locations");
   revalidateInventory();
   return { ok: true, id: data.id };
 }
@@ -294,6 +298,7 @@ export async function setLocationArchivedAction(
   }
   if (!data) return fail("not_found");
 
+  expireOrgCache(organizationId, "stock_locations");
   revalidateInventory();
   return { ok: true, id: data.id };
 }

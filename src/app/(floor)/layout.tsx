@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { Suspense, type ReactNode } from "react";
 import { BillingNoticeBanner } from "@/components/shared/billing-notice";
 import { ModeToggle } from "@/components/shared/mode-toggle";
+import { NotificationLive } from "@/components/shared/notification-live";
 import { HelpButton } from "@/components/shared/problem-report/help-button";
 import { AppSplash } from "@/components/shared/app-splash";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
@@ -53,6 +54,7 @@ async function FloorShell({ children }: { children: ReactNode }) {
         </div>
         <span className="truncate text-base font-semibold">{member.organization.name}</span>
         <div className="ml-auto flex items-center gap-1">
+          {inFirm ? <NotificationLive organizationId={member.organization.id} /> : null}
           {inFirm ? <HelpButton size="icon-lg" /> : null}
           <ModeToggle size="icon-lg" />
           <Link

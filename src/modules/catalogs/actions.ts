@@ -14,12 +14,14 @@ import {
   type CatalogItemField,
   type CatalogKind,
 } from "./schemas";
+import { expireOrgCache } from "@/lib/cache/org-cache";
 
 const FIELDS: readonly CatalogItemField[] = ["name"];
 const fail = actionFail<CatalogItemField, "name_taken">;
 
 // Lists that show catalog names.
-function revalidateCatalogScreens() {
+function revalidateCatalogScreens(organizationId: string) {
+  expireOrgCache(organizationId, "catalogs");
   revalidatePath("/settings/catalogs");
   revalidatePath("/machines");
   revalidatePath("/employees");
@@ -63,7 +65,7 @@ export async function createCatalogItemAction(
     .single();
   if (error) return mapWriteError(error);
 
-  revalidateCatalogScreens();
+  revalidateCatalogScreens(member.organization.id);
   return { ok: true, id: data.id };
 }
 
@@ -105,7 +107,7 @@ async function updateItem(
   if (error) return mapWriteError(error);
   if (data.length === 0) return fail("not_found");
 
-  revalidateCatalogScreens();
+  revalidateCatalogScreens(member.organization.id);
   return { ok: true, id: parsedId.data };
 }
 

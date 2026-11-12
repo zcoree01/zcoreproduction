@@ -13,6 +13,11 @@ import {
   type StockShape,
 } from "./rules";
 import type { LocationKind } from "./schemas";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife, cacheTag } from "next/cache";
+import { memberHolds, ORG_CACHE_LIFE, orgCacheTag, orgCacheVersion } from "@/lib/cache/org-cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
 
 const dec = (value: number | string | null | undefined) => decimalFromDb(value) ?? "0";
 
@@ -45,7 +50,38 @@ export type StockLocation = {
 };
 
 export async function listStockLocations(organizationId: string): Promise<StockLocation[]> {
-  const supabase = await createClient();
+  const version = await orgCacheVersion(
+    organizationId,
+    ["inventory.read", "products.manage"],
+    ["stock_locations", "machines"],
+  );
+  if (version !== null) {
+    const [locations, machines] = await Promise.all([
+      cachedListStockLocations(organizationId, version),
+      memberHolds("machines.read"),
+    ]);
+    // RLS hides the machine's name from members without machines.read.
+    return machines ? locations : locations.map((row) => ({ ...row, machineName: null }));
+  }
+  return loadListStockLocations(await createClient(), organizationId);
+}
+
+async function cachedListStockLocations(
+  organizationId: string,
+  version: string,
+): Promise<StockLocation[]> {
+  "use cache: remote";
+  // `version` is part of the cache key only (org_cache_versions).
+  void version;
+  cacheTag(orgCacheTag(organizationId, "stock_locations"), orgCacheTag(organizationId, "machines"));
+  cacheLife(ORG_CACHE_LIFE);
+  return loadListStockLocations(createAdminClient(), organizationId);
+}
+
+async function loadListStockLocations(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<StockLocation[]> {
   const { data, error } = await supabase
     .from("stock_locations")
     .select("id, kind, code, name, parent_id, machine_id, archived_at, machine:machines(name)")
@@ -261,7 +297,31 @@ export async function listStockItems(organizationId: string): Promise<StockItemR
 
 /** Active items for pickers (receipt lines, pairing). */
 export async function listStockItemOptions(organizationId: string): Promise<StockItem[]> {
-  const supabase = await createClient();
+  const version = await orgCacheVersion(
+    organizationId,
+    ["inventory.read", "products.manage"],
+    ["stock_items", "materials"],
+  );
+  if (version !== null) return cachedListStockItemOptions(organizationId, version);
+  return loadListStockItemOptions(await createClient(), organizationId);
+}
+
+async function cachedListStockItemOptions(
+  organizationId: string,
+  version: string,
+): Promise<StockItem[]> {
+  "use cache: remote";
+  // `version` is part of the cache key only (org_cache_versions).
+  void version;
+  cacheTag(orgCacheTag(organizationId, "stock_items"), orgCacheTag(organizationId, "materials"));
+  cacheLife(ORG_CACHE_LIFE);
+  return loadListStockItemOptions(createAdminClient(), organizationId);
+}
+
+async function loadListStockItemOptions(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<StockItem[]> {
   const { data, error } = await supabase
     .from("stock_items")
     .select(ITEM_SELECT)

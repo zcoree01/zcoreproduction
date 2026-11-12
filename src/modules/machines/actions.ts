@@ -14,10 +14,12 @@ import {
   type MachineActionResult,
   type MachineField,
 } from "./schemas";
+import { expireOrgCache } from "@/lib/cache/org-cache";
 
 const fail = actionFail<MachineField, "code_taken" | "invalid_reference">;
 
-function revalidateMachineScreens() {
+function revalidateMachineScreens(organizationId: string) {
+  expireOrgCache(organizationId, "machines", "stock_locations");
   revalidatePath("/machines");
   revalidatePath("/employees");
   revalidatePath("/floor/machines");
@@ -69,7 +71,7 @@ export async function saveMachineAction(id: unknown, input: unknown): Promise<Ma
   if (error) return mapWriteError(error);
   if (!data) return fail("not_found");
 
-  revalidateMachineScreens();
+  revalidateMachineScreens(organizationId);
   return { ok: true, id: data.id };
 }
 
@@ -95,7 +97,7 @@ export async function setMachineArchivedAction(
   if (error) return mapWriteError(error);
   if (data.length === 0) return fail("not_found");
 
-  revalidateMachineScreens();
+  revalidateMachineScreens(organizationId);
   return { ok: true, id: parsed.data.id };
 }
 
@@ -125,6 +127,6 @@ export async function setMachineStatusAction(
   });
   if (error) return mapWriteError(error);
 
-  revalidateMachineScreens();
+  revalidateMachineScreens(organizationId);
   return { ok: true, id: parsed.data.id };
 }

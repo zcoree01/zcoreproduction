@@ -1,6 +1,11 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { CatalogKind } from "./schemas";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife, cacheTag } from "next/cache";
+import { ORG_CACHE_LIFE, orgCacheVersion, orgCacheTag } from "@/lib/cache/org-cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
 
 export type CatalogItem = { id: string; name: string; archived: boolean };
 export type CatalogOption = { id: string; name: string };
@@ -27,7 +32,29 @@ export async function listCatalogOptions<K extends CatalogKind>(
   organizationId: string,
   kinds: readonly K[],
 ): Promise<Record<K, CatalogOption[]>> {
-  const supabase = await createClient();
+  const version = await orgCacheVersion(organizationId, "member", ["catalogs"]);
+  if (version !== null) return cachedListCatalogOptions(organizationId, kinds, version);
+  return loadListCatalogOptions(await createClient(), organizationId, kinds);
+}
+
+async function cachedListCatalogOptions<K extends CatalogKind>(
+  organizationId: string,
+  kinds: readonly K[],
+  version: string,
+): Promise<Record<K, CatalogOption[]>> {
+  "use cache: remote";
+  // `version` is part of the cache key only (org_cache_versions).
+  void version;
+  cacheTag(orgCacheTag(organizationId, "catalogs"));
+  cacheLife(ORG_CACHE_LIFE);
+  return loadListCatalogOptions(createAdminClient(), organizationId, kinds);
+}
+
+async function loadListCatalogOptions<K extends CatalogKind>(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+  kinds: readonly K[],
+): Promise<Record<K, CatalogOption[]>> {
   const { data, error } = await supabase
     .from("catalog_items")
     .select("id, kind, name")

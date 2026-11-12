@@ -17,11 +17,13 @@ import {
   type MaterialGroupActionResult,
   type MaterialGroupField,
 } from "./schemas";
+import { expireOrgCache } from "@/lib/cache/org-cache";
 
 const failGroup = actionFail<MaterialGroupField, "name_taken">;
 const failMaterial = actionFail<MaterialField, "designation_taken">;
 
-function revalidateMaterialScreens() {
+function revalidateMaterialScreens(organizationId: string) {
+  expireOrgCache(organizationId, "materials", "stock_items");
   revalidatePath("/settings/materials");
   revalidatePath("/products", "layout");
 }
@@ -72,7 +74,7 @@ export async function saveMaterialGroupAction(
   }
   if (!data) return failGroup("not_found");
 
-  revalidateMaterialScreens();
+  revalidateMaterialScreens(organizationId);
   return { ok: true, id: data.id };
 }
 
@@ -118,7 +120,7 @@ export async function saveMaterialAction(
   }
   if (!data) return failMaterial("not_found");
 
-  revalidateMaterialScreens();
+  revalidateMaterialScreens(organizationId);
   return { ok: true, id: data.id };
 }
 
@@ -151,6 +153,6 @@ export async function setMaterialArchivedAction(
   }
   if (data.length === 0) return failMaterial("not_found");
 
-  revalidateMaterialScreens();
+  revalidateMaterialScreens(organizationId);
   return { ok: true, id: parsed.data.id };
 }

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense, type CSSProperties, type ReactNode } from "react";
 import { AppSplash } from "@/components/shared/app-splash";
+import { NotificationLive } from "@/components/shared/notification-live";
 import { HelpButton } from "@/components/shared/problem-report/help-button";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -88,6 +89,9 @@ async function AppShell({ children }: { children: ReactNode }) {
         }}
       />
       <SidebarInset>
+        {bell || scopes.support ? (
+          <NotificationLive organizationId={member.organization.id} />
+        ) : null}
         {scopes.support ? <SupportRequestPrompt /> : null}
         <BillingNoticeBanner notice={access.notice} timezone={member.organization.timezone} />
         {supportSession ? (

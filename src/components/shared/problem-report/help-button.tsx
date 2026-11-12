@@ -47,21 +47,26 @@ export function HelpButton({ size = "icon" }: { size?: "icon" | "icon-lg" }) {
 
   useEffect(() => {
     let active = true;
-    const refresh = async (fresh: boolean) => {
-      const feed = await fetchNotificationFeed({ fresh });
+    // first: shared with the other header components; poll: skipped while
+    // Realtime is connected; fresh: after a change.
+    const refresh = async (mode: "first" | "poll" | "fresh") => {
+      const feed = await fetchNotificationFeed({
+        fresh: mode === "fresh",
+        poll: mode === "poll",
+      });
       // Offline or signed out: keep what is shown; the next poll retries.
       if (!active || !feed) return;
       setNotices(feed.notices);
       setState(feed.state);
     };
-    const poll = () => void refresh(false);
-    const changed = () => void refresh(true);
+    const poll = () => void refresh("poll");
+    const changed = () => void refresh("fresh");
     const openMine = () => {
       setTab("mine");
       setOpen(true);
       setRefreshKey((key) => key + 1);
     };
-    poll();
+    void refresh("first");
     const timer = window.setInterval(poll, POLL_MS);
     window.addEventListener("focus", poll);
     window.addEventListener(REPORT_NOTICES_CHANGED_EVENT, changed);
