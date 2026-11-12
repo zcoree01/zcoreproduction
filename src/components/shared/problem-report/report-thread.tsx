@@ -98,13 +98,7 @@ export function ReportThread({
   return (
     <div className="flex flex-col gap-4" data-testid="report-thread">
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-11 md:h-8"
-          onClick={onBack}
-        >
+        <Button type="button" variant="ghost" size="sm" className="h-11 md:h-8" onClick={onBack}>
           <ArrowLeftIcon />
           {t("back")}
         </Button>
