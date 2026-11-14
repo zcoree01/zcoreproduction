@@ -282,7 +282,7 @@ Kiosk on a phone / tablet during development: `npm run dev` (or `npm run dev:htt
 
 ### 2026-11-12 — Caches and Realtime (D-062)
 
-- Client cache 30 s; server cache for seven picker lists keyed by per-list versions bumped by triggers, behind an RLS-equivalent gate; Realtime for the notification feed. Migrations `20261112200000_notification_realtime` and `20261112210000_org_cache_versions` are local only: they need `npx supabase db push` before the code is deployed (the session reads `org_cache_versions`; without it the server cache stays off, nothing breaks).
+- Client cache 30 s; server cache for seven picker lists keyed by per-list versions bumped by triggers, behind an RLS-equivalent gate; Realtime for the notification feed. Migrations `20261112200000_notification_realtime` and `20261112210000_org_cache_versions` applied to production and deployed (origin/main `af76eb5`). Verified on production 2026-11-13: the Realtime channel joins (`phx_reply` ok), going back to a page visited in the last 30 s takes 16–20 ms without a server request (first visit 300–600 ms).
 - Checks: `npm run check` (581 unit tests), `test:db` 37 files / 368 tests, e2e full run 77 of 79 (the stock count test caught a stale cached list, fixed with the versions; products failed once and passed 3 of 3), then 21 targeted e2e tests and a new Realtime e2e test (an alert pops up within seconds).
 - Measured: the slow RPCs are fast when warm; the cost is the first call on a fresh connection.
 
