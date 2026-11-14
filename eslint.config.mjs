@@ -23,6 +23,9 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "next-env.d.ts",
     "src/lib/supabase/types.ts",
+    // Agent skills (installed tooling, CommonJS), not app code.
+    ".agents/**",
+    ".claude/**",
   ]),
 ]);
 

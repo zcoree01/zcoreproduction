@@ -5,6 +5,7 @@ import { Suspense, type CSSProperties, type ReactNode } from "react";
 import { AppSplash } from "@/components/shared/app-splash";
 import { NotificationLive } from "@/components/shared/notification-live";
 import { HelpButton } from "@/components/shared/problem-report/help-button";
+import { ScopedIntlProvider } from "@/components/shared/scoped-intl-provider";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getMemberAccess } from "@/lib/auth/access";
@@ -25,10 +26,13 @@ import { SupportRequestPrompt } from "./support-request-prompt";
 
 // Management app (desktop-first). Session-dependent UI streams behind Suspense.
 export default function AppLayout({ children }: { children: ReactNode }) {
+  // Every message: the management app uses nearly all namespaces.
   return (
-    <Suspense fallback={<ShellFallback />}>
-      <AppShell>{children}</AppShell>
-    </Suspense>
+    <ScopedIntlProvider>
+      <Suspense fallback={<ShellFallback />}>
+        <AppShell>{children}</AppShell>
+      </Suspense>
+    </ScopedIntlProvider>
   );
 }
 

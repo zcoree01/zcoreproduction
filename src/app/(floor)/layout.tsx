@@ -7,6 +7,7 @@ import { BillingNoticeBanner } from "@/components/shared/billing-notice";
 import { ModeToggle } from "@/components/shared/mode-toggle";
 import { NotificationLive } from "@/components/shared/notification-live";
 import { HelpButton } from "@/components/shared/problem-report/help-button";
+import { ScopedIntlProvider } from "@/components/shared/scoped-intl-provider";
 import { AppSplash } from "@/components/shared/app-splash";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
 import { buttonVariants } from "@/components/ui/button";
@@ -19,10 +20,13 @@ import { BottomNav } from "./bottom-nav";
 
 // Shop-floor UI (mobile-first, large touch targets). Open to every member.
 export default function FloorLayout({ children }: { children: ReactNode }) {
+  // Only the messages worker screens read (phones on mobile data).
   return (
-    <Suspense fallback={<FloorFallback />}>
-      <FloorShell>{children}</FloorShell>
-    </Suspense>
+    <ScopedIntlProvider scope="floor">
+      <Suspense fallback={<FloorFallback />}>
+        <FloorShell>{children}</FloorShell>
+      </Suspense>
+    </ScopedIntlProvider>
   );
 }
 

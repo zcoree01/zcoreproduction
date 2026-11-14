@@ -1,6 +1,8 @@
 import "server-only";
+import { pageRange, toSearchPattern } from "@/lib/data-table/params";
 import { decimalFromDb } from "@/lib/decimal";
 import { createClient } from "@/lib/supabase/server";
+import type { DeliveryNoteListParams } from "./list-params";
 import {
   deliveryNumberSettingsFrom,
   layoutFrom,
@@ -174,23 +176,101 @@ export type DeliveryNoteRow = {
   lines: number;
 };
 
-export async function listDeliveryNotes(organizationId: string): Promise<DeliveryNoteRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("delivery_notes")
-    .select("id, number, issued_on, status, customer:customers(name), delivery_note_lines(id)")
-    .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (error) throw error;
-  return data.map((n) => ({
+// Line count via an aggregate, not the line ids.
+const NOTE_LIST_COLUMNS =
+  "id, number, issued_on, status, customer:customers(name), delivery_note_lines(count)";
+
+type NoteListRow = {
+  id: string;
+  number: string;
+  issued_on: string;
+  status: string;
+  customer: { name: string } | null;
+  delivery_note_lines: { count: number }[];
+};
+
+function toDeliveryNoteRow(n: NoteListRow): DeliveryNoteRow {
+  return {
     id: n.id,
     number: n.number,
     customer: n.customer?.name ?? "",
     issuedOn: n.issued_on,
     status: n.status as DeliveryNoteRow["status"],
-    lines: n.delivery_note_lines.length,
-  }));
+    lines: n.delivery_note_lines[0]?.count ?? 0,
+  };
+}
+
+/** The newest delivery notes (dashboard widget). */
+export async function listDeliveryNotes(
+  organizationId: string,
+  limit: number,
+): Promise<DeliveryNoteRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("delivery_notes")
+    .select(NOTE_LIST_COLUMNS)
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: false })
+    .limit(limit)
+    .returns<NoteListRow[]>();
+  if (error) throw error;
+  return data.map(toDeliveryNoteRow);
+}
+
+export type DeliveryNotePage = { rows: DeliveryNoteRow[]; total: number };
+
+/** One page of delivery notes, newest first, searched by number or customer. */
+export async function listDeliveryNotesPage(
+  organizationId: string,
+  params: DeliveryNoteListParams,
+): Promise<DeliveryNotePage> {
+  const supabase = await createClient();
+  const pattern = toSearchPattern(params.q);
+
+  // The customer name lives on the embedded row: resolve matching customers
+  // first, then search number OR customer in one filter.
+  let customerIds: string[] = [];
+  if (pattern) {
+    const customers = await supabase
+      .from("customers")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .ilike("name", pattern)
+      .limit(200);
+    if (customers.error) throw customers.error;
+    customerIds = customers.data.map((c) => c.id);
+  }
+
+  const filtered = () => {
+    let query = supabase
+      .from("delivery_notes")
+      .select(NOTE_LIST_COLUMNS, { count: "exact" })
+      .eq("organization_id", organizationId);
+    if (params.status) query = query.eq("status", params.status);
+    if (pattern) {
+      query =
+        customerIds.length > 0
+          ? query.or(`number.ilike.${pattern},customer_id.in.(${customerIds.join(",")})`)
+          : query.ilike("number", pattern);
+    }
+    return query;
+  };
+
+  const { from, to } = pageRange(params);
+  const { data, count, error } = await filtered()
+    .order("created_at", { ascending: false })
+    .range(from, to)
+    .returns<NoteListRow[]>();
+  if (error) {
+    // Page past the end (e.g. after a filter change): report the total only.
+    if (error.code === "PGRST103") {
+      const counted = await filtered().limit(0);
+      if (counted.error) throw counted.error;
+      return { rows: [], total: counted.count ?? 0 };
+    }
+    throw error;
+  }
+  return { total: count ?? 0, rows: data.map(toDeliveryNoteRow) };
 }
 
 export type DeliveryNoteDetail = {

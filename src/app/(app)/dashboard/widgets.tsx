@@ -880,7 +880,7 @@ async function RecentDeliveryNotes({ context }: { context: Context }) {
   const [t, format, notes] = await Promise.all([
     getTranslations("dashboard"),
     getFormatter(),
-    listDeliveryNotes(context.organizationId),
+    listDeliveryNotes(context.organizationId, SHOWN),
   ]);
   return (
     <Frame widgetKey="recent_delivery_notes" href="/inventory/delivery-notes">
