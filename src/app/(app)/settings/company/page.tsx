@@ -1,5 +1,6 @@
 import { ClockIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import { ChangeRequestList } from "@/components/shared/company/change-request-list";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSuspense } from "@/components/shared/page-suspense";
@@ -37,7 +38,7 @@ async function CompanySettingsContent() {
   const organizationId = member.organization.id;
   const [t, format, access] = await Promise.all([
     getTranslations("companySettings"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
   ]);
   // The Zcore organization itself has no company data or support access (D-028).

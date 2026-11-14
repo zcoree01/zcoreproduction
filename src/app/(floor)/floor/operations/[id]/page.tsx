@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, ClipboardXIcon, EyeOffIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { z } from "zod";
@@ -59,7 +60,7 @@ async function FloorOperationContent({ params }: { params: Promise<{ id: string 
     getTranslations("productUnits"),
     getTranslations("floorMaterial"),
     getTranslations("inventory"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
   ]);
   if (!access.modules.has("production")) return <ModuleDisabled />;

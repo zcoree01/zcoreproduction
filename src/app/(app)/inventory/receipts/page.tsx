@@ -1,5 +1,6 @@
 import { PlusIcon, ReceiptIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
@@ -36,7 +37,7 @@ async function ReceiptsContent() {
   const member = await requireMember();
   const [t, format, access] = await Promise.all([
     getTranslations("inventory"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
   ]);
 

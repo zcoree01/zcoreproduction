@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense, type CSSProperties, type ReactNode } from "react";
 import { AppSplash } from "@/components/shared/app-splash";
 import { NotificationLive } from "@/components/shared/notification-live";
+import { OrgTimeZoneProvider } from "@/components/shared/org-time-zone-provider";
 import { HelpButton } from "@/components/shared/problem-report/help-button";
 import { ScopedIntlProvider } from "@/components/shared/scoped-intl-provider";
 import { TextSizeMarker } from "@/components/shared/text-size-marker";
@@ -72,51 +73,53 @@ async function AppShell({ children }: { children: ReactNode }) {
     : member.role.name;
 
   return (
-    <SidebarProvider
-      defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 64)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as CSSProperties
-      }
-    >
-      <TextSizeMarker size={member.preferences.textSize} />
-      <AppSidebar
-        variant="inset"
-        organizationName={member.organization.name}
-        groups={groups}
-        user={{
-          name: member.fullName ?? member.username,
-          username: member.username,
-          roleLabel,
-        }}
-      />
-      <SidebarInset>
-        {bell || scopes.support ? (
-          <NotificationLive organizationId={member.organization.id} />
-        ) : null}
-        {scopes.support ? <SupportRequestPrompt /> : null}
-        <BillingNoticeBanner notice={access.notice} timezone={member.organization.timezone} />
-        {supportSession ? (
-          <SupportBanner
-            requestId={supportSession.id}
-            approvedUntil={supportSession.approvedUntil}
-            requesterName={supportSession.requesterName}
-          />
-        ) : null}
-        <SiteHeader
+    <OrgTimeZoneProvider timeZone={member.organization.timezone}>
+      <SidebarProvider
+        defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 64)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as CSSProperties
+        }
+      >
+        <TextSizeMarker size={member.preferences.textSize} />
+        <AppSidebar
+          variant="inset"
           organizationName={member.organization.name}
           groups={groups}
-          actions={
-            <>
-              {inFirm ? <HelpButton /> : null}
-              {bell ? <CloseRequestBell /> : null}
-            </>
-          }
+          user={{
+            name: member.fullName ?? member.username,
+            username: member.username,
+            roleLabel,
+          }}
         />
-        <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+        <SidebarInset>
+          {bell || scopes.support ? (
+            <NotificationLive organizationId={member.organization.id} />
+          ) : null}
+          {scopes.support ? <SupportRequestPrompt /> : null}
+          <BillingNoticeBanner notice={access.notice} timezone={member.organization.timezone} />
+          {supportSession ? (
+            <SupportBanner
+              requestId={supportSession.id}
+              approvedUntil={supportSession.approvedUntil}
+              requesterName={supportSession.requesterName}
+            />
+          ) : null}
+          <SiteHeader
+            organizationName={member.organization.name}
+            groups={groups}
+            actions={
+              <>
+                {inFirm ? <HelpButton /> : null}
+                {bell ? <CloseRequestBell /> : null}
+              </>
+            }
+          />
+          <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+    </OrgTimeZoneProvider>
   );
 }

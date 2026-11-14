@@ -9,6 +9,7 @@ import {
   EMPTY_COMPANY_PROFILE,
   type CompanyProfileFormValues,
 } from "@/modules/companies/schemas";
+import { ORG_TIMEZONES } from "@/modules/organizations/schemas";
 import { newPasswordSchema } from "@/modules/profile/schemas";
 import { normalizeNamePart } from "@/modules/users/username-suggest";
 
@@ -42,17 +43,7 @@ export const registrationSlugSchema = orgSlugSchema
     message: "slug_reserved",
   });
 
-export const TIMEZONES = [
-  "Europe/Sarajevo",
-  "Europe/Zagreb",
-  "Europe/Belgrade",
-  "Europe/Podgorica",
-  "Europe/Ljubljana",
-  "Europe/Skopje",
-  "Europe/Vienna",
-  "Europe/Berlin",
-  "Europe/London",
-] as const;
+export const TIMEZONES = ORG_TIMEZONES;
 
 const registrationShape = {
   ...companyBasicsShape,

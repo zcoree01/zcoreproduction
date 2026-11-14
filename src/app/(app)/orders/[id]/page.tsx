@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, ClipboardXIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import Link from "next/link";
 import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -72,7 +73,7 @@ async function OrderContent({
     getTranslations("orders"),
     getTranslations("productUnits"),
     getTranslations("inventory"),
-    getFormatter(),
+    getOrgFormatter(timezone),
     getMemberAccess(member),
     orderId.success ? getOrder(organizationId, orderId.data) : Promise.resolve(null),
   ]);

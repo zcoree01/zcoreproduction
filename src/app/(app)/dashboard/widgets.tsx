@@ -1,4 +1,5 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { Duration } from "@/components/shared/duration";
@@ -273,7 +274,7 @@ async function OutputToday({ context }: { context: Context }) {
 async function OrdersDue({ context }: { context: Context }) {
   const [t, format, orders] = await Promise.all([
     getTranslations("dashboard"),
-    getFormatter(),
+    getOrgFormatter(context.timeZone),
     loadOpenOrders(context.organizationId),
   ]);
   const warned = orders.filter((order) => order.dueWarning !== null);
@@ -393,7 +394,7 @@ const TREND_DAYS = 14;
 async function OutputTrend({ context }: { context: Context }) {
   const [t, format, period] = await Promise.all([
     getTranslations("dashboard"),
-    getFormatter(),
+    getOrgFormatter(context.timeZone),
     loadProductionPeriod(context.organizationId, context.timeZone),
   ]);
   if (!period) return null;
@@ -716,7 +717,7 @@ async function StockBelowMinimum({ context }: { context: Context }) {
 async function MaterialShortages({ context }: { context: Context }) {
   const [t, format, quantity, shortages] = await Promise.all([
     getTranslations("inventory.warnings"),
-    getFormatter(),
+    getOrgFormatter(context.timeZone),
     quantityFormatter(),
     listOrderShortages(context.organizationId),
   ]);
@@ -879,7 +880,7 @@ async function FinishedGoods({ context }: { context: Context }) {
 async function RecentDeliveryNotes({ context }: { context: Context }) {
   const [t, format, notes] = await Promise.all([
     getTranslations("dashboard"),
-    getFormatter(),
+    getOrgFormatter(context.timeZone),
     listDeliveryNotes(context.organizationId, SHOWN),
   ]);
   return (

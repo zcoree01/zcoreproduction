@@ -1,4 +1,5 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import { z } from "zod";
 import { PageSuspense } from "@/components/shared/page-suspense";
 import {
@@ -29,7 +30,7 @@ async function WarehouseCountsContent({
   const organizationId = guard.member.organization.id;
   const [t, format, params] = await Promise.all([
     getTranslations("inventory.counts"),
-    getFormatter(),
+    getOrgFormatter(guard.member.organization.timezone),
     searchParams,
   ]);
   const [counts, locations, items] = await Promise.all([

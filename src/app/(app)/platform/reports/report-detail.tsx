@@ -240,7 +240,9 @@ export function ReportDetail({
         <Card>
           <CardHeader className="flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">{t("sessions")}</CardTitle>
-            {canSchedule ? <ScheduleSessionDialog reportId={report.id} timezone={timezone} /> : null}
+            {canSchedule ? (
+              <ScheduleSessionDialog reportId={report.id} timezone={timezone} />
+            ) : null}
           </CardHeader>
           <CardContent>
             {report.sessions.length === 0 ? (

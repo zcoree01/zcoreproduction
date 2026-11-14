@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, BuildingIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import Link from "next/link";
 import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -41,7 +42,7 @@ async function OrganizationContent({ params }: { params: Promise<{ id: string }>
   const [t, tb, format, access] = await Promise.all([
     getTranslations("platform"),
     getTranslations("platform.billing"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
   ]);
   if (!access.modules.has("platform")) return <ModuleDisabled />;

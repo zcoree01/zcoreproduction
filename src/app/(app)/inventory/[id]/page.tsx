@@ -1,5 +1,6 @@
 import { PackageXIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import Link from "next/link";
 import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -32,7 +33,7 @@ async function StockItemContent({ params }: { params: Promise<{ id: string }> })
   const organizationId = member.organization.id;
   const [t, format, access] = await Promise.all([
     getTranslations("inventory"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
   ]);
 

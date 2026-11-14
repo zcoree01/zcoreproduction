@@ -129,7 +129,7 @@ describe("buildNavigation", () => {
     ]);
     expect(visible(["org.settings.manage"])).toEqual([
       ["overview", ["dashboard"]],
-      ["administration", ["company-settings", "production-settings"]],
+      ["administration", ["company-settings", "organization-settings", "production-settings"]],
     ]);
   });
 
@@ -263,5 +263,21 @@ describe("activeNavItem", () => {
 
   it("does not match prefixes that are not path segments", () => {
     expect(activeNavItem(items, "/dashboards")).toBeUndefined();
+  });
+});
+
+describe("organization settings (D-063)", () => {
+  const item = NAV_ITEMS.find((entry) => entry.href === "/settings/organization");
+
+  it("needs org.settings.manage and is hidden in the Zcore organization", () => {
+    expect(item?.permission).toBe("org.settings.manage");
+    expect(item?.hiddenForModule).toBe("platform");
+    const shown = (modules: string[], permissions: string[]) =>
+      buildNavigation("app", access(modules, permissions))
+        .flatMap((section) => section.items)
+        .some((entry) => entry.id === "organization-settings");
+    expect(shown(["core"], ["org.settings.manage"])).toBe(true);
+    expect(shown(["core"], [])).toBe(false);
+    expect(shown(["core", "platform"], ["org.settings.manage"])).toBe(false);
   });
 });

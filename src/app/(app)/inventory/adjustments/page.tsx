@@ -1,4 +1,5 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSuspense } from "@/components/shared/page-suspense";
@@ -20,7 +21,7 @@ async function AdjustmentsContent() {
   const member = await requireMember();
   const [t, format, access] = await Promise.all([
     getTranslations("inventory"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
   ]);
 

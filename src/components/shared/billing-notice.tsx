@@ -1,5 +1,6 @@
 import { LockIcon, TriangleAlertIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import { cn } from "@/lib/utils";
 import type { BillingNotice } from "@/modules/platform/billing-notice";
 
@@ -18,7 +19,10 @@ export async function BillingNoticeBanner({
   if (notice.state !== "locked" && notice.state !== "warning" && notice.state !== "overdue") {
     return null;
   }
-  const [t, format] = await Promise.all([getTranslations("billingNotice"), getFormatter()]);
+  const [t, format] = await Promise.all([
+    getTranslations("billingNotice"),
+    getOrgFormatter(timezone),
+  ]);
   // Noon UTC: the month and day stay the same in any organization timezone.
   const day = (value: string) => new Date(`${value}T12:00:00Z`);
   const month = notice.unpaidPeriod

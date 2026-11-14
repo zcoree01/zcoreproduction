@@ -93,6 +93,7 @@
     "crews": "Ekipe i rotacije",
     "absences": "Odsustva i zahtjevi",
     "companySettings": "Podaci o firmi",
+    "organizationSettings": "Organizacija",
     "platformOrganizations": "Firme",
     "platformReports": "Prijave",
     "platformRequests": "Zahtjevi za imenik",
@@ -3285,6 +3286,27 @@
         "not_found": "Firma nije pronađena.",
         "unexpected": "Prijedlog nije poslan zbog greške. Pokušajte ponovo."
       }
+    }
+  },
+  "organizationSettings": {
+    "title": "Organizacija",
+    "description": "Postavke koje važe za cijelu firmu.",
+    "deniedDescription": "Postavke organizacije mijenja administrator.",
+    "notForPlatform": "Zcore organizacija koristi vremensku zonu platforme.",
+    "timezoneTitle": "Vremenska zona",
+    "timezoneDescription": "Sva vremena (smjene, prisustvo, rokovi, izvještaji, otpremnice) prikazuju se i računaju u ovoj zoni.",
+    "timezone": "Vremenska zona",
+    "timezoneHint": "Trenutno vrijeme u izabranoj zoni: {time}",
+    "save": "Sačuvaj",
+    "saving": "Čuvanje…",
+    "savedToast": "Vremenska zona je sačuvana.",
+    "confirmTitle": "Promijeniti vremensku zonu?",
+    "confirmDescription": "Dani se od sada računaju u zoni {zone}. Ovo utiče i na već unesene podatke: prisustvo, mjesečni obračun i izvještaji za prošle dane mogu se pomjeriti za razliku u satima.",
+    "confirm": "Promijeni zonu",
+    "errors": {
+      "invalid": "Izaberite ispravnu vremensku zonu.",
+      "denied": "Nemate dozvolu za ovu promjenu.",
+      "unexpected": "Čuvanje nije uspjelo. Pokušajte ponovo."
     }
   },
   "companySettings": {

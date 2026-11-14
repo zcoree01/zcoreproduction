@@ -35,6 +35,7 @@ export type NavLabelKey =
   | "crews"
   | "absences"
   | "companySettings"
+  | "organizationSettings"
   | "supportSettings"
   | "platformOrganizations"
   | "platformReports"
@@ -380,6 +381,17 @@ export const NAV_ITEMS: readonly NavItemDef[] = [
     href: "/settings/company",
     label: "companySettings",
     icon: "building",
+    module: "core",
+    hiddenForModule: "platform",
+    permission: "org.settings.manage",
+    surface: "app",
+    section: "administration",
+  },
+  {
+    id: "organization-settings",
+    href: "/settings/organization",
+    label: "organizationSettings",
+    icon: "settings",
     module: "core",
     hiddenForModule: "platform",
     permission: "org.settings.manage",

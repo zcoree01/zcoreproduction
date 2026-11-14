@@ -1,4 +1,5 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageSuspense } from "@/components/shared/page-suspense";
@@ -23,7 +24,10 @@ async function WarehouseOrderContent({ params }: { params: Promise<{ id: string 
   const guard = await warehouseAccess();
   if (!guard.ok) return guard.screen;
   const organizationId = guard.member.organization.id;
-  const [t, format] = await Promise.all([getTranslations("floorWarehouse.order"), getFormatter()]);
+  const [t, format] = await Promise.all([
+    getTranslations("floorWarehouse.order"),
+    getOrgFormatter(guard.member.organization.timezone),
+  ]);
   const { id } = await params;
   const orderId = z.uuid().safeParse(id);
   const order =

@@ -877,6 +877,18 @@ The product owner chose the free variant ("logičnija mi je").
 
 **Consequences:** Fewer database calls per page (the picker lists of the order, product, inventory and settings forms) and ~95 % fewer notification requests while Realtime is connected. Open: a larger Supabase compute size shortens the cold first calls (dashboard, paid).
 
+## D-063 — Organization time zone: settings screen and formatting in the org zone (2026-11-14)
+
+**Context:** Phase 1 left the organization settings screen open. `organizations.timezone` existed from the start (default `Europe/Sarajevo`, `is_valid_timezone` check, column grant, RLS `organizations_update` with `org.settings.manage`, row audit, `lock_guard`), and the database functions already count days in it. In the UI, explicit `timeZone` options used the member's zone, but every `format.dateTime` without one used the next-intl request config, which is fixed to `Europe/Sarajevo`: the request config cannot read the session, because with Cache Components the root layout (which reads the locale) would turn dynamic.
+
+**Decision:**
+
+- No migration and no RPC: the change is one UPDATE through the existing RLS; the row audit trigger records before / after. `saveOrganizationTimezoneAction` checks `org.settings.manage` (`permitAction`), validates with Zod and treats an empty result (RLS) as denied and `23514` as invalid.
+- `/settings/organization` (`org.settings.manage`, hidden in the Zcore organization, whose platform screens use the platform zone): select of `ORG_TIMEZONES` (moved from registration) plus the current zone, confirmation that past days are counted in the new zone.
+- Formatting in the org zone: server components use `getOrgFormatter(timezone)` (`createFormatter` with the request locale) instead of `getFormatter()`; client components inherit the zone from `OrgTimeZoneProvider`, a nested client `NextIntlClientProvider` with only `locale` + `timeZone` (use-intl takes messages and formats from the parent, so the translation file is not sent twice). **Rule:** no `getFormatter` import in `src` (unit test `src/i18n/org-formatter.test.ts`).
+
+**Consequences:** A firm outside Bosnia sees and enters times in its own zone. A change also re-buckets past data by local day (attendance, reports, billing months), which the confirmation states. The request-config fallback stays `Europe/Sarajevo` for pages without a member (login).
+
 ## D-064 — Speed, round 4: real-user metrics, traces, delivery note paging, messages per route group (2026-11-14)
 
 **Context:** The owner asked to work through a generic 30-point web speed list. Most points were already in place (Server Components, Cache Components + Partial Prefetching, `next/image`, `next/font`, debounced table search, server-paginated DataTables, `useOptimistic`, parallel reads, FK / RLS indexes, region next to the database, caches and Realtime from D-042 / D-054 / D-056 / D-057 / D-062; CDN, compression, browser caching and scaling come from Vercel). Gaps that would actually help: no real-user measurements, no traces, delivery notes capped at the latest 100 with no way to older ones, and the whole translation file (~210 KB, ~60 KB gzip) in every full page load.

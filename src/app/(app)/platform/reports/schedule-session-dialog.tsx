@@ -25,7 +25,13 @@ import { scheduleSupportSessionAction } from "@/modules/platform/reports-actions
 const DURATIONS = [15, 30, 60, 120, 240, 480] as const;
 
 /** "Zakaži sesiju": Zcore proposes a window, the firm's admin approves it. */
-export function ScheduleSessionDialog({ reportId, timezone }: { reportId: string; timezone: string }) {
+export function ScheduleSessionDialog({
+  reportId,
+  timezone,
+}: {
+  reportId: string;
+  timezone: string;
+}) {
   const t = useTranslations("platformReports.schedule");
   const tSupport = useTranslations("support");
   const router = useRouter();
@@ -85,7 +91,9 @@ export function ScheduleSessionDialog({ reportId, timezone }: { reportId: string
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="schedule-time">{t("time")} ({timezone})</FieldLabel>
+                <FieldLabel htmlFor="schedule-time">
+                  {t("time")} ({timezone})
+                </FieldLabel>
                 <Input
                   id="schedule-time"
                   type="time"

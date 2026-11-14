@@ -1,5 +1,6 @@
 import { BuildingIcon, SearchIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
@@ -62,7 +63,7 @@ async function PlatformContent({ searchParams }: { searchParams: Promise<SearchP
   const [t, tb, format, access, params] = await Promise.all([
     getTranslations("platform"),
     getTranslations("platform.billing"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
     searchParams,
   ]);

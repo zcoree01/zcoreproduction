@@ -1,5 +1,6 @@
 import { CogIcon, UserXIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ModuleDisabled } from "@/components/shared/module-disabled";
 import { PageSuspense } from "@/components/shared/page-suspense";
@@ -21,7 +22,7 @@ async function FloorMachinesContent() {
   const member = await requireMember();
   const [t, format, access] = await Promise.all([
     getTranslations("floorMachines"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
   ]);
 

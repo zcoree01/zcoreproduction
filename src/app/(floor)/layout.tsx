@@ -6,6 +6,7 @@ import { Suspense, type ReactNode } from "react";
 import { BillingNoticeBanner } from "@/components/shared/billing-notice";
 import { ModeToggle } from "@/components/shared/mode-toggle";
 import { NotificationLive } from "@/components/shared/notification-live";
+import { OrgTimeZoneProvider } from "@/components/shared/org-time-zone-provider";
 import { HelpButton } from "@/components/shared/problem-report/help-button";
 import { ScopedIntlProvider } from "@/components/shared/scoped-intl-provider";
 import { AppSplash } from "@/components/shared/app-splash";
@@ -50,32 +51,34 @@ async function FloorShell({ children }: { children: ReactNode }) {
   if (inFirm) await recordMemberActivityAfterResponse(member.organization.id);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <TextSizeMarker size={member.preferences.textSize} />
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <FactoryIcon className="size-4" />
-        </div>
-        <span className="truncate text-base font-semibold">{member.organization.name}</span>
-        <div className="ml-auto flex items-center gap-1">
-          {inFirm ? <NotificationLive organizationId={member.organization.id} /> : null}
-          {inFirm ? <HelpButton size="icon-lg" /> : null}
-          <ModeToggle size="icon-lg" />
-          <Link
-            href="/floor/profile"
-            aria-label={t("title")}
-            className={buttonVariants({ variant: "ghost", size: "icon-lg" })}
-          >
-            <UserRoundIcon />
-          </Link>
-        </div>
-      </header>
-      <BillingNoticeBanner notice={access.notice} timezone={member.organization.timezone} />
-      {/* pb-24 keeps content clear of the fixed bottom navigation. */}
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 pt-6 pb-24">
-        {children}
-      </main>
-      <BottomNav items={groups.flatMap((group) => group.items)} />
-    </div>
+    <OrgTimeZoneProvider timeZone={member.organization.timezone}>
+      <div className="flex flex-1 flex-col">
+        <TextSizeMarker size={member.preferences.textSize} />
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <FactoryIcon className="size-4" />
+          </div>
+          <span className="truncate text-base font-semibold">{member.organization.name}</span>
+          <div className="ml-auto flex items-center gap-1">
+            {inFirm ? <NotificationLive organizationId={member.organization.id} /> : null}
+            {inFirm ? <HelpButton size="icon-lg" /> : null}
+            <ModeToggle size="icon-lg" />
+            <Link
+              href="/floor/profile"
+              aria-label={t("title")}
+              className={buttonVariants({ variant: "ghost", size: "icon-lg" })}
+            >
+              <UserRoundIcon />
+            </Link>
+          </div>
+        </header>
+        <BillingNoticeBanner notice={access.notice} timezone={member.organization.timezone} />
+        {/* pb-24 keeps content clear of the fixed bottom navigation. */}
+        <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 pt-6 pb-24">
+          {children}
+        </main>
+        <BottomNav items={groups.flatMap((group) => group.items)} />
+      </div>
+    </OrgTimeZoneProvider>
   );
 }

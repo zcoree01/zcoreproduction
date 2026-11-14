@@ -1,4 +1,5 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { getOrgFormatter } from "@/i18n/org-formatter";
 import { headers } from "next/headers";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -52,7 +53,7 @@ async function PrintContent({ params }: { params: Promise<{ id: string }> }) {
     getTranslations("orderStatus"),
     getTranslations("productUnits"),
     getTranslations("priority"),
-    getFormatter(),
+    getOrgFormatter(member.organization.timezone),
     getMemberAccess(member),
     headers(),
   ]);
